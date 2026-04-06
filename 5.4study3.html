@@ -1,0 +1,1125 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>凸透镜成像实验仿真</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #0a0f1a;
+            --bg-light: #121a2e;
+            --fg: #e8edf5;
+            --muted: #6b7a94;
+            --accent: #00d4aa;
+            --accent-glow: rgba(0, 212, 170, 0.3);
+            --lens-color: rgba(100, 180, 255, 0.4);
+            --object-color: #ff6b4a;
+            --image-color: #4a9fff;
+            --ray-color: #ffd93d;
+            --screen-color: #2a3a5a;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Noto Sans SC', sans-serif;
+            background: var(--bg);
+            color: var(--fg);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+        
+        .glass-panel {
+            background: linear-gradient(135deg, rgba(18, 26, 46, 0.9), rgba(10, 15, 26, 0.95));
+            border: 1px solid rgba(100, 140, 180, 0.2);
+            backdrop-filter: blur(10px);
+        }
+        
+        .control-slider {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 100%;
+            height: 6px;
+            border-radius: 3px;
+            background: linear-gradient(90deg, var(--bg-light), var(--accent));
+            outline: none;
+            cursor: pointer;
+        }
+        
+        .control-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: var(--accent);
+            cursor: pointer;
+            box-shadow: 0 0 15px var(--accent-glow);
+            transition: transform 0.2s;
+        }
+        
+        .control-slider::-webkit-slider-thumb:hover {
+            transform: scale(1.2);
+        }
+        
+        .toggle-btn {
+            position: relative;
+            width: 56px;
+            height: 28px;
+            background: var(--bg-light);
+            border-radius: 14px;
+            cursor: pointer;
+            transition: background 0.3s;
+            border: 1px solid rgba(100, 140, 180, 0.3);
+        }
+        
+        .toggle-btn.active {
+            background: var(--accent);
+        }
+        
+        .toggle-btn::after {
+            content: '';
+            position: absolute;
+            top: 3px;
+            left: 3px;
+            width: 20px;
+            height: 20px;
+            background: var(--fg);
+            border-radius: 50%;
+            transition: transform 0.3s;
+        }
+        
+        .toggle-btn.active::after {
+            transform: translateX(28px);
+        }
+        
+        .info-card {
+            background: linear-gradient(135deg, rgba(0, 212, 170, 0.1), rgba(74, 159, 255, 0.1));
+            border: 1px solid rgba(0, 212, 170, 0.3);
+            border-radius: 12px;
+        }
+        
+        .formula {
+            font-family: 'Times New Roman', serif;
+            font-style: italic;
+            font-size: 1.1rem;
+        }
+        
+        canvas {
+            display: block;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .legend-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }
+        
+        .pulse-hint {
+            animation: pulse 2s ease-in-out infinite;
+        }
+        
+        #submitQuiz:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 20px rgba(0, 212, 170, 0.5);
+        }
+        
+        #submitQuiz:active {
+            transform: scale(0.98);
+        }
+    </style>
+</head>
+<body class="p-4 md:p-6">
+    <div class="max-w-7xl mx-auto">
+        <!-- 标题 -->
+        <header class="text-center mb-6">
+            <h1 class="text-2xl md:text-3xl font-bold mb-2" style="color: var(--accent);">凸透镜成像实验仿真</h1>
+            <p class="text-sm md:text-base" style="color: var(--muted);">拖动光源和光屏，调节焦距，观察成像规律</p>
+        </header>
+        
+        <!-- 主画布区域 -->
+        <div class="glass-panel rounded-2xl p-4 mb-4 overflow-hidden">
+            <canvas id="mainCanvas"></canvas>
+        </div>
+        
+        <!-- 控制面板 -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+            <!-- 焦距控制 -->
+            <div class="glass-panel rounded-xl p-4">
+                <div class="flex items-center justify-between mb-3">
+                    <span class="font-medium">透镜焦距</span>
+                    <span id="focalValue" class="text-lg font-bold" style="color: var(--accent);">100 px</span>
+                </div>
+                <input type="range" id="focalSlider" class="control-slider" min="40" max="180" value="100">
+                <div class="flex justify-between text-xs mt-2" style="color: var(--muted);">
+                    <span>40 px</span>
+                    <span>180 px</span>
+                </div>
+            </div>
+            
+            <!-- 光路显示开关 -->
+            <div class="glass-panel rounded-xl p-4">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <span class="font-medium block">显示光路</span>
+                        <span class="text-xs" style="color: var(--muted);">查看光线传播路径</span>
+                    </div>
+                    <div id="rayToggle" class="toggle-btn"></div>
+                </div>
+            </div>
+            
+            <!-- 虚像显示开关 -->
+            <div class="glass-panel rounded-xl p-4">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <span class="font-medium block">显示虚像光路</span>
+                        <span class="text-xs" style="color: var(--muted);">物距小于焦距时</span>
+                    </div>
+                    <div id="virtualToggle" class="toggle-btn"></div>
+                </div>
+            </div>
+            
+            <!-- 像显示开关 -->
+            <div class="glass-panel rounded-xl p-4">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <span class="font-medium block">显示像</span>
+                        <span class="text-xs" style="color: var(--muted);">隐藏时需用光屏才能看到像</span>
+                    </div>
+                    <div id="imageToggle" class="toggle-btn"></div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 光路控制 -->
+        <div class="glass-panel rounded-xl p-4 mb-4">
+            <h3 class="font-bold mb-3">光路控制</h3>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <span class="font-medium block">光路1：平行光</span>
+                        <span class="text-xs" style="color: var(--muted);">平行于主光轴</span>
+                    </div>
+                    <div id="ray1Toggle" class="toggle-btn"></div>
+                </div>
+                <div class="flex items-center justify-between">
+                    <div>
+                        <span class="font-medium block">光路2：过光心</span>
+                        <span class="text-xs" style="color: var(--muted);">通过透镜中心</span>
+                    </div>
+                    <div id="ray2Toggle" class="toggle-btn"></div>
+                </div>
+                <div class="flex items-center justify-between">
+                    <div>
+                        <span class="font-medium block">光路3：过焦点</span>
+                        <span class="text-xs" style="color: var(--muted);">通过焦点</span>
+                    </div>
+                    <div id="ray3Toggle" class="toggle-btn"></div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 实时数据面板 -->
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+            <div class="info-card p-3 text-center">
+                <div class="text-xs mb-1" style="color: var(--muted);">物距</div>
+                <div id="objectDist" class="text-xl font-bold" style="color: var(--object-color);">200 px</div>
+            </div>
+            <div class="info-card p-3 text-center">
+                <div class="text-xs mb-1" style="color: var(--muted);">像距</div>
+                <div id="imageDist" class="text-xl font-bold" style="color: var(--image-color);">200 px</div>
+            </div>
+            <div class="info-card p-3 text-center">
+                <div class="text-xs mb-1" style="color: var(--muted);">放大率</div>
+                <div id="magnification" class="text-xl font-bold" style="color: var(--accent);">1.0x</div>
+            </div>
+            <div class="info-card p-3 text-center">
+                <div class="text-xs mb-1" style="color: var(--muted);">像的性质</div>
+                <div id="imageType" class="text-sm font-bold" style="color: var(--fg);">倒立等大实像</div>
+            </div>
+        </div>
+        
+        <!-- 成像规律说明 -->
+        <div class="glass-panel rounded-xl p-4">
+            <h3 class="font-bold mb-3 flex items-center gap-2">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"/>
+                    <path d="M12 16v-4M12 8h.01"/>
+                </svg>
+                凸透镜成像规律
+            </h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 text-sm">
+                <div class="p-3 rounded-lg" style="background: rgba(255, 107, 74, 0.1); border-left: 3px solid var(--object-color);">
+                    <strong>u > 2f</strong>：成
+                    <select class="quiz-select" data-correct="倒立、缩小的实像" style="background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.3); color: #ff4444; padding: 2px 8px; border-radius: 4px; margin-left: 4px;">
+                        <option value="">请选择</option>
+                        <option value="倒立、缩小的实像">倒立、缩小的实像</option>
+                        <option value="倒立、等大的实像">倒立、等大的实像</option>
+                        <option value="倒立、放大的实像">倒立、放大的实像</option>
+                        <option value="正立、放大的虚像">正立、放大的虚像</option>
+                    </select>
+                </div>
+                <div class="p-3 rounded-lg" style="background: rgba(255, 217, 61, 0.1); border-left: 3px solid var(--ray-color);">
+                    <strong>u = 2f</strong>：成
+                    <select class="quiz-select" data-correct="倒立、等大的实像" style="background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.3); color: #ff4444; padding: 2px 8px; border-radius: 4px; margin-left: 4px;">
+                        <option value="">请选择</option>
+                        <option value="倒立、缩小的实像">倒立、缩小的实像</option>
+                        <option value="倒立、等大的实像">倒立、等大的实像</option>
+                        <option value="倒立、放大的实像">倒立、放大的实像</option>
+                        <option value="正立、放大的虚像">正立、放大的虚像</option>
+                    </select>
+                </div>
+                <div class="p-3 rounded-lg" style="background: rgba(0, 212, 170, 0.1); border-left: 3px solid var(--accent);">
+                    <strong>f < u < 2f</strong>：成
+                    <select class="quiz-select" data-correct="倒立、放大的实像" style="background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.3); color: #ff4444; padding: 2px 8px; border-radius: 4px; margin-left: 4px;">
+                        <option value="">请选择</option>
+                        <option value="倒立、缩小的实像">倒立、缩小的实像</option>
+                        <option value="倒立、等大的实像">倒立、等大的实像</option>
+                        <option value="倒立、放大的实像">倒立、放大的实像</option>
+                        <option value="正立、放大的虚像">正立、放大的虚像</option>
+                    </select>
+                </div>
+                <div class="p-3 rounded-lg" style="background: rgba(74, 159, 255, 0.1); border-left: 3px solid var(--image-color);">
+                    <strong>u = f</strong>：
+                    <select class="quiz-select" data-correct="不成像" style="background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.3); color: #ff4444; padding: 2px 8px; border-radius: 4px; margin-left: 4px;">
+                        <option value="">请选择</option>
+                        <option value="不成像">不成像</option>
+                        <option value="倒立、缩小的实像">倒立、缩小的实像</option>
+                        <option value="倒立、等大的实像">倒立、等大的实像</option>
+                        <option value="倒立、放大的实像">倒立、放大的实像</option>
+                        <option value="正立、放大的虚像">正立、放大的虚像</option>
+                    </select>
+                </div>
+                <div class="p-3 rounded-lg" style="background: rgba(160, 120, 255, 0.1); border-left: 3px solid #a078ff;">
+                    <strong>u < f</strong>：成
+                    <select class="quiz-select" data-correct="正立、放大的虚像" style="background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.3); color: #ff4444; padding: 2px 8px; border-radius: 4px; margin-left: 4px;">
+                        <option value="">请选择</option>
+                        <option value="倒立、缩小的实像">倒立、缩小的实像</option>
+                        <option value="倒立、等大的实像">倒立、等大的实像</option>
+                        <option value="倒立、放大的实像">倒立、放大的实像</option>
+                        <option value="正立、放大的虚像">正立、放大的虚像</option>
+                    </select>
+                </div>
+            </div>
+            <div class="mt-4 text-center">
+                <button id="submitQuiz" style="background: var(--accent); color: #0a0f1a; padding: 10px 30px; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; transition: transform 0.2s, box-shadow 0.2s;">
+                    提交答案
+                </button>
+            </div>
+            <div id="quizResult" class="mt-4 p-4 rounded-lg hidden" style="background: rgba(0, 212, 170, 0.1); border: 1px solid var(--accent);">
+            </div>
+        </div>
+        
+        <!-- 图例 -->
+        <div class="flex flex-wrap justify-center gap-6 mt-4 text-sm" style="color: var(--muted);">
+            <div class="legend-item">
+                <div class="legend-dot" style="background: var(--object-color);"></div>
+                <span>物体/光源</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-dot" style="background: var(--image-color);"></div>
+                <span>像</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-dot" style="background: var(--ray-color);"></div>
+                <span>光线</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-dot" style="background: var(--accent);"></div>
+                <span>焦点</span>
+            </div>
+        </div>
+        
+        <!-- 操作提示 -->
+        <div class="text-center mt-4 pulse-hint" style="color: var(--muted);">
+            <span class="text-xs">提示：拖动橙色箭头（光源）或灰色光屏来改变位置</span>
+        </div>
+    </div>
+
+    <script>
+        // ============ 初始化配置 ============
+        const canvas = document.getElementById('mainCanvas');
+        const ctx = canvas.getContext('2d');
+        
+        // 颜色配置
+        const COLORS = {
+            bg: '#0a0f1a',
+            bgLight: '#121a2e',
+            fg: '#e8edf5',
+            muted: '#6b7a94',
+            accent: '#00d4aa',
+            lens: 'rgba(100, 180, 255, 0.4)',
+            lensBorder: 'rgba(100, 180, 255, 0.8)',
+            object: '#ff6b4a',
+            image: '#4a9fff',
+            virtualImage: '#a078ff',
+            ray: '#ffd93d',
+            rayGlow: 'rgba(255, 217, 61, 0.3)',
+            screen: '#3a4a6a',
+            screenBorder: '#5a6a8a',
+            ruler: '#4a5a7a',
+            rulerText: '#8a9aba'
+        };
+        
+        // 状态变量
+        let canvasWidth = 0;
+        let canvasHeight = 0;
+        let centerX = 0;
+        let centerY = 0;
+        let focalLength = 100;
+        let showRays = false; // 默认隐藏光路
+        let showVirtual = false; // 默认隐藏虚像
+        let showImage = false; // 控制像的显示/隐藏
+        let showRay1 = false; // 控制第一条光路
+        let showRay2 = false; // 控制第二条光路
+        let showRay3 = false; // 控制第三条光路
+        
+        // 物体状态
+        let objectX = 0;
+        let objectHeight = 60;
+        
+        // 光屏状态
+        let screenX = 0;
+        
+        // 拖拽状态
+        let isDraggingObject = false;
+        let isDraggingScreen = false;
+        let dragOffsetX = 0;
+        
+        // 动画状态
+        let animationTime = 0;
+        
+        // ============ 初始化画布 ============
+        function initCanvas() {
+            const container = canvas.parentElement;
+            const rect = container.getBoundingClientRect();
+            const dpr = window.devicePixelRatio || 1;
+            
+            canvasWidth = rect.width - 32;
+            canvasHeight = Math.min(450, window.innerHeight * 0.45);
+            
+            canvas.width = canvasWidth * dpr;
+            canvas.height = canvasHeight * dpr;
+            canvas.style.width = canvasWidth + 'px';
+            canvas.style.height = canvasHeight + 'px';
+            
+            ctx.scale(dpr, dpr);
+            
+            centerX = canvasWidth / 2;
+            centerY = canvasHeight / 2 + 20;
+            
+            // 初始化物体和光屏位置
+            if (objectX === 0) {
+                objectX = centerX - 200;
+                screenX = centerX + 200;
+            }
+        }
+        
+        // ============ 绘制函数 ============
+        
+        // 绘制光具座（刻度尺）
+        function drawOpticalBench() {
+            const rulerY = centerY + 80;
+            const rulerHeight = 30;
+            
+            // 尺身背景
+            ctx.fillStyle = COLORS.bgLight;
+            ctx.fillRect(20, rulerY - rulerHeight/2, canvasWidth - 40, rulerHeight);
+            
+            // 尺身边框
+            ctx.strokeStyle = COLORS.ruler;
+            ctx.lineWidth = 1;
+            ctx.strokeRect(20, rulerY - rulerHeight/2, canvasWidth - 40, rulerHeight);
+            
+            // 刻度
+            const startX = 40;
+            const endX = canvasWidth - 40;
+            const pixelsPerUnit = 20; // 每20像素一个刻度
+            
+            ctx.strokeStyle = COLORS.rulerText;
+            ctx.fillStyle = COLORS.rulerText;
+            ctx.font = '10px Noto Sans SC';
+            ctx.textAlign = 'center';
+            
+            for (let x = startX; x <= endX; x += pixelsPerUnit) {
+                const isMajor = (x - startX) % (pixelsPerUnit * 5) === 0;
+                const tickHeight = isMajor ? 10 : 5;
+                
+                ctx.beginPath();
+                ctx.moveTo(x, rulerY - tickHeight);
+                ctx.lineTo(x, rulerY + tickHeight);
+                ctx.lineWidth = isMajor ? 1.5 : 0.5;
+                ctx.stroke();
+                
+                // 主刻度数字（相对于透镜位置）
+                if (isMajor && Math.abs(x - centerX) > 30) {
+                    const distance = Math.round((x - centerX) / pixelsPerUnit) * 20;
+                    ctx.fillText(Math.abs(distance), x, rulerY + 20);
+                }
+            }
+            
+            // 透镜位置标记
+            ctx.fillStyle = COLORS.accent;
+            ctx.font = 'bold 12px Noto Sans SC';
+            ctx.fillText('O', centerX, rulerY + 20);
+        }
+        
+        // 绘制凸透镜
+        function drawLens() {
+            const lensHeight = 140;
+            // 根据焦距计算透镜厚度：焦距越小，厚度越大
+            const lensWidth = 40 - (focalLength - 40) * 0.15; // 焦距40时厚度40，焦距180时厚度19
+            
+            // 透镜光晕
+            const gradient = ctx.createRadialGradient(centerX, centerY, 0, centerX, centerY, lensHeight/2);
+            gradient.addColorStop(0, 'rgba(100, 180, 255, 0.15)');
+            gradient.addColorStop(1, 'rgba(100, 180, 255, 0)');
+            ctx.fillStyle = gradient;
+            ctx.beginPath();
+            ctx.ellipse(centerX, centerY, lensWidth + 10, lensHeight/2 + 20, 0, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // 透镜主体（双凸形状）
+            ctx.beginPath();
+            ctx.moveTo(centerX, centerY - lensHeight/2);
+            ctx.quadraticCurveTo(centerX + lensWidth, centerY, centerX, centerY + lensHeight/2);
+            ctx.quadraticCurveTo(centerX - lensWidth, centerY, centerX, centerY - lensHeight/2);
+            ctx.closePath();
+            
+            const lensGradient = ctx.createLinearGradient(centerX - lensWidth, centerY, centerX + lensWidth, centerY);
+            lensGradient.addColorStop(0, 'rgba(100, 180, 255, 0.2)');
+            lensGradient.addColorStop(0.5, 'rgba(150, 200, 255, 0.5)');
+            lensGradient.addColorStop(1, 'rgba(100, 180, 255, 0.2)');
+            ctx.fillStyle = lensGradient;
+            ctx.fill();
+            
+            ctx.strokeStyle = COLORS.lensBorder;
+            ctx.lineWidth = 2;
+            ctx.stroke();
+            
+            // 主光轴
+            ctx.beginPath();
+            ctx.setLineDash([5, 5]);
+            ctx.moveTo(20, centerY);
+            ctx.lineTo(canvasWidth - 20, centerY);
+            ctx.strokeStyle = COLORS.muted;
+            ctx.lineWidth = 1;
+            ctx.stroke();
+            ctx.setLineDash([]);
+            
+            // 焦点标记
+            drawFocalPoint(centerX - focalLength, centerY, 'F');
+            drawFocalPoint(centerX + focalLength, centerY, "F'");
+            drawFocalPoint(centerX - 2 * focalLength, centerY, '2F');
+            drawFocalPoint(centerX + 2 * focalLength, centerY, "2F'");
+        }
+        
+        // 绘制焦点
+        function drawFocalPoint(x, y, label) {
+            if (x < 30 || x > canvasWidth - 30) return;
+            
+            // 焦点光晕
+            const glow = ctx.createRadialGradient(x, y, 0, x, y, 15);
+            glow.addColorStop(0, 'rgba(0, 212, 170, 0.4)');
+            glow.addColorStop(1, 'rgba(0, 212, 170, 0)');
+            ctx.fillStyle = glow;
+            ctx.beginPath();
+            ctx.arc(x, y, 15, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // 焦点
+            ctx.beginPath();
+            ctx.arc(x, y, 5, 0, Math.PI * 2);
+            ctx.fillStyle = COLORS.accent;
+            ctx.fill();
+            
+            // 标签
+            ctx.fillStyle = COLORS.accent;
+            ctx.font = 'bold 12px Noto Sans SC';
+            ctx.textAlign = 'center';
+            ctx.fillText(label, x, y + 25);
+        }
+        
+        // 绘制物体（箭头）
+        function drawObject() {
+            const x = objectX;
+            const y = centerY;
+            const height = objectHeight;
+            const width = 12;
+            
+            // 箭头主体
+            ctx.beginPath();
+            ctx.moveTo(x, y);
+            ctx.lineTo(x, y - height);
+            
+            // 箭头头部
+            ctx.lineTo(x - width, y - height + 15);
+            ctx.moveTo(x, y - height);
+            ctx.lineTo(x + width, y - height + 15);
+            
+            ctx.strokeStyle = COLORS.object;
+            ctx.lineWidth = 4;
+            ctx.lineCap = 'round';
+            ctx.stroke();
+            
+            // 箭头底部
+            ctx.beginPath();
+            ctx.arc(x, y, 3, 0, Math.PI * 2);
+            ctx.fillStyle = COLORS.object;
+            ctx.fill();
+            
+            // 物体光晕
+            const glow = ctx.createRadialGradient(x, y - height/2, 0, x, y - height/2, height);
+            glow.addColorStop(0, 'rgba(255, 107, 74, 0.2)');
+            glow.addColorStop(1, 'rgba(255, 107, 74, 0)');
+            ctx.fillStyle = glow;
+            ctx.beginPath();
+            ctx.arc(x, y - height/2, height, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // 标签
+            ctx.fillStyle = COLORS.object;
+            ctx.font = 'bold 14px Noto Sans SC';
+            ctx.textAlign = 'center';
+            ctx.fillText('物', x, y + 25);
+        }
+        
+        // 绘制光屏
+        function drawScreen() {
+            const x = screenX;
+            const y = centerY;
+            const height = 120;
+            const width = 8;
+            
+            // 光屏主体
+            ctx.fillStyle = COLORS.screen;
+            ctx.fillRect(x - width/2, y - height/2, width, height);
+            
+            ctx.strokeStyle = COLORS.screenBorder;
+            ctx.lineWidth = 2;
+            ctx.strokeRect(x - width/2, y - height/2, width, height);
+            
+            // 光屏支架
+            ctx.fillStyle = COLORS.muted;
+            ctx.fillRect(x - 2, y + height/2, 4, 30);
+            
+            // 标签
+            ctx.fillStyle = COLORS.fg;
+            ctx.font = '12px Noto Sans SC';
+            ctx.textAlign = 'center';
+            ctx.fillText('光屏', x, y + height/2 + 45);
+        }
+        
+        // 计算成像
+        function calculateImage() {
+            const u = centerX - objectX; // 物距（正值）
+            
+            if (u <= 0 || Math.abs(u - focalLength) < 1) {
+                return { v: Infinity, m: Infinity, isReal: false, imageX: Infinity, imageHeight: 0 };
+            }
+            
+            // 透镜公式: 1/u + 1/v = 1/f
+            const v = (u * focalLength) / (u - focalLength);
+            const m = -v / u; // 放大率（负号表示倒立）
+            
+            return {
+                v: v,
+                m: m,
+                isReal: v > 0,
+                imageX: centerX + v,
+                imageHeight: objectHeight * Math.abs(m)
+            };
+        }
+        
+        // 绘制像
+        function drawImage() {
+            const image = calculateImage();
+            
+            if (!isFinite(image.v) || !isFinite(image.imageX)) return;
+            if (image.imageX < 30 || image.imageX > canvasWidth - 30) return;
+            
+            const x = image.imageX;
+            const y = centerY;
+            const height = Math.min(image.imageHeight, 150); // 限制最大高度
+            const width = 12 * Math.abs(image.m);
+            
+            // 检查是否应该显示像
+            let shouldShowImage = showImage;
+            
+            // 如果像被隐藏，检查光屏是否在合适位置（只对实像有效）
+            if (!showImage && image.isReal) {
+                const screenTolerance = 20; // 光屏位置容差
+                shouldShowImage = Math.abs(screenX - x) < screenTolerance;
+            }
+            
+            if (shouldShowImage) {
+                if (image.isReal) {
+                    // 实像（倒立）
+                    ctx.beginPath();
+                    ctx.moveTo(x, y);
+                    ctx.lineTo(x, y + height); // 向下（倒立）
+                    ctx.lineTo(x - width, y + height - 15);
+                    ctx.moveTo(x, y + height);
+                    ctx.lineTo(x + width, y + height - 15);
+                    
+                    ctx.strokeStyle = COLORS.image;
+                    ctx.lineWidth = 3;
+                    ctx.lineCap = 'round';
+                    ctx.stroke();
+                    
+                    // 实像光晕
+                    const glow = ctx.createRadialGradient(x, y + height/2, 0, x, y + height/2, height);
+                    glow.addColorStop(0, 'rgba(74, 159, 255, 0.3)');
+                    glow.addColorStop(1, 'rgba(74, 159, 255, 0)');
+                    ctx.fillStyle = glow;
+                    ctx.beginPath();
+                    ctx.arc(x, y + height/2, height, 0, Math.PI * 2);
+                    ctx.fill();
+                    
+                    ctx.fillStyle = COLORS.image;
+                    ctx.font = 'bold 14px Noto Sans SC';
+                    ctx.textAlign = 'center';
+                    ctx.fillText('像', x, y - 15);
+                } else if (showVirtual) {
+                    // 虚像（正立）
+                    ctx.beginPath();
+                    ctx.moveTo(x, y);
+                    ctx.lineTo(x, y - height); // 向上（正立）
+                    ctx.lineTo(x - width, y - height + 15);
+                    ctx.moveTo(x, y - height);
+                    ctx.lineTo(x + width, y - height + 15);
+                    
+                    ctx.strokeStyle = COLORS.virtualImage;
+                    ctx.lineWidth = 3;
+                    ctx.setLineDash([5, 5]);
+                    ctx.lineCap = 'round';
+                    ctx.stroke();
+                    ctx.setLineDash([]);
+                    
+                    ctx.fillStyle = COLORS.virtualImage;
+                    ctx.font = 'bold 14px Noto Sans SC';
+                    ctx.textAlign = 'center';
+                    ctx.fillText('虚像', x, y - height - 15);
+                }
+            }
+        }
+        
+        // 绘制光路
+        function drawRays() {
+            if (!showRays && !showRay1 && !showRay2 && !showRay3) return;
+            
+            const image = calculateImage();
+            const objX = objectX;
+            const objTopY = centerY - objectHeight;
+            
+            ctx.lineWidth = 2;
+            ctx.lineCap = 'round';
+            
+            // 光线动画偏移
+            const dashOffset = animationTime * 50;
+            
+            // 光线1：平行于主光轴的光线，折射后过焦点
+            if (showRay1 || (showRays && !showRay1 && !showRay2 && !showRay3)) {
+                ctx.beginPath();
+                ctx.moveTo(objX, objTopY);
+                ctx.lineTo(centerX, objTopY);
+                ctx.strokeStyle = COLORS.ray;
+                ctx.stroke();
+                
+                if (image.isReal && isFinite(image.imageX)) {
+                    // 实像：光线过焦点
+                    ctx.beginPath();
+                    ctx.moveTo(centerX, objTopY);
+                    ctx.lineTo(image.imageX, centerY + image.imageHeight);
+                    ctx.stroke();
+                } else if (isFinite(image.imageX)) {
+                    // 虚像：光线反向延长过焦点
+                    const focalX = centerX + focalLength;
+                    const slope = (centerY - objTopY) / (focalX - centerX);
+                    const endX = canvasWidth - 20;
+                    const endY = objTopY + slope * (endX - centerX);
+                    
+                    // 始终绘制实际光线
+                    ctx.beginPath();
+                    ctx.moveTo(centerX, objTopY);
+                    ctx.lineTo(endX, endY);
+                    ctx.stroke();
+                    
+                    // 虚线延长只在showVirtual为true时绘制
+                    if (showVirtual) {
+                        ctx.beginPath();
+                        ctx.setLineDash([5, 5]);
+                        ctx.moveTo(centerX, objTopY);
+                        ctx.lineTo(image.imageX, centerY - image.imageHeight);
+                        ctx.strokeStyle = COLORS.virtualImage;
+                        ctx.stroke();
+                        ctx.setLineDash([]);
+                        ctx.strokeStyle = COLORS.ray;
+                    }
+                }
+            }
+            
+            // 光线2：过光心的光线，不改变方向
+            if (showRay2 || (showRays && !showRay1 && !showRay2 && !showRay3)) {
+                ctx.beginPath();
+                ctx.moveTo(objX, objTopY);
+                if (image.isReal && isFinite(image.imageX)) {
+                    ctx.lineTo(image.imageX, centerY + image.imageHeight);
+                } else {
+                    // 绘制实际光线到画布边缘
+                    ctx.lineTo(canvasWidth - 20, centerY + (centerY - objTopY) / (centerX - objX) * (canvasWidth - 20 - centerX));
+                }
+                ctx.strokeStyle = COLORS.ray;
+                ctx.stroke();
+                
+                // 当形成虚像且showVirtual为true时，绘制虚线延长到虚像
+                if (!image.isReal && showVirtual && isFinite(image.imageX)) {
+                    ctx.beginPath();
+                    ctx.setLineDash([5, 5]);
+                    ctx.moveTo(centerX, centerY);
+                    ctx.lineTo(image.imageX, centerY - image.imageHeight);
+                    ctx.strokeStyle = COLORS.virtualImage;
+                    ctx.stroke();
+                    ctx.setLineDash([]);
+                    ctx.strokeStyle = COLORS.ray;
+                }
+            }
+            
+            // 光线3：过焦点的光线，折射后平行于主光轴
+            if (showRay3 || (showRays && !showRay1 && !showRay2 && !showRay3)) {
+                const leftFocalX = centerX - focalLength;
+                if (objX < leftFocalX) {
+                    const slope = (objTopY - centerY) / (objX - leftFocalX);
+                    const lensY = centerY + slope * (centerX - leftFocalX);
+                    
+                    ctx.beginPath();
+                    ctx.moveTo(objX, objTopY);
+                    ctx.lineTo(centerX, lensY);
+                    ctx.stroke();
+                    
+                    if (image.isReal && isFinite(image.imageX)) {
+                        ctx.beginPath();
+                        ctx.moveTo(centerX, lensY);
+                        ctx.lineTo(image.imageX, lensY);
+                        ctx.stroke();
+                    } else {
+                        // 始终绘制实际光线
+                        ctx.beginPath();
+                        ctx.moveTo(centerX, lensY);
+                        ctx.lineTo(canvasWidth - 20, lensY);
+                        ctx.stroke();
+                    }
+                }
+            }
+        }
+        
+        // 绘制拖拽提示
+        function drawDragHints() {
+            // 物体拖拽区域提示
+            if (!isDraggingObject && !isDraggingScreen) {
+                ctx.fillStyle = 'rgba(255, 107, 74, 0.1)';
+                ctx.beginPath();
+                ctx.arc(objectX, centerY - objectHeight/2, 30, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+        
+        // 更新信息面板
+        function updateInfoPanel() {
+            const u = Math.round(centerX - objectX);
+            const image = calculateImage();
+            
+            document.getElementById('objectDist').textContent = u + ' px';
+            document.getElementById('focalValue').textContent = focalLength + ' px';
+            
+            if (Math.abs(u - focalLength) < 5) {
+                document.getElementById('imageDist').textContent = '∞';
+                document.getElementById('magnification').textContent = '∞';
+                document.getElementById('imageType').textContent = '不成像';
+                document.getElementById('imageType').style.color = COLORS.ray;
+            } else if (isFinite(image.v)) {
+                document.getElementById('imageDist').textContent = Math.round(Math.abs(image.v)) + ' px';
+                document.getElementById('magnification').textContent = Math.abs(image.m).toFixed(2) + 'x';
+                
+                let typeText = '';
+                let typeColor = '';
+                
+                if (image.isReal) {
+                    if (Math.abs(image.m) < 0.95) {
+                        typeText = '倒立缩小实像';
+                        typeColor = COLORS.object;
+                    } else if (Math.abs(image.m) > 1.05) {
+                        typeText = '倒立放大实像';
+                        typeColor = COLORS.accent;
+                    } else {
+                        typeText = '倒立等大实像';
+                        typeColor = COLORS.ray;
+                    }
+                } else {
+                    typeText = '正立放大虚像';
+                    typeColor = COLORS.virtualImage;
+                }
+                
+                document.getElementById('imageType').textContent = typeText;
+                document.getElementById('imageType').style.color = typeColor;
+            }
+        }
+        
+        // 主绘制循环
+        function draw() {
+            // 清空画布
+            ctx.fillStyle = COLORS.bg;
+            ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+            
+            // 绘制背景网格
+            drawGrid();
+            
+            // 绘制各元素
+            drawOpticalBench();
+            drawRays();
+            drawLens();
+            drawObject();
+            drawImage();
+            drawScreen();
+            drawDragHints();
+            
+            // 更新动画时间
+            animationTime += 0.016;
+            
+            // 更新信息面板
+            updateInfoPanel();
+            
+            requestAnimationFrame(draw);
+        }
+        
+        // 绘制背景网格
+        function drawGrid() {
+            ctx.strokeStyle = 'rgba(100, 140, 180, 0.05)';
+            ctx.lineWidth = 1;
+            
+            const gridSize = 40;
+            
+            for (let x = 0; x < canvasWidth; x += gridSize) {
+                ctx.beginPath();
+                ctx.moveTo(x, 0);
+                ctx.lineTo(x, canvasHeight);
+                ctx.stroke();
+            }
+            
+            for (let y = 0; y < canvasHeight; y += gridSize) {
+                ctx.beginPath();
+                ctx.moveTo(0, y);
+                ctx.lineTo(canvasWidth, y);
+                ctx.stroke();
+            }
+        }
+        
+        // ============ 交互处理 ============
+        
+        function getMousePos(e) {
+            const rect = canvas.getBoundingClientRect();
+            return {
+                x: e.clientX - rect.left,
+                y: e.clientY - rect.top
+            };
+        }
+        
+        function isNearObject(x, y) {
+            const objTopY = centerY - objectHeight;
+            return x > objectX - 25 && x < objectX + 25 && y > objTopY - 20 && y < centerY + 20;
+        }
+        
+        function isNearScreen(x, y) {
+            return x > screenX - 20 && x < screenX + 20 && y > centerY - 80 && y < centerY + 80;
+        }
+        
+        canvas.addEventListener('mousedown', (e) => {
+            const pos = getMousePos(e);
+            
+            if (isNearObject(pos.x, pos.y)) {
+                isDraggingObject = true;
+                dragOffsetX = pos.x - objectX;
+                canvas.style.cursor = 'grabbing';
+            } else if (isNearScreen(pos.x, pos.y)) {
+                isDraggingScreen = true;
+                dragOffsetX = pos.x - screenX;
+                canvas.style.cursor = 'grabbing';
+            }
+        });
+        
+        canvas.addEventListener('mousemove', (e) => {
+            const pos = getMousePos(e);
+            
+            if (isDraggingObject) {
+                objectX = Math.max(40, Math.min(centerX - 20, pos.x - dragOffsetX));
+            } else if (isDraggingScreen) {
+                screenX = Math.max(centerX + 20, Math.min(canvasWidth - 40, pos.x - dragOffsetX));
+            } else {
+                if (isNearObject(pos.x, pos.y) || isNearScreen(pos.x, pos.y)) {
+                    canvas.style.cursor = 'grab';
+                } else {
+                    canvas.style.cursor = 'default';
+                }
+            }
+        });
+        
+        canvas.addEventListener('mouseup', () => {
+            isDraggingObject = false;
+            isDraggingScreen = false;
+            canvas.style.cursor = 'default';
+        });
+        
+        canvas.addEventListener('mouseleave', () => {
+            isDraggingObject = false;
+            isDraggingScreen = false;
+            canvas.style.cursor = 'default';
+        });
+        
+        // 触摸支持
+        canvas.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            const touch = e.touches[0];
+            const rect = canvas.getBoundingClientRect();
+            const pos = {
+                x: touch.clientX - rect.left,
+                y: touch.clientY - rect.top
+            };
+            
+            if (isNearObject(pos.x, pos.y)) {
+                isDraggingObject = true;
+                dragOffsetX = pos.x - objectX;
+            } else if (isNearScreen(pos.x, pos.y)) {
+                isDraggingScreen = true;
+                dragOffsetX = pos.x - screenX;
+            }
+        }, { passive: false });
+        
+        canvas.addEventListener('touchmove', (e) => {
+            e.preventDefault();
+            const touch = e.touches[0];
+            const rect = canvas.getBoundingClientRect();
+            const pos = {
+                x: touch.clientX - rect.left,
+                y: touch.clientY - rect.top
+            };
+            
+            if (isDraggingObject) {
+                objectX = Math.max(40, Math.min(centerX - 20, pos.x - dragOffsetX));
+            } else if (isDraggingScreen) {
+                screenX = Math.max(centerX + 20, Math.min(canvasWidth - 40, pos.x - dragOffsetX));
+            }
+        }, { passive: false });
+        
+        canvas.addEventListener('touchend', () => {
+            isDraggingObject = false;
+            isDraggingScreen = false;
+        });
+        
+        // ============ 控件事件 ============
+        
+        document.getElementById('focalSlider').addEventListener('input', (e) => {
+            focalLength = parseInt(e.target.value);
+        });
+        
+        document.getElementById('rayToggle').addEventListener('click', (e) => {
+            showRays = !showRays;
+            e.currentTarget.classList.toggle('active');
+        });
+        
+        document.getElementById('virtualToggle').addEventListener('click', (e) => {
+            showVirtual = !showVirtual;
+            e.currentTarget.classList.toggle('active');
+        });
+        
+        document.getElementById('imageToggle').addEventListener('click', (e) => {
+            showImage = !showImage;
+            e.currentTarget.classList.toggle('active');
+        });
+        
+        document.getElementById('ray1Toggle').addEventListener('click', (e) => {
+            showRay1 = !showRay1;
+            e.currentTarget.classList.toggle('active');
+        });
+        
+        document.getElementById('ray2Toggle').addEventListener('click', (e) => {
+            showRay2 = !showRay2;
+            e.currentTarget.classList.toggle('active');
+        });
+        
+        document.getElementById('ray3Toggle').addEventListener('click', (e) => {
+            showRay3 = !showRay3;
+            e.currentTarget.classList.toggle('active');
+        });
+        
+        // ============ 测验提交逻辑 ============
+        
+        document.getElementById('submitQuiz').addEventListener('click', () => {
+            const selects = document.querySelectorAll('.quiz-select');
+            let correctCount = 0;
+            let totalQuestions = selects.length;
+            let resultHTML = '';
+            
+            selects.forEach((select, index) => {
+                const userAnswer = select.value;
+                const correctAnswer = select.dataset.correct;
+                const parentDiv = select.closest('.p-3');
+                
+                if (userAnswer === correctAnswer) {
+                    correctCount++;
+                    parentDiv.style.border = '2px solid #00d4aa';
+                    parentDiv.style.background = 'rgba(0, 212, 170, 0.2)';
+                } else {
+                    parentDiv.style.border = '2px solid #ff4444';
+                    parentDiv.style.background = 'rgba(255, 68, 68, 0.1)';
+                }
+            });
+            
+            const score = Math.round((correctCount / totalQuestions) * 100);
+            resultHTML += `<div class="text-center mb-3"><strong>得分：${score}分</strong> (${correctCount}/${totalQuestions})</div>`;
+            resultHTML += '<div class="text-sm"><strong>正确答案：</strong></div>';
+            resultHTML += '<ul class="text-sm mt-2 space-y-1">';
+            
+            selects.forEach((select, index) => {
+                const correctAnswer = select.dataset.correct;
+                const userAnswer = select.value;
+                const condition = select.closest('.p-3').querySelector('strong').textContent;
+                const isCorrect = userAnswer === correctAnswer;
+                
+                resultHTML += `<li style="color: ${isCorrect ? '#00d4aa' : '#ff4444'}">${condition} → ${correctAnswer} ${!userAnswer ? '(未作答)' : isCorrect ? '✓' : '✗'}</li>`;
+            });
+            
+            resultHTML += '</ul>';
+            
+            const resultDiv = document.getElementById('quizResult');
+            resultDiv.innerHTML = resultHTML;
+            resultDiv.classList.remove('hidden');
+        });
+        
+        // ============ 初始化 ============
+        
+        window.addEventListener('resize', () => {
+            initCanvas();
+        });
+        
+        initCanvas();
+        draw();
+    </script>
+</body>
+</html>

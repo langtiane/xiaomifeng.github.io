@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>光路图翻翻乐 - 凸透镜/凹透镜配对</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: "Microsoft YaHei", sans-serif;
+        }
+
+        body {
+            background-color: #f0f8ff;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .title {
+            font-size: 28px;
+            color: #2c3e50;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        /* 游戏容器：一行2张卡片 */
+        .game-container {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            max-width: 600px;
+            width: 100%;
+        }
+
+        /* 卡片样式 */
+        .card {
+            width: 100%;
+            aspect-ratio: 4/3;
+            position: relative;
+            perspective: 1000px;
+            cursor: pointer;
+        }
+
+        /* 卡片翻转核心效果 */
+        .card-inner {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            transition: transform 0.6s;
+            transform-style: preserve-3d;
+        }
+
+        .card.flipped .card-inner {
+            transform: rotateY(180deg);
+        }
+
+        /* 卡片正反面 */
+        .card-front, .card-back {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            backface-visibility: hidden;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+
+        /* 正面：默认显示背面 */
+        .card-front {
+            background-color: #3498db;
+            color: white;
+            font-size: 18px;
+            font-weight: bold;
+        }
+
+        /* 背面：翻转后显示图片 */
+        .card-back {
+            background-color: #fff;
+            transform: rotateY(180deg);
+        }
+
+        .card-back img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            padding: 10px;
+        }
+
+        /* 通关提示 */
+        .success-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.7);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 999;
+        }
+
+        .success-content {
+            background-color: white;
+            padding: 30px;
+            border-radius: 15px;
+            text-align: center;
+        }
+
+        .success-content h2 {
+            color: #27ae60;
+            margin-bottom: 20px;
+        }
+
+        .restart-btn {
+            padding: 10px 20px;
+            background-color: #3498db;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+
+        .restart-btn:hover {
+            background-color: #2980b9;
+        }
+    </style>
+</head>
+<body>
+    <h1 class="title">光路图配对翻翻乐</h1>
+    <div class="game-container" id="gameContainer"></div>
+
+    <!-- 通关弹窗 -->
+    <div class="success-modal" id="successModal">
+        <div class="success-content">
+            <h2>🎉 恭喜你通关成功！</h2>
+            <p>所有光路图都配对正确啦~</p>
+            <button class="restart-btn" onclick="restartGame()">重新开始</button>
+        </div>
+    </div>
+
+    <script>
+        // 定义配对图片组：严格按照你的要求配置
+        const imagePairs = [
+            { front: "近视眼.png", back: "凹透镜矫正.png" },
+            { front: "远视眼.png", back: "凸透镜矫正.png" },
+            { front: "相机.png", back: "相机光路图.png" },
+            { front: "放大镜.png", back: "放大镜光路图.png" },
+            { front: "投影仪.png", back: "投影仪光路图.png" }
+        ];
+
+        let gameCards = []; // 游戏卡片数组
+        let firstCard = null; // 第一张翻开的卡片
+        let secondCard = null; // 第二张翻开的卡片
+        let isLock = false; // 防止重复点击
+        let matchedCount = 0; // 已配对数量
+        let flipCount = 0; // 翻转次数
+        let startTime = 0; // 游戏开始时间
+        let endTime = 0; // 游戏结束时间
+
+        // 初始化游戏
+        function initGame() {
+            // 重置变量
+            firstCard = null;
+            secondCard = null;
+            isLock = false;
+            matchedCount = 0;
+            flipCount = 0;
+            startTime = Date.now();
+            endTime = 0;
+            document.getElementById("successModal").style.display = "none";
+            const container = document.getElementById("gameContainer");
+            container.innerHTML = "";
+
+            // 生成卡片：创建配对的卡片组
+            let cards = [];
+            imagePairs.forEach(pair => {
+                // 为每对图片创建唯一的配对ID
+                const pairId = Math.random().toString(36).substr(2, 9);
+                
+                // 卡片1：显示正面图
+                cards.push({
+                    img: pair.front,
+                    pairId: pairId,
+                    id: Math.random().toString(36).substr(2, 9)
+                });
+                // 卡片2：显示背面图
+                cards.push({
+                    img: pair.back,
+                    pairId: pairId,
+                    id: Math.random().toString(36).substr(2, 9)
+                });
+            });
+
+            // 随机打乱卡片顺序
+            gameCards = cards.sort(() => Math.random() - 0.5);
+
+            // 渲染卡片到页面
+            gameCards.forEach(card => {
+                const cardElement = document.createElement("div");
+                cardElement.classList.add("card");
+                cardElement.dataset.pairId = card.pairId;
+                cardElement.dataset.id = card.id;
+                cardElement.dataset.img = card.img;
+                
+                cardElement.innerHTML = `
+                    <div class="card-inner">
+                        <div class="card-front">
+                            <span>点击翻转</span>
+                        </div>
+                        <div class="card-back">
+                            <img src="${card.img}" alt="光路图" onerror="this.src='https://picsum.photos/200/150?random=${card.id}'">
+                        </div>
+                    </div>
+                `;
+                
+                cardElement.addEventListener("click", flipCard);
+                container.appendChild(cardElement);
+            });
+        }
+
+        // 翻转卡片函数
+        function flipCard() {
+            // 锁定状态/已翻开/已配对 → 禁止点击
+            if (isLock) return;
+            if (this === firstCard) return;
+            if (this.classList.contains("flipped")) return;
+            if (this.classList.contains("matched")) return;
+
+            this.classList.add("flipped");
+            flipCount++; // 增加翻转次数
+
+            // 记录第一张/第二张卡片
+            if (!firstCard) {
+                firstCard = this;
+                return;
+            }
+
+            secondCard = this;
+            isLock = true; // 锁定点击
+
+            // 检查是否配对成功
+            checkMatch();
+        }
+
+        // 检查卡片配对
+        function checkMatch() {
+            // 检查是否配对：两张卡片是否有相同的pairId
+            const isMatched = firstCard.dataset.pairId === secondCard.dataset.pairId;
+
+            if (isMatched) {
+                // 配对成功：禁用点击，不翻回
+                firstCard.removeEventListener("click", flipCard);
+                secondCard.removeEventListener("click", flipCard);
+                // 添加已配对类，防止再次翻转
+                firstCard.classList.add("matched");
+                secondCard.classList.add("matched");
+                matchedCount += 2;
+                resetCards();
+
+                // 全部配对成功 → 游戏通关
+                if (matchedCount === gameCards.length) {
+                    endTime = Date.now();
+                    const timeSpent = Math.floor((endTime - startTime) / 1000);
+                    
+                    // 更新结算页面统计信息
+                    const successContent = document.querySelector(".success-content p");
+                    successContent.innerHTML = `所有光路图都配对正确啦~<br>用时：${timeSpent}秒<br>翻转次数：${flipCount}次`;
+                    
+                    setTimeout(() => {
+                        document.getElementById("successModal").style.display = "flex";
+                    }, 500);
+                }
+            } else {
+                // 配对失败：1秒后翻回
+                setTimeout(() => {
+                    firstCard.classList.remove("flipped");
+                    secondCard.classList.remove("flipped");
+                    resetCards();
+                }, 1000);
+            }
+        }
+
+        // 重置卡片状态
+        function resetCards() {
+            firstCard = null;
+            secondCard = null;
+            isLock = false;
+        }
+
+        // 重新开始游戏
+        function restartGame() {
+            initGame();
+        }
+
+        // 页面加载完成后初始化游戏
+        window.addEventListener("load", initGame);
+    </script>
+</body>
+</html>

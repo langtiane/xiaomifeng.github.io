@@ -1,0 +1,1602 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D光学反射实验模拟器</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
+            color: white;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+        
+        .container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        
+        header {
+            text-align: center;
+            margin-bottom: 20px;
+            width: 100%;
+        }
+        
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+            background: linear-gradient(90deg, #00d4ff, #7b2ff7);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .subtitle {
+            font-size: 1.2rem;
+            margin-bottom: 20px;
+            opacity: 0.9;
+        }
+        
+        .content {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 20px;
+            width: 100%;
+        }
+        
+        .left-section {
+            flex: 1;
+            min-width: 600px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        
+        .canvas-container {
+            height: 500px;
+            background-color: rgba(0, 0, 0, 0.3);
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+            position: relative;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        #canvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+        
+        .controls {
+            flex: 0 0 300px;
+            background-color: rgba(255, 255, 255, 0.08);
+            backdrop-filter: blur(10px);
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .control-group {
+            margin-bottom: 25px;
+        }
+        
+        h2 {
+            font-size: 1.3rem;
+            margin-bottom: 15px;
+            border-bottom: 2px solid rgba(0, 212, 255, 0.5);
+            padding-bottom: 8px;
+            color: #00d4ff;
+        }
+        
+        .checkbox-group {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        
+        .checkbox-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .checkbox-item input {
+            width: 18px;
+            height: 18px;
+            accent-color: #00d4ff;
+        }
+        
+        .checkbox-item label {
+            font-size: 1rem;
+            cursor: pointer;
+        }
+        
+        .slider-group {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        
+        .slider-item {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        
+        .slider-item label {
+            font-size: 1rem;
+        }
+        
+        .slider-item input {
+            width: 100%;
+            accent-color: #00d4ff;
+        }
+        
+        .button-group {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        
+        .button-group button {
+            padding: 12px;
+            background: linear-gradient(135deg, #00d4ff, #7b2ff7);
+            border: none;
+            border-radius: 5px;
+            color: white;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: bold;
+        }
+        
+        .button-group button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 212, 255, 0.4);
+        }
+        
+        .info-panel {
+            background-color: rgba(0, 0, 0, 0.4);
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 10px;
+        }
+        
+        .info-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            padding: 5px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .info-label {
+            font-weight: bold;
+            color: #00d4ff;
+        }
+        
+        .instructions {
+            margin-top: 30px;
+            background-color: rgba(0, 0, 0, 0.3);
+            padding: 20px;
+            border-radius: 10px;
+            max-width: 900px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .instructions h2 {
+            text-align: center;
+            border-bottom: none;
+        }
+        
+        .instructions ul {
+            margin-top: 15px;
+            padding-left: 20px;
+        }
+        
+        .instructions li {
+            margin-bottom: 10px;
+            line-height: 1.6;
+        }
+        
+        .instructions li strong {
+            color: #00d4ff;
+        }
+        
+        .exercise-section {
+            margin-top: 0;
+            background-color: rgba(0, 0, 0, 0.3);
+            padding: 20px;
+            border-radius: 10px;
+            max-width: 900px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .exercise-section h2 {
+            text-align: center;
+            border-bottom: none;
+            color: #00d4ff;
+        }
+        
+        .exercise-questions {
+            margin-top: 20px;
+        }
+        
+        .question-item {
+            background-color: rgba(255, 255, 255, 0.05);
+            padding: 15px;
+            margin-bottom: 15px;
+            border-radius: 8px;
+            border-left: 3px solid #00d4ff;
+        }
+        
+        .question-item p {
+            margin-bottom: 12px;
+            line-height: 1.6;
+        }
+        
+        .question-options {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+        
+        .question-options label {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            cursor: pointer;
+            padding: 5px 10px;
+            background-color: rgba(0, 212, 255, 0.1);
+            border-radius: 5px;
+            transition: background-color 0.3s;
+        }
+        
+        .question-options label:hover {
+            background-color: rgba(0, 212, 255, 0.2);
+        }
+        
+        .question-options input[type="radio"] {
+            accent-color: #00d4ff;
+        }
+        
+        .exercise-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+            justify-content: center;
+        }
+        
+        .exercise-buttons button {
+            padding: 12px 30px;
+            background: linear-gradient(135deg, #00d4ff, #7b2ff7);
+            border: none;
+            border-radius: 5px;
+            color: white;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: bold;
+        }
+        
+        .exercise-buttons button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 212, 255, 0.4);
+        }
+        
+        .exercise-result {
+            margin-top: 20px;
+            padding: 20px;
+            border-radius: 8px;
+            background-color: rgba(0, 0, 0, 0.4);
+        }
+        
+        .exercise-result h3 {
+            margin-bottom: 15px;
+            color: #00d4ff;
+        }
+        
+        .exercise-result .score {
+            font-size: 1.5rem;
+            font-weight: bold;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+        
+        .exercise-result .score.correct {
+            color: #4CAF50;
+        }
+        
+        .exercise-result .score.partial {
+            color: #FF9800;
+        }
+        
+        .exercise-result .score.incorrect {
+            color: #f44336;
+        }
+        
+        .exercise-result .answer-item {
+            margin-bottom: 15px;
+            padding: 10px;
+            background-color: rgba(255, 255, 255, 0.05);
+            border-radius: 5px;
+        }
+        
+        .exercise-result .answer-item.correct {
+            border-left: 3px solid #4CAF50;
+        }
+        
+        .exercise-result .answer-item.incorrect {
+            border-left: 3px solid #f44336;
+        }
+        
+        .exercise-result .answer-item .question-text {
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        
+        .exercise-result .answer-item .user-answer {
+            color: #f44336;
+        }
+        
+        .exercise-result .answer-item .correct-answer {
+            color: #4CAF50;
+        }
+        
+        .exercise-result .correct-answer span {
+            color: #ff3333;
+            font-weight: bold;
+        }
+        
+        .exercise-result .encouragement {
+            text-align: center;
+            margin-top: 15px;
+            font-style: italic;
+            color: #ff9800;
+        }
+        
+        .data-record-section {
+            margin-top: 30px;
+            padding: 20px;
+            background-color: rgba(0, 0, 0, 0.2);
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .data-record-section h3 {
+            color: #00d4ff;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+        
+        .data-record-section p {
+            margin-bottom: 15px;
+            text-align: center;
+        }
+        
+        .data-table-container {
+            overflow-x: auto;
+            margin-bottom: 15px;
+        }
+        
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            color: white;
+        }
+        
+        .data-table th,
+        .data-table td {
+            padding: 10px;
+            text-align: center;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .data-table th {
+            background-color: rgba(0, 212, 255, 0.2);
+            font-weight: bold;
+        }
+        
+        .data-table tr:nth-child(even) {
+            background-color: rgba(255, 255, 255, 0.05);
+        }
+        
+        .angle-input {
+            width: 80px;
+            padding: 5px;
+            background-color: rgba(0, 0, 0, 0.5);
+            border: 1px solid rgba(0, 212, 255, 0.5);
+            border-radius: 4px;
+            color: white;
+            text-align: center;
+        }
+        
+        .angle-input:focus {
+            outline: none;
+            border-color: #00d4ff;
+            box-shadow: 0 0 5px rgba(0, 212, 255, 0.5);
+        }
+        
+        .add-row-btn {
+            width: 30px;
+            height: 30px;
+            background-color: rgba(0, 212, 255, 0.3);
+            border: 1px solid #00d4ff;
+            border-radius: 50%;
+            color: white;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .add-row-btn:hover {
+            background-color: rgba(0, 212, 255, 0.5);
+            transform: scale(1.1);
+        }
+        
+        .remove-row-btn {
+            width: 30px;
+            height: 30px;
+            background-color: rgba(255, 68, 68, 0.3);
+            border: 1px solid #ff4444;
+            border-radius: 50%;
+            color: white;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .remove-row-btn:hover {
+            background-color: rgba(255, 68, 68, 0.5);
+            transform: scale(1.1);
+        }
+        
+        .table-buttons {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin-top: 15px;
+        }
+        
+        .table-buttons button {
+            padding: 8px 16px;
+            background: linear-gradient(135deg, #00d4ff, #7b2ff7);
+            border: none;
+            border-radius: 5px;
+            color: white;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .table-buttons button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 212, 255, 0.4);
+        }
+        
+        @media (max-width: 1000px) {
+            .content {
+                flex-direction: column;
+            }
+            
+            .canvas-container {
+                min-width: 100%;
+            }
+            
+            .controls {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>3D光学反射实验模拟器</h1>
+            <p class="subtitle">交互式探索光的反射定律 - 拖动改变视角，控制显示元素</p>
+        </header>
+        
+        <div class="content">
+            <div class="left-section">
+                <div class="canvas-container" id="canvasContainer">
+                    <canvas id="canvas"></canvas>
+                </div>
+                
+                <div class="exercise-section">
+                    <h2>课中练习</h2>
+                    <div class="exercise-questions">
+                        <div class="question-item" data-question="1">
+                            <p>1. 显示入射反射平面，发现：反射光线和入射光线在_____平面；该平面与镜面____</p>
+                            <div class="question-options">
+                                <label><input type="radio" name="q1_1" value="不同"> 不同</label>
+                                <label><input type="radio" name="q1_1" value="同一"> 同一</label>
+                                <label><input type="radio" name="q1_2" value="平行"> 平行</label>
+                                <label><input type="radio" name="q1_2" value="垂直"> 垂直</label>
+                                <label><input type="radio" name="q1_2" value="相交"> 相交</label>
+                            </div>
+                        </div>
+                        
+                        <div class="question-item" data-question="2">
+                            <p>2. 旋转入射光线，并不断保存当前平面，显示保存的平面，发现这些平面交于一条线，这根线称为法线，法线与镜面____</p>
+                            <div class="question-options">
+                                <label><input type="radio" name="q2" value="平行"> 平行</label>
+                                <label><input type="radio" name="q2" value="垂直"> 垂直</label>
+                                <label><input type="radio" name="q2" value="相交"> 相交</label>
+                            </div>
+                        </div>
+                        
+                        <div class="question-item" data-question="3">
+                            <p>3. 显示法线，旋转视角，观察到反射光线、入射光线和法线重合，这说明三线在_____平面；反射光线和入射光线分别位于法线____</p>
+                            <div class="question-options">
+                                <label><input type="radio" name="q3_1" value="不同"> 不同</label>
+                                <label><input type="radio" name="q3_1" value="同一"> 同一</label>
+                                <label><input type="radio" name="q3_2" value="同侧"> 同侧</label>
+                                <label><input type="radio" name="q3_2" value="两侧"> 两侧</label>
+                            </div>
+                        </div>
+                        
+                        <div class="question-item" data-question="4">
+                            <p>4. 显示反射角和入射角的角度，不断改变入射角大小，发现反射角_____入射角</p>
+                            <div class="question-options">
+                                <label><input type="radio" name="q4" value="大于"> 大于</label>
+                                <label><input type="radio" name="q4" value="等于"> 等于</label>
+                                <label><input type="radio" name="q4" value="小于"> 小于</label>
+                                <label><input type="radio" name="q4" value="不等于"> 不等于</label>
+                            </div>
+                        </div>
+                        
+                        <div class="question-item" data-question="5">
+                            <p>5. 点击逆向入射，发现在反射现象中，光路____</p>
+                            <div class="question-options">
+                                <label><input type="radio" name="q5" value="不可逆"> 不可逆</label>
+                                <label><input type="radio" name="q5" value="可逆"> 可逆</label>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="data-record-section">
+                        <h3>数据记录</h3>
+                        <p>请观察并记录不同入射角对应的反射角：</p>
+                        <div class="data-table-container">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>序号</th>
+                                        <th>入射角 (°)</th>
+                                        <th>反射角 (°)</th>
+                                        <th>操作</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="dataTableBody">
+                                    <tr>
+                                        <td>1</td>
+                                        <td><input type="number" class="angle-input" step="1" min="0" max="90"></td>
+                                        <td><input type="number" class="angle-input" step="1" min="0" max="90"></td>
+                                        <td><button class="add-row-btn">+</button></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="table-buttons">
+                            <button id="autoFillData">自动填充数据</button>
+                            <button id="clearTable">清空表格</button>
+                        </div>
+                    </div>
+                    
+                    <div class="exercise-buttons">
+                        <button id="submitAnswers">提交答案</button>
+                        <button id="retryAnswers" style="display: none;">重新回答</button>
+                    </div>
+                    
+                    <div id="exerciseResult" class="exercise-result" style="display: none;"></div>
+                </div>
+            </div>
+            
+            <div class="controls">
+                <div class="control-group">
+                    <h2>显示控制</h2>
+                    <div class="checkbox-group">
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="showIncident" checked>
+                            <label for="showIncident">显示入射光</label>
+                        </div>
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="showReflected" checked>
+                            <label for="showReflected">显示反射光</label>
+                        </div>
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="showPlane" checked>
+                            <label for="showPlane">显示反射平面</label>
+                        </div>
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="showIncidentPlane">
+                            <label for="showIncidentPlane">显示入射反射平面</label>
+                        </div>
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="showSavedPlanes">
+                            <label for="showSavedPlanes">显示保存的平面</label>
+                        </div>
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="showNormal">
+                            <label for="showNormal">显示法线</label>
+                        </div>
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="showIncidentAngle" disabled>
+                            <label for="showIncidentAngle">显示入射角度</label>
+                        </div>
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="showReflectedAngle" disabled>
+                            <label for="showReflectedAngle">显示反射角度</label>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="control-group">
+                    <h2>入射光控制</h2>
+                    <div class="slider-group">
+                        <div class="slider-item">
+                            <label for="incidentAngle">入射角度: <span id="angleValue">45°</span></label>
+                            <input type="range" id="incidentAngle" min="0" max="90" value="45">
+                        </div>
+                        <div class="slider-item">
+                            <label for="lightIntensity">光线强度: <span id="intensityValue">80%</span></label>
+                            <input type="range" id="lightIntensity" min="20" max="100" value="80">
+                        </div>
+                        <div class="slider-item">
+                            <label for="rotationAngle">旋转入射光线: <span id="rotationValue">0°</span></label>
+                            <input type="range" id="rotationAngle" min="0" max="360" value="0">
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="control-group">
+                    <h2>光路控制</h2>
+                    <div class="button-group">
+                        <button id="reversePath">逆向入射</button>
+                    </div>
+                    <div class="info-panel" style="margin-top: 10px;">
+                        <div class="info-item">
+                            <span class="info-label">当前光路:</span>
+                            <span id="pathDirection">正向入射</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="control-group">
+                    <h2>平面操作</h2>
+                    <div class="button-group">
+                        <button id="savePlane">保存当前平面</button>
+                        <button id="clearPlanes">清除所有保存的平面</button>
+                    </div>
+                </div>
+                
+                <div class="control-group">
+                    <h2>信息面板</h2>
+                    <div class="info-panel">
+                        <div class="info-item">
+                            <span class="info-label">入射角:</span>
+                            <span id="incidentAngleValue">45°</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">反射角:</span>
+                            <span id="reflectedAngleValue">45°</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">旋转入射光线:</span>
+                            <span id="rotationAngleValue">0°</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">保存平面数:</span>
+                            <span id="savedPlanesCount">0</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">反射定律:</span>
+                            <span>入射角 = 反射角</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="instructions">
+            <h2>使用说明</h2>
+            <ul>
+                <li><strong>视角控制:</strong> 使用鼠标左键拖动旋转视角，鼠标滚轮缩放</li>
+                <li><strong>显示控制:</strong> 使用左侧复选框控制显示不同的光学元素</li>
+                <li><strong>角度调节:</strong> 使用滑块调整入射光的角度、强度和旋转入射光线</li>
+                <li><strong>光路可逆:</strong> 点击"逆向入射"按钮，让光线逆着原光路入射，验证光路可逆原理</li>
+                <li><strong>平面保存:</strong> 点击"保存当前平面"按钮保留当前入射反射平面</li>
+                <li><strong>平面交线:</strong> 保存多个平面后，它们的交线就是法线</li>
+                <li><strong>法线显示:</strong> 勾选"显示法线"可查看垂直于镜面的法线</li>
+                <li><strong>角度标注:</strong> 勾选"显示法线"后，可以分别显示入射角度和反射角度的弧线标注</li>
+                <li><strong>物理原理:</strong> 观察反射定律 - 入射角等于反射角；光路可逆原理</li>
+            </ul>
+        </div>
+    </div>
+
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+            "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+        }
+    }
+    </script>
+    
+    <script type="module">
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+        
+        // 获取容器和canvas
+        const container = document.getElementById('canvasContainer');
+        const canvas = document.getElementById('canvas');
+        
+        // 初始化Three.js场景
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x0a1628);
+        
+        // 添加网格辅助线
+        const gridHelper = new THREE.GridHelper(10, 20, 0x1a3a5c, 0x0d2137);
+        scene.add(gridHelper);
+        
+        // 相机设置
+        const camera = new THREE.PerspectiveCamera(60, container.clientWidth / container.clientHeight, 0.1, 1000);
+        camera.position.set(6, 5, 6);
+        camera.lookAt(0, 0, 0);
+        
+        // 渲染器设置
+        const renderer = new THREE.WebGLRenderer({ 
+            canvas: canvas, 
+            antialias: true,
+            alpha: true
+        });
+        renderer.setSize(container.clientWidth, container.clientHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        
+        // 添加轨道控制器
+        const controls = new OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.05;
+        controls.minDistance = 3;
+        controls.maxDistance = 20;
+        
+        // 添加环境光
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+        scene.add(ambientLight);
+        
+        // 添加方向光
+        const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+        directionalLight.position.set(10, 10, 5);
+        scene.add(directionalLight);
+        
+        // 创建反射平面（镜面）
+        const planeGeometry = new THREE.PlaneGeometry(10, 10);
+        const planeMaterial = new THREE.MeshPhongMaterial({ 
+            color: 0x1e90ff, 
+            transparent: true, 
+            opacity: 0.5,
+            side: THREE.DoubleSide,
+            shininess: 100
+        });
+        const plane = new THREE.Mesh(planeGeometry, planeMaterial);
+        plane.rotation.x = -Math.PI / 2;
+        scene.add(plane);
+        
+        // 创建入射点（红色球体）
+        const incidentPointGeometry = new THREE.SphereGeometry(0.15, 32, 32);
+        const incidentPointMaterial = new THREE.MeshPhongMaterial({ 
+            color: 0xff3333,
+            emissive: 0xff0000,
+            emissiveIntensity: 0.3
+        });
+        const incidentPoint = new THREE.Mesh(incidentPointGeometry, incidentPointMaterial);
+        incidentPoint.position.set(0, 0, 0);
+        scene.add(incidentPoint);
+        
+        // 创建入射光线和反射光线组
+        let incidentLightGroup = null;
+        let reflectedLightGroup = null;
+        
+        // 创建入射反射平面 - 使用更醒目的配色（金色/橙色渐变）
+        const incidentPlaneGeometry = new THREE.PlaneGeometry(6, 6);
+        const incidentPlaneMaterial = new THREE.MeshPhongMaterial({ 
+            color: 0xffa500, 
+            transparent: true, 
+            opacity: 0.35,
+            side: THREE.DoubleSide,
+            emissive: 0xff6600,
+            emissiveIntensity: 0.2
+        });
+        const incidentPlane = new THREE.Mesh(incidentPlaneGeometry, incidentPlaneMaterial);
+        scene.add(incidentPlane);
+        incidentPlane.visible = false;
+        
+        // 创建法线 - 使用更醒目的配色（亮黄色）
+        const normalMaterial = new THREE.LineDashedMaterial({ 
+            color: 0xffff00, 
+            dashSize: 0.15,
+            gapSize: 0.1,
+            linewidth: 3
+        });
+        const normalGeometry = new THREE.BufferGeometry();
+        const normalLine = new THREE.Line(normalGeometry, normalMaterial);
+        scene.add(normalLine);
+        normalLine.visible = false;
+        
+        // 添加法线端点球体
+        const normalSphereGeometry = new THREE.SphereGeometry(0.1, 16, 16);
+        const normalSphereMaterial = new THREE.MeshBasicMaterial({ color: 0xffff00 });
+        const normalSphere = new THREE.Mesh(normalSphereGeometry, normalSphereMaterial);
+        scene.add(normalSphere);
+        normalSphere.visible = false;
+        
+        // 创建入射角度标注
+        let incidentAngleArc = null;
+        let incidentAngleText = null;
+        
+        // 创建反射角度标注
+        let reflectedAngleArc = null;
+        let reflectedAngleText = null;
+        
+        // 创建角度弧线
+        function createAngleArc(center, startDir, endDir, radius, color) {
+            const segments = 32;
+            const points = [];
+            
+            for (let i = 0; i <= segments; i++) {
+                const t = i / segments;
+                const angle = startDir.angleTo(endDir) * t;
+                const rotatedDir = startDir.clone().applyAxisAngle(
+                    new THREE.Vector3().crossVectors(startDir, endDir).normalize(),
+                    angle
+                );
+                const point = center.clone().add(rotatedDir.multiplyScalar(radius));
+                points.push(point);
+            }
+            
+            const geometry = new THREE.BufferGeometry().setFromPoints(points);
+            const material = new THREE.LineBasicMaterial({ color: color, linewidth: 2 });
+            return new THREE.Line(geometry, material);
+        }
+        
+        // 创建角度文字
+        function createAngleText(text, position, color) {
+            const canvas = document.createElement('canvas');
+            const context = canvas.getContext('2d');
+            canvas.width = 128;
+            canvas.height = 64;
+            
+            context.fillStyle = color;
+            context.font = 'bold 24px Arial';
+            context.textAlign = 'center';
+            context.textBaseline = 'middle';
+            context.fillText(text, 64, 32);
+            
+            const texture = new THREE.CanvasTexture(canvas);
+            const spriteMaterial = new THREE.SpriteMaterial({ map: texture, transparent: true });
+            const sprite = new THREE.Sprite(spriteMaterial);
+            sprite.scale.set(0.8, 0.4, 1);
+            sprite.position.copy(position);
+            
+            return sprite;
+        }
+        
+        // 更新角度标注
+        function updateAngleAnnotations() {
+            const showNormal = document.getElementById('showNormal').checked;
+            const showIncidentAngle = document.getElementById('showIncidentAngle').checked;
+            const showReflectedAngle = document.getElementById('showReflectedAngle').checked;
+            
+            // 移除旧的角度标注
+            if (incidentAngleArc) {
+                scene.remove(incidentAngleArc);
+                incidentAngleArc = null;
+            }
+            if (incidentAngleText) {
+                scene.remove(incidentAngleText);
+                incidentAngleText = null;
+            }
+            if (reflectedAngleArc) {
+                scene.remove(reflectedAngleArc);
+                reflectedAngleArc = null;
+            }
+            if (reflectedAngleText) {
+                scene.remove(reflectedAngleText);
+                reflectedAngleText = null;
+            }
+            
+            // 只有在显示法线时才显示角度标注
+            if (!showNormal) return;
+            
+            const angle = parseFloat(document.getElementById('incidentAngle').value) * Math.PI / 180;
+            const rotation = parseFloat(document.getElementById('rotationAngle').value) * Math.PI / 180;
+            
+            // 计算入射光和反射光方向
+            let incidentDir;
+            if (isForwardPath) {
+                incidentDir = new THREE.Vector3(
+                    Math.sin(angle) * Math.cos(rotation),
+                    -Math.cos(angle),
+                    Math.sin(angle) * Math.sin(rotation)
+                ).normalize();
+            } else {
+                const forwardIncidentDir = new THREE.Vector3(
+                    Math.sin(angle) * Math.cos(rotation),
+                    -Math.cos(angle),
+                    Math.sin(angle) * Math.sin(rotation)
+                ).normalize();
+                const normalDir = new THREE.Vector3(0, 1, 0);
+                const forwardReflectedDir = forwardIncidentDir.clone().reflect(normalDir).normalize();
+                incidentDir = forwardReflectedDir.clone().negate();
+            }
+            
+            const normalDir = new THREE.Vector3(0, 1, 0);
+            const reflectedDir = incidentDir.clone().reflect(normalDir).normalize();
+            
+            // 创建入射角度标注（入射光线与法线的夹角）
+            if (showIncidentAngle) {
+                const incidentReverseDir = incidentDir.clone().negate();
+                incidentAngleArc = createAngleArc(
+                    incidentPoint.position,
+                    incidentReverseDir,
+                    normalDir,
+                    1.2,
+                    0xff6600
+                );
+                scene.add(incidentAngleArc);
+                
+                const angleTextPos = incidentPoint.position.clone()
+                    .add(incidentReverseDir.multiplyScalar(1.5))
+                    .add(normalDir.clone().multiplyScalar(1.5))
+                    .multiplyScalar(0.5);
+                incidentAngleText = createAngleText(
+                    document.getElementById('incidentAngle').value + '°',
+                    angleTextPos,
+                    '#ff6600'
+                );
+                scene.add(incidentAngleText);
+            }
+            
+            // 创建反射角度标注（反射光线与法线的夹角）
+            if (showReflectedAngle) {
+                reflectedAngleArc = createAngleArc(
+                    incidentPoint.position,
+                    normalDir,
+                    reflectedDir,
+                    1.2,
+                    0xff3333
+                );
+                scene.add(reflectedAngleArc);
+                
+                const angleTextPos = incidentPoint.position.clone()
+                    .add(normalDir.multiplyScalar(1.5))
+                    .add(reflectedDir.clone().multiplyScalar(1.5))
+                    .multiplyScalar(0.5);
+                reflectedAngleText = createAngleText(
+                    document.getElementById('incidentAngle').value + '°',
+                    angleTextPos,
+                    '#ff3333'
+                );
+                scene.add(reflectedAngleText);
+            }
+        }
+        
+        // 保存的平面数组
+        const savedPlanes = [];
+        
+        // 光路方向状态：true为正向（从上往下入射），false为逆向（从下往上入射）
+        let isForwardPath = true;
+        
+        // 创建带中点箭头的光线（线段+箭头组合）
+        function createLightRay(direction, origin, length, color) {
+            const group = new THREE.Group();
+            
+            const normalizedDir = direction.clone().normalize();
+            const startPoint = origin.clone();
+            const endPoint = origin.clone().add(normalizedDir.clone().multiplyScalar(length));
+            
+            // 创建发光线段
+            const lineGeometry = new THREE.BufferGeometry();
+            const vertices = new Float32Array([
+                startPoint.x, startPoint.y, startPoint.z,
+                endPoint.x, endPoint.y, endPoint.z
+            ]);
+            lineGeometry.setAttribute('position', new THREE.BufferAttribute(vertices, 3));
+            
+            const lineMaterial = new THREE.LineBasicMaterial({ 
+                color: color,
+                linewidth: 2
+            });
+            const line = new THREE.Line(lineGeometry, lineMaterial);
+            group.add(line);
+            
+            // 创建粗线段（使用圆柱体模拟粗线）
+            const cylinderGeometry = new THREE.CylinderGeometry(0.03, 0.03, length, 8);
+            const cylinderMaterial = new THREE.MeshBasicMaterial({ color: color });
+            const cylinder = new THREE.Mesh(cylinderGeometry, cylinderMaterial);
+            
+            // 定位圆柱体
+            const midPoint = origin.clone().add(normalizedDir.clone().multiplyScalar(length / 2));
+            cylinder.position.copy(midPoint);
+            cylinder.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), normalizedDir);
+            group.add(cylinder);
+            
+            // 创建箭头（位于线段中点）
+            const arrowMidPoint = origin.clone().add(normalizedDir.clone().multiplyScalar(length / 2));
+            const arrowHelper = new THREE.ArrowHelper(
+                normalizedDir,
+                arrowMidPoint,
+                0.5,
+                color,
+                0.25,
+                0.15
+            );
+            group.add(arrowHelper);
+            
+            return group;
+        }
+        
+        // 更新反射光的位置和方向
+        function updateReflection() {
+            const angle = parseFloat(document.getElementById('incidentAngle').value) * Math.PI / 180;
+            const intensity = parseFloat(document.getElementById('lightIntensity').value) / 100;
+            const rotation = parseFloat(document.getElementById('rotationAngle').value) * Math.PI / 180;
+            
+            // 移除旧的光线组
+            if (incidentLightGroup) {
+                scene.remove(incidentLightGroup);
+                incidentLightGroup = null;
+            }
+            if (reflectedLightGroup) {
+                scene.remove(reflectedLightGroup);
+                reflectedLightGroup = null;
+            }
+            
+            // 计算入射光的方向向量
+            let incidentDir;
+            if (isForwardPath) {
+                // 正向入射：从上往下
+                incidentDir = new THREE.Vector3(
+                    Math.sin(angle) * Math.cos(rotation),
+                    -Math.cos(angle),
+                    Math.sin(angle) * Math.sin(rotation)
+                ).normalize();
+            } else {
+                // 逆向入射：从下往上（原反射光的方向作为入射光）
+                // 先计算正向时的反射方向，然后反向作为入射方向
+                const forwardIncidentDir = new THREE.Vector3(
+                    Math.sin(angle) * Math.cos(rotation),
+                    -Math.cos(angle),
+                    Math.sin(angle) * Math.sin(rotation)
+                ).normalize();
+                const normalDir = new THREE.Vector3(0, 1, 0);
+                const forwardReflectedDir = forwardIncidentDir.clone().reflect(normalDir).normalize();
+                // 逆向入射光方向与正向反射光方向相反
+                incidentDir = forwardReflectedDir.clone().negate();
+            }
+            
+            // 入射光的起点
+            const incidentOrigin = new THREE.Vector3(
+                incidentPoint.position.x - incidentDir.x * 3,
+                incidentPoint.position.y - incidentDir.y * 3,
+                incidentPoint.position.z - incidentDir.z * 3
+            );
+            
+            // 创建入射光（橙黄色，箭头在中点）
+            const incidentColor = new THREE.Color(1, 0.7 * intensity + 0.3, 0);
+            incidentLightGroup = createLightRay(incidentDir, incidentOrigin, 3, incidentColor.getHex());
+            incidentLightGroup.visible = document.getElementById('showIncident').checked;
+            scene.add(incidentLightGroup);
+            
+            // 计算反射光的方向向量
+            const normalDir = new THREE.Vector3(0, 1, 0);
+            const reflectedDir = incidentDir.clone().reflect(normalDir).normalize();
+            
+            // 反射光的起点（从入射点出发）
+            const reflectedOrigin = incidentPoint.position.clone();
+            
+            // 创建反射光（亮红色，箭头在中点）
+            const reflectedColor = new THREE.Color(1, 0.2 * intensity, 0.2 * intensity);
+            reflectedLightGroup = createLightRay(reflectedDir, reflectedOrigin, 3, reflectedColor.getHex());
+            reflectedLightGroup.visible = document.getElementById('showReflected').checked;
+            scene.add(reflectedLightGroup);
+            
+            // 更新入射反射平面
+            const planeNormal = new THREE.Vector3();
+            planeNormal.crossVectors(incidentDir, reflectedDir).normalize();
+            
+            if (planeNormal.length() > 0.001) {
+                incidentPlane.position.copy(incidentPoint.position);
+                incidentPlane.lookAt(
+                    incidentPoint.position.x + planeNormal.x,
+                    incidentPoint.position.y + planeNormal.y,
+                    incidentPoint.position.z + planeNormal.z
+                );
+            }
+            
+            // 更新法线
+            updateNormal();
+            
+            // 更新角度标注
+            updateAngleAnnotations();
+            
+            // 更新信息面板
+            document.getElementById('incidentAngleValue').textContent = document.getElementById('incidentAngle').value + '°';
+            document.getElementById('reflectedAngleValue').textContent = document.getElementById('incidentAngle').value + '°';
+            document.getElementById('rotationAngleValue').textContent = document.getElementById('rotationAngle').value + '°';
+            document.getElementById('savedPlanesCount').textContent = savedPlanes.length;
+        }
+        
+        // 切换光路方向（光路可逆）
+        function togglePathDirection() {
+            isForwardPath = !isForwardPath;
+            document.getElementById('pathDirection').textContent = isForwardPath ? '正向入射' : '逆向入射';
+            updateReflection();
+        }
+        
+        // 更新法线
+        function updateNormal() {
+            const normalStart = incidentPoint.position.clone();
+            const normalEnd = new THREE.Vector3(
+                incidentPoint.position.x,
+                incidentPoint.position.y + 3,
+                incidentPoint.position.z
+            );
+            
+            const vertices = new Float32Array([
+                normalStart.x, normalStart.y, normalStart.z,
+                normalEnd.x, normalEnd.y, normalEnd.z
+            ]);
+            
+            normalLine.geometry.setAttribute('position', new THREE.BufferAttribute(vertices, 3));
+            normalLine.geometry.computeBoundingSphere();
+            normalLine.computeLineDistances();
+            
+            // 更新法线端点球体位置
+            normalSphere.position.set(
+                incidentPoint.position.x,
+                incidentPoint.position.y + 3,
+                incidentPoint.position.z
+            );
+        }
+        
+        // 保存当前平面
+        function saveCurrentPlane() {
+            const newPlaneGeometry = new THREE.PlaneGeometry(6, 6);
+            const hue = Math.random();
+            const newPlaneMaterial = new THREE.MeshPhongMaterial({ 
+                color: new THREE.Color().setHSL(hue, 0.8, 0.5),
+                transparent: true, 
+                opacity: 0.25,
+                side: THREE.DoubleSide
+            });
+            
+            const savedPlane = new THREE.Mesh(newPlaneGeometry, newPlaneMaterial);
+            savedPlane.position.copy(incidentPlane.position);
+            savedPlane.rotation.copy(incidentPlane.rotation);
+            savedPlane.visible = document.getElementById('showSavedPlanes').checked;
+            
+            scene.add(savedPlane);
+            savedPlanes.push(savedPlane);
+            
+            document.getElementById('savedPlanesCount').textContent = savedPlanes.length;
+        }
+        
+        // 清除所有保存的平面
+        function clearSavedPlanes() {
+            savedPlanes.forEach(p => {
+                scene.remove(p);
+                p.geometry.dispose();
+                p.material.dispose();
+            });
+            savedPlanes.length = 0;
+            document.getElementById('savedPlanesCount').textContent = 0;
+        }
+        
+        // 事件监听器
+        document.getElementById('showIncident').addEventListener('change', function() {
+            if (incidentLightGroup) incidentLightGroup.visible = this.checked;
+        });
+        
+        document.getElementById('showReflected').addEventListener('change', function() {
+            if (reflectedLightGroup) reflectedLightGroup.visible = this.checked;
+        });
+        
+        document.getElementById('showPlane').addEventListener('change', function() {
+            plane.visible = this.checked;
+        });
+        
+        document.getElementById('showIncidentPlane').addEventListener('change', function() {
+            incidentPlane.visible = this.checked;
+        });
+        
+        document.getElementById('showSavedPlanes').addEventListener('change', function() {
+            savedPlanes.forEach(p => {
+                p.visible = this.checked;
+            });
+        });
+        
+        document.getElementById('showNormal').addEventListener('change', function() {
+            normalLine.visible = this.checked;
+            normalSphere.visible = this.checked;
+            
+            // 启用/禁用角度标注按钮
+            document.getElementById('showIncidentAngle').disabled = !this.checked;
+            document.getElementById('showReflectedAngle').disabled = !this.checked;
+            
+            // 如果禁用法线，取消角度标注的勾选
+            if (!this.checked) {
+                document.getElementById('showIncidentAngle').checked = false;
+                document.getElementById('showReflectedAngle').checked = false;
+            }
+            
+            // 更新角度标注
+            updateAngleAnnotations();
+        });
+        
+        document.getElementById('showIncidentAngle').addEventListener('change', function() {
+            updateAngleAnnotations();
+        });
+        
+        document.getElementById('showReflectedAngle').addEventListener('change', function() {
+            updateAngleAnnotations();
+        });
+        
+        document.getElementById('incidentAngle').addEventListener('input', function() {
+            document.getElementById('angleValue').textContent = this.value + '°';
+            updateReflection();
+        });
+        
+        document.getElementById('lightIntensity').addEventListener('input', function() {
+            document.getElementById('intensityValue').textContent = this.value + '%';
+            updateReflection();
+        });
+        
+        document.getElementById('rotationAngle').addEventListener('input', function() {
+            document.getElementById('rotationValue').textContent = this.value + '°';
+            updateReflection();
+        });
+        
+        document.getElementById('savePlane').addEventListener('click', saveCurrentPlane);
+        document.getElementById('clearPlanes').addEventListener('click', clearSavedPlanes);
+        document.getElementById('reversePath').addEventListener('click', togglePathDirection);
+        
+        // 练习题正确答案
+        const correctAnswers = {
+            'q1_1': '同一',
+            'q1_2': '垂直',
+            'q2': '垂直',
+            'q3_1': '同一',
+            'q3_2': '两侧',
+            'q4': '等于',
+            'q5': '可逆'
+        };
+        
+        // 练习题完整答案文本
+        const answerTexts = {
+            'q1': '反射光线和入射光线在<span>同一</span>平面；该平面与镜面<span>垂直</span>',
+            'q2': '法线与镜面<span>垂直</span>',
+            'q3': '三线在<span>同一</span>平面；反射光线和入射光线分别位于法线<span>两侧</span>',
+            'q4': '反射角<span>等于</span>入射角',
+            'q5': '光路<span>可逆</span>'
+        };
+        
+        // 提交答案
+        document.getElementById('submitAnswers').addEventListener('click', function() {
+            let correctCount = 0;
+            let totalQuestions = 5;
+            let resultHTML = '<h3>答题结果</h3>';
+            
+            // 检查第1题（两个空）
+            const q1_1 = document.querySelector('input[name="q1_1"]:checked');
+            const q1_2 = document.querySelector('input[name="q1_2"]:checked');
+            
+            if (q1_1 && q1_2) {
+                const q1Correct1 = q1_1.value === correctAnswers['q1_1'];
+                const q1Correct2 = q1_2.value === correctAnswers['q1_2'];
+                
+                if (q1Correct1 && q1Correct2) {
+                    correctCount++;
+                    resultHTML += '<div class="answer-item correct">';
+                    resultHTML += '<div class="question-text">第1题</div>';
+                    resultHTML += '<div class="correct-answer">正确答案：' + answerTexts['q1'] + '</div>';
+                    resultHTML += '</div>';
+                } else {
+                    resultHTML += '<div class="answer-item incorrect">';
+                    resultHTML += '<div class="question-text">第1题</div>';
+                    resultHTML += '<div class="user-answer">你的答案：' + q1_1.value + '、' + q1_2.value + '</div>';
+                    resultHTML += '<div class="correct-answer">正确答案：' + answerTexts['q1'] + '</div>';
+                    resultHTML += '</div>';
+                }
+            } else {
+                resultHTML += '<div class="answer-item incorrect">';
+                resultHTML += '<div class="question-text">第1题</div>';
+                resultHTML += '<div class="user-answer">未完成</div>';
+                resultHTML += '<div class="correct-answer">正确答案：' + answerTexts['q1'] + '</div>';
+                resultHTML += '</div>';
+            }
+            
+            // 检查第2题
+            const q2 = document.querySelector('input[name="q2"]:checked');
+            if (q2) {
+                if (q2.value === correctAnswers['q2']) {
+                    correctCount++;
+                    resultHTML += '<div class="answer-item correct">';
+                    resultHTML += '<div class="question-text">第2题</div>';
+                    resultHTML += '<div class="correct-answer">正确答案：' + answerTexts['q2'] + '</div>';
+                    resultHTML += '</div>';
+                } else {
+                    resultHTML += '<div class="answer-item incorrect">';
+                    resultHTML += '<div class="question-text">第2题</div>';
+                    resultHTML += '<div class="user-answer">你的答案：' + q2.value + '</div>';
+                    resultHTML += '<div class="correct-answer">正确答案：' + answerTexts['q2'] + '</div>';
+                    resultHTML += '</div>';
+                }
+            } else {
+                resultHTML += '<div class="answer-item incorrect">';
+                resultHTML += '<div class="question-text">第2题</div>';
+                resultHTML += '<div class="user-answer">未完成</div>';
+                resultHTML += '<div class="correct-answer">正确答案：' + answerTexts['q2'] + '</div>';
+                resultHTML += '</div>';
+            }
+            
+            // 检查第3题（两个空）
+            const q3_1 = document.querySelector('input[name="q3_1"]:checked');
+            const q3_2 = document.querySelector('input[name="q3_2"]:checked');
+            
+            if (q3_1 && q3_2) {
+                const q3Correct1 = q3_1.value === correctAnswers['q3_1'];
+                const q3Correct2 = q3_2.value === correctAnswers['q3_2'];
+                
+                if (q3Correct1 && q3Correct2) {
+                    correctCount++;
+                    resultHTML += '<div class="answer-item correct">';
+                    resultHTML += '<div class="question-text">第3题</div>';
+                    resultHTML += '<div class="correct-answer">正确答案：' + answerTexts['q3'] + '</div>';
+                    resultHTML += '</div>';
+                } else {
+                    resultHTML += '<div class="answer-item incorrect">';
+                    resultHTML += '<div class="question-text">第3题</div>';
+                    resultHTML += '<div class="user-answer">你的答案：' + q3_1.value + '、' + q3_2.value + '</div>';
+                    resultHTML += '<div class="correct-answer">正确答案：' + answerTexts['q3'] + '</div>';
+                    resultHTML += '</div>';
+                }
+            } else {
+                resultHTML += '<div class="answer-item incorrect">';
+                resultHTML += '<div class="question-text">第3题</div>';
+                resultHTML += '<div class="user-answer">未完成</div>';
+                resultHTML += '<div class="correct-answer">正确答案：' + answerTexts['q3'] + '</div>';
+                resultHTML += '</div>';
+            }
+            
+            // 检查第4题
+            const q4 = document.querySelector('input[name="q4"]:checked');
+            if (q4) {
+                if (q4.value === correctAnswers['q4']) {
+                    correctCount++;
+                    resultHTML += '<div class="answer-item correct">';
+                    resultHTML += '<div class="question-text">第4题</div>';
+                    resultHTML += '<div class="correct-answer">正确答案：' + answerTexts['q4'] + '</div>';
+                    resultHTML += '</div>';
+                } else {
+                    resultHTML += '<div class="answer-item incorrect">';
+                    resultHTML += '<div class="question-text">第4题</div>';
+                    resultHTML += '<div class="user-answer">你的答案：' + q4.value + '</div>';
+                    resultHTML += '<div class="correct-answer">正确答案：' + answerTexts['q4'] + '</div>';
+                    resultHTML += '</div>';
+                }
+            } else {
+                resultHTML += '<div class="answer-item incorrect">';
+                resultHTML += '<div class="question-text">第4题</div>';
+                resultHTML += '<div class="user-answer">未完成</div>';
+                resultHTML += '<div class="correct-answer">正确答案：' + answerTexts['q4'] + '</div>';
+                resultHTML += '</div>';
+            }
+            
+            // 检查第5题
+            const q5 = document.querySelector('input[name="q5"]:checked');
+            if (q5) {
+                if (q5.value === correctAnswers['q5']) {
+                    correctCount++;
+                    resultHTML += '<div class="answer-item correct">';
+                    resultHTML += '<div class="question-text">第5题</div>';
+                    resultHTML += '<div class="correct-answer">正确答案：' + answerTexts['q5'] + '</div>';
+                    resultHTML += '</div>';
+                } else {
+                    resultHTML += '<div class="answer-item incorrect">';
+                    resultHTML += '<div class="question-text">第5题</div>';
+                    resultHTML += '<div class="user-answer">你的答案：' + q5.value + '</div>';
+                    resultHTML += '<div class="correct-answer">正确答案：' + answerTexts['q5'] + '</div>';
+                    resultHTML += '</div>';
+                }
+            } else {
+                resultHTML += '<div class="answer-item incorrect">';
+                resultHTML += '<div class="question-text">第5题</div>';
+                resultHTML += '<div class="user-answer">未完成</div>';
+                resultHTML += '<div class="correct-answer">正确答案：' + answerTexts['q5'] + '</div>';
+                resultHTML += '</div>';
+            }
+            
+            // 计算正确率
+            const accuracy = Math.round((correctCount / totalQuestions) * 100);
+            
+            // 显示分数
+            let scoreClass = 'incorrect';
+            if (accuracy === 100) {
+                scoreClass = 'correct';
+            } else if (accuracy >= 60) {
+                scoreClass = 'partial';
+            }
+            
+            resultHTML = '<div class="score ' + scoreClass + '">正确率：' + accuracy + '%</div>' + resultHTML;
+            
+            // 如果没有全部正确，显示鼓励信息
+            if (accuracy < 100) {
+                resultHTML += '<div class="encouragement">继续努力！看完答案后再试一次吧！</div>';
+            }
+            
+            // 显示结果
+            document.getElementById('exerciseResult').innerHTML = resultHTML;
+            document.getElementById('exerciseResult').style.display = 'block';
+            
+            // 隐藏提交按钮，显示重新回答按钮
+            document.getElementById('submitAnswers').style.display = 'none';
+            document.getElementById('retryAnswers').style.display = 'inline-block';
+        });
+        
+        // 重新回答
+        document.getElementById('retryAnswers').addEventListener('click', function() {
+            // 清空所有选择
+            document.querySelectorAll('input[type="radio"]').forEach(radio => {
+                radio.checked = false;
+            });
+            
+            // 隐藏结果
+            document.getElementById('exerciseResult').style.display = 'none';
+            
+            // 显示提交按钮，隐藏重新回答按钮
+            document.getElementById('submitAnswers').style.display = 'inline-block';
+            document.getElementById('retryAnswers').style.display = 'none';
+        });
+        
+        // 数据记录表功能
+        (function() {
+            const tableBody = document.getElementById('dataTableBody');
+            
+            // 添加新行
+            function addRow() {
+                const rows = tableBody.querySelectorAll('tr');
+                const newIndex = rows.length + 1;
+                
+                const newRow = document.createElement('tr');
+                newRow.innerHTML = `
+                    <td>${newIndex}</td>
+                    <td><input type="number" class="angle-input" step="1" min="0" max="90"></td>
+                    <td><input type="number" class="angle-input" step="1" min="0" max="90"></td>
+                    <td><button class="remove-row-btn">-</button></td>
+                `;
+                
+                tableBody.appendChild(newRow);
+                
+                // 绑定删除按钮事件
+                newRow.querySelector('.remove-row-btn').addEventListener('click', function() {
+                    removeRow(this);
+                });
+                
+                // 更新序号
+                updateRowNumbers();
+            }
+            
+            // 删除行
+            function removeRow(button) {
+                const row = button.closest('tr');
+                if (row) {
+                    row.remove();
+                    updateRowNumbers();
+                }
+            }
+            
+            // 更新行序号
+            function updateRowNumbers() {
+                const rows = tableBody.querySelectorAll('tr');
+                rows.forEach((row, index) => {
+                    row.querySelector('td:first-child').textContent = index + 1;
+                });
+            }
+            
+            // 自动填充数据
+            function autoFillData() {
+                const angles = [15, 30, 45, 60, 75, 90];
+                
+                // 清空现有数据
+                tableBody.innerHTML = '';
+                
+                // 填充数据
+                angles.forEach((angle, index) => {
+                    const newRow = document.createElement('tr');
+                    newRow.innerHTML = `
+                        <td>${index + 1}</td>
+                        <td><input type="number" class="angle-input" step="1" min="0" max="90" value="${angle}"></td>
+                        <td><input type="number" class="angle-input" step="1" min="0" max="90" value="${angle}"></td>
+                        <td><button class="remove-row-btn">-</button></td>
+                    `;
+                    
+                    tableBody.appendChild(newRow);
+                    
+                    // 绑定删除按钮事件
+                    newRow.querySelector('.remove-row-btn').addEventListener('click', function() {
+                        removeRow(this);
+                    });
+                });
+                
+                // 添加一行空白行
+                addRow();
+            }
+            
+            // 清空表格
+            function clearTable() {
+                tableBody.innerHTML = '';
+                
+                // 添加一行空白行
+                const newRow = document.createElement('tr');
+                newRow.innerHTML = `
+                    <td>1</td>
+                    <td><input type="number" class="angle-input" step="1" min="0" max="90"></td>
+                    <td><input type="number" class="angle-input" step="1" min="0" max="90"></td>
+                    <td><button class="add-row-btn">+</button></td>
+                `;
+                
+                tableBody.appendChild(newRow);
+                
+                // 绑定添加按钮事件
+                newRow.querySelector('.add-row-btn').addEventListener('click', addRow);
+            }
+            
+            // 初始绑定事件
+            document.querySelector('.add-row-btn').addEventListener('click', addRow);
+            document.getElementById('autoFillData').addEventListener('click', autoFillData);
+            document.getElementById('clearTable').addEventListener('click', clearTable);
+        })();
+        
+        // 初始化
+        updateReflection();
+        
+        // 动画循环
+        function animate() {
+            requestAnimationFrame(animate);
+            controls.update();
+            renderer.render(scene, camera);
+        }
+        
+        animate();
+        
+        // 窗口大小调整
+        window.addEventListener('resize', function() {
+            const width = container.clientWidth;
+            const height = container.clientHeight;
+            
+            camera.aspect = width / height;
+            camera.updateProjectionMatrix();
+            renderer.setSize(width, height);
+        });
+    </script>
+</body>
+</html>

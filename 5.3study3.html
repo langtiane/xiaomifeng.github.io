@@ -1,0 +1,838 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LED屏幕三原色混合模拟器 - 修复拖动方向</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#3B82F6',
+                        secondary: '#10B981',
+                        accent: '#8B5CF6',
+                        dark: '#1F2937',
+                        ledRed: '#FF2222',
+                        ledGreen: '#22FF22',
+                        ledBlue: '#2222FF',
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', 'sans-serif'],
+                    },
+                    animation: {
+                        'pulse-glow': 'pulse-glow 2s infinite',
+                    },
+                    keyframes: {
+                        'pulse-glow': {
+                            '0%, 100%': { boxShadow: '0 0 5px currentColor' },
+                            '50%': { boxShadow: '0 0 20px currentColor' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .control-btn {
+                @apply px-4 py-2 rounded-lg transition-all duration-200 flex items-center justify-center gap-2;
+            }
+            .control-btn-primary {
+                @apply bg-primary text-white hover:bg-primary/80 active:bg-primary/90;
+            }
+            .control-btn-secondary {
+                @apply bg-gray-200 text-gray-800 hover:bg-gray-300 active:bg-gray-400;
+            }
+            .color-btn {
+                @apply w-10 h-10 rounded-full cursor-pointer transition-transform duration-200 hover:scale-110 active:scale-95 border-2 border-white shadow-md;
+            }
+            .grid-background {
+                background-image: 
+                    linear-gradient(to right, rgba(255, 255, 255, 0.05) 1px, transparent 1px),
+                    linear-gradient(to bottom, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+            }
+            @keyframes sparkle {
+                0%, 100% { opacity: 0.3; }
+                50% { opacity: 1; }
+            }
+            .sparkle {
+                animation: sparkle 1.5s infinite;
+            }
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-gray-900 to-gray-800 min-h-screen font-sans text-gray-100">
+    <div class="container mx-auto px-4 py-8 max-w-6xl">
+        <header class="mb-8 text-center">
+            <h1 class="text-[clamp(1.8rem,4vw,2.5rem)] font-bold text-white mb-2">LED屏幕三原色混合模拟器</h1>
+            <p class="text-gray-300 max-w-2xl mx-auto">探索红、绿、蓝三原色如何混合产生各种颜色。放大查看单个LED像素的三原色组成，缩小观察整体混色效果。</p>
+        </header>
+        
+        <main class="flex flex-col lg:flex-row gap-8 items-center lg:items-start">
+            <!-- 控制面板 -->
+            <div class="w-full lg:w-72 bg-gray-800 rounded-xl shadow-lg p-6 order-2 lg:order-1 border border-gray-700">
+                <h2 class="text-xl font-semibold mb-4 text-white flex items-center gap-2">
+                    <i class="fa fa-sliders"></i> 控制面板
+                </h2>
+                
+                <!-- 缩放控制 -->
+                <div class="mb-6">
+                    <h3 class="text-sm font-medium text-gray-400 mb-3 flex items-center gap-2">
+                        <i class="fa fa-search"></i> 缩放控制
+                    </h3>
+                    <div class="flex gap-2">
+                        <button id="zoomOut" class="control-btn control-btn-secondary flex-1">
+                            <i class="fa fa-search-minus"></i> 缩小
+                        </button>
+                        <button id="zoomIn" class="control-btn control-btn-secondary flex-1">
+                            <i class="fa fa-search-plus"></i> 放大
+                        </button>
+                    </div>
+                    <div class="mt-3 flex items-center gap-2">
+                        <span class="text-sm text-gray-400">缩放级别:</span>
+                        <span id="zoomLevel" class="text-sm font-medium bg-gray-700 px-2 py-1 rounded">1x</span>
+                    </div>
+                    <input type="range" id="zoomSlider" min="5" max="50" value="10" class="w-full mt-3 h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer">
+                </div>
+                
+                <!-- 图案预设 -->
+                <div class="mb-6">
+                    <h3 class="text-sm font-medium text-gray-400 mb-3 flex items-center gap-2">
+                        <i class="fa fa-th-large"></i> 图案预设
+                    </h3>
+                    <div class="grid grid-cols-2 gap-2">
+                        <button id="patternStripes" class="control-btn control-btn-secondary justify-start">
+                            <i class="fa fa-bars"></i> 色条
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- 混合示例 -->
+                <div class="mb-6">
+                    <h3 class="text-sm font-medium text-gray-400 mb-3 flex items-center gap-2">
+                        <i class="fa fa-adjust"></i> 混合示例
+                    </h3>
+                    <div class="grid grid-cols-2 gap-2">
+                        <button id="exampleRedGreen" class="control-btn control-btn-secondary justify-start">
+                            <span class="w-3 h-3 bg-ledRed rounded-full"></span>
+                            <span class="w-3 h-3 bg-ledGreen rounded-full"></span>
+                            <span class="text-xs">红+绿</span>
+                        </button>
+                        <button id="exampleGreenBlue" class="control-btn control-btn-secondary justify-start">
+                            <span class="w-3 h-3 bg-ledGreen rounded-full"></span>
+                            <span class="w-3 h-3 bg-ledBlue rounded-full"></span>
+                            <span class="text-xs">绿+蓝</span>
+                        </button>
+                        <button id="exampleRedBlue" class="control-btn control-btn-secondary justify-start">
+                            <span class="w-3 h-3 bg-ledRed rounded-full"></span>
+                            <span class="w-3 h-3 bg-ledBlue rounded-full"></span>
+                            <span class="text-xs">红+蓝</span>
+                        </button>
+                        <button id="exampleAll" class="control-btn control-btn-secondary justify-start">
+                            <span class="w-3 h-3 bg-ledRed rounded-full"></span>
+                            <span class="w-3 h-3 bg-ledGreen rounded-full"></span>
+                            <span class="w-3 h-3 bg-ledBlue rounded-full"></span>
+                            <span class="text-xs">全部</span>
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- 交互说明 -->
+                <div>
+                    <h3 class="text-sm font-medium text-gray-400 mb-3 flex items-center gap-2">
+                        <i class="fa fa-info-circle"></i> 操作说明
+                    </h3>
+                    <ul class="text-sm text-gray-400 space-y-2">
+                        <li class="flex items-start gap-2">
+                            <i class="fa fa-arrows mt-1 text-primary"></i>
+                            <span>拖动可移动放大后的视图</span>
+                        </li>
+                        <li class="flex items-start gap-2">
+                            <i class="fa fa-search mt-1 text-primary"></i>
+                            <span>使用滑块或按钮调整缩放</span>
+                        </li>
+                        <li class="flex items-start gap-2">
+                            <i class="fa fa-lightbulb-o mt-1 text-primary"></i>
+                            <span>尝试使用色条和混合示例</span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+            
+            <!-- LED屏幕区域 -->
+            <div class="w-full lg:flex-1 order-1 lg:order-2">
+                <div class="bg-gray-800 rounded-xl shadow-lg p-4 overflow-hidden border border-gray-700">
+                    <div id="ledContainer" class="relative bg-gray-900 rounded-lg overflow-hidden border-4 border-gray-700 grid-background">
+                        <!-- Canvas将在这里通过JS创建 -->
+                        <div id="loading" class="absolute inset-0 flex items-center justify-center bg-gray-900 bg-opacity-90 z-10">
+                            <div class="text-center">
+                                <div class="inline-flex items-center gap-2">
+                                    <div class="w-3 h-3 bg-ledRed rounded-full animate-pulse-glow"></div>
+                                    <div class="w-3 h-3 bg-ledGreen rounded-full animate-pulse-glow" style="animation-delay: 0.2s"></div>
+                                    <div class="w-3 h-3 bg-ledBlue rounded-full animate-pulse-glow" style="animation-delay: 0.4s"></div>
+                                </div>
+                                <p class="mt-2 text-gray-400">初始化LED屏幕中...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+
+                
+                <!-- 课中练习 -->
+                <div class="mt-6 bg-gray-800 rounded-xl shadow-lg p-6 border border-gray-700">
+                    <h2 class="text-xl font-semibold mb-4 text-white flex items-center gap-2">
+                        <i class="fa fa-pencil"></i> 课中练习
+                    </h2>
+                    <div class="space-y-4">
+                        <!-- 题目1：光的三原色 -->
+                        <div class="bg-gray-700 p-4 rounded-lg">
+                            <p class="text-gray-300 mb-3">1. 光的三原色：___、___、___。</p>
+                            <div class="flex gap-3">
+                                <input type="text" class="flex-1 px-3 py-2 bg-gray-600 text-white rounded focus:outline-none focus:ring-2 focus:ring-primary" placeholder="第一空" id="q1-1">
+                                <input type="text" class="flex-1 px-3 py-2 bg-gray-600 text-white rounded focus:outline-none focus:ring-2 focus:ring-primary" placeholder="第二空" id="q1-2">
+                                <input type="text" class="flex-1 px-3 py-2 bg-gray-600 text-white rounded focus:outline-none focus:ring-2 focus:ring-primary" placeholder="第三空" id="q1-3">
+                            </div>
+                        </div>
+                        
+                        <!-- 题目2：红+绿 -->
+                        <div class="bg-gray-700 p-4 rounded-lg">
+                            <p class="text-gray-300 mb-3">2. 红+绿=___（品红色/黄色/青色/白色）</p>
+                            <div class="grid grid-cols-4 gap-2">
+                                <label class="flex items-center gap-2 p-2 bg-gray-600 rounded cursor-pointer hover:bg-gray-500">
+                                    <input type="radio" name="q2" value="品红色" class="accent-primary">
+                                    <span>品红色</span>
+                                </label>
+                                <label class="flex items-center gap-2 p-2 bg-gray-600 rounded cursor-pointer hover:bg-gray-500">
+                                    <input type="radio" name="q2" value="黄色" class="accent-primary">
+                                    <span>黄色</span>
+                                </label>
+                                <label class="flex items-center gap-2 p-2 bg-gray-600 rounded cursor-pointer hover:bg-gray-500">
+                                    <input type="radio" name="q2" value="青色" class="accent-primary">
+                                    <span>青色</span>
+                                </label>
+                                <label class="flex items-center gap-2 p-2 bg-gray-600 rounded cursor-pointer hover:bg-gray-500">
+                                    <input type="radio" name="q2" value="白色" class="accent-primary">
+                                    <span>白色</span>
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <!-- 题目3：红+蓝 -->
+                        <div class="bg-gray-700 p-4 rounded-lg">
+                            <p class="text-gray-300 mb-3">3. 红+蓝=___（品红色/黄色/青色/白色）</p>
+                            <div class="grid grid-cols-4 gap-2">
+                                <label class="flex items-center gap-2 p-2 bg-gray-600 rounded cursor-pointer hover:bg-gray-500">
+                                    <input type="radio" name="q3" value="品红色" class="accent-primary">
+                                    <span>品红色</span>
+                                </label>
+                                <label class="flex items-center gap-2 p-2 bg-gray-600 rounded cursor-pointer hover:bg-gray-500">
+                                    <input type="radio" name="q3" value="黄色" class="accent-primary">
+                                    <span>黄色</span>
+                                </label>
+                                <label class="flex items-center gap-2 p-2 bg-gray-600 rounded cursor-pointer hover:bg-gray-500">
+                                    <input type="radio" name="q3" value="青色" class="accent-primary">
+                                    <span>青色</span>
+                                </label>
+                                <label class="flex items-center gap-2 p-2 bg-gray-600 rounded cursor-pointer hover:bg-gray-500">
+                                    <input type="radio" name="q3" value="白色" class="accent-primary">
+                                    <span>白色</span>
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <!-- 题目4：绿+蓝 -->
+                        <div class="bg-gray-700 p-4 rounded-lg">
+                            <p class="text-gray-300 mb-3">4. 绿+蓝=___（品红色/黄色/青色/白色）</p>
+                            <div class="grid grid-cols-4 gap-2">
+                                <label class="flex items-center gap-2 p-2 bg-gray-600 rounded cursor-pointer hover:bg-gray-500">
+                                    <input type="radio" name="q4" value="品红色" class="accent-primary">
+                                    <span>品红色</span>
+                                </label>
+                                <label class="flex items-center gap-2 p-2 bg-gray-600 rounded cursor-pointer hover:bg-gray-500">
+                                    <input type="radio" name="q4" value="黄色" class="accent-primary">
+                                    <span>黄色</span>
+                                </label>
+                                <label class="flex items-center gap-2 p-2 bg-gray-600 rounded cursor-pointer hover:bg-gray-500">
+                                    <input type="radio" name="q4" value="青色" class="accent-primary">
+                                    <span>青色</span>
+                                </label>
+                                <label class="flex items-center gap-2 p-2 bg-gray-600 rounded cursor-pointer hover:bg-gray-500">
+                                    <input type="radio" name="q4" value="白色" class="accent-primary">
+                                    <span>白色</span>
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <!-- 题目5：红+绿+蓝 -->
+                        <div class="bg-gray-700 p-4 rounded-lg">
+                            <p class="text-gray-300 mb-3">5. 红+绿+蓝=___（品红色/黄色/青色/白色）</p>
+                            <div class="grid grid-cols-4 gap-2">
+                                <label class="flex items-center gap-2 p-2 bg-gray-600 rounded cursor-pointer hover:bg-gray-500">
+                                    <input type="radio" name="q5" value="品红色" class="accent-primary">
+                                    <span>品红色</span>
+                                </label>
+                                <label class="flex items-center gap-2 p-2 bg-gray-600 rounded cursor-pointer hover:bg-gray-500">
+                                    <input type="radio" name="q5" value="黄色" class="accent-primary">
+                                    <span>黄色</span>
+                                </label>
+                                <label class="flex items-center gap-2 p-2 bg-gray-600 rounded cursor-pointer hover:bg-gray-500">
+                                    <input type="radio" name="q5" value="青色" class="accent-primary">
+                                    <span>青色</span>
+                                </label>
+                                <label class="flex items-center gap-2 p-2 bg-gray-600 rounded cursor-pointer hover:bg-gray-500">
+                                    <input type="radio" name="q5" value="白色" class="accent-primary">
+                                    <span>白色</span>
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <!-- 提交按钮 -->
+                        <div class="flex justify-center">
+                            <button id="submitAnswers" class="control-btn control-btn-primary px-8">
+                                <i class="fa fa-check"></i> 提交答案
+                            </button>
+                        </div>
+                        
+                        <!-- 答案和正确率显示区域 -->
+                        <div id="result" class="mt-4 p-4 rounded-lg hidden">
+                            <!-- 结果将通过JavaScript动态生成 -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+        
+        <footer class="mt-12 text-center text-gray-500 text-sm">
+            <p>LED屏幕三原色混合模拟器 &copy; 2023 | 用于教学演示 | 修复拖动方向</p>
+        </footer>
+    </div>
+
+    <script>
+        // 配置参数
+        const config = {
+            pixelCount: 64,         // 64x64像素（性能优化）
+            subpixelSize: 4,        // 子像素大小（未缩放时）
+            initialZoom: 1.0,       // 初始缩放级别
+            zoomStep: 0.2,          // 缩放步长
+            maxZoom: 5.0,           // 最大缩放级别
+            minZoom: 0.5,           // 最小缩放级别
+            dragSensitivity: 0.8,   // 拖动灵敏度
+            renderScale: 2          // 渲染缩放（提高清晰度）
+        };
+        
+        // 状态变量
+        let state = {
+            zoom: config.initialZoom,
+            offsetX: 0,
+            offsetY: 0,
+            isDragging: false,
+            dragStart: { x: 0, y: 0 },
+            selectedColor: [255, 255, 255], // 默认白色
+            pixels: [], // 存储所有像素的颜色数据
+            lastRenderTime: 0,
+            renderInterval: 1000 / 30 // 30fps
+        };
+        
+        // DOM元素
+        let canvas, ctx;
+        let ledContainer;
+        let zoomLevelDisplay;
+        let zoomSlider;
+        let loadingElement;
+        
+        // 初始化
+        function init() {
+            // 获取DOM元素
+            ledContainer = document.getElementById('ledContainer');
+            zoomLevelDisplay = document.getElementById('zoomLevel');
+            zoomSlider = document.getElementById('zoomSlider');
+            loadingElement = document.getElementById('loading');
+            
+            // 设置滑块值
+            zoomSlider.value = state.zoom * 10;
+            
+            // 创建Canvas
+            canvas = document.createElement('canvas');
+            ctx = canvas.getContext('2d');
+            canvas.className = 'block';
+            ledContainer.appendChild(canvas);
+            
+            // 设置Canvas尺寸
+            const canvasSize = config.pixelCount * config.subpixelSize * 3; // 每个像素有3个子像素
+            canvas.width = canvasSize * config.renderScale;
+            canvas.height = canvasSize * config.renderScale;
+            canvas.style.width = `${canvasSize}px`;
+            canvas.style.height = `${canvasSize}px`;
+            
+            // 初始化像素数据
+            initPixels();
+            
+            // 绘制LED屏幕
+            drawLED();
+            
+            // 绑定事件监听
+            bindEvents();
+            
+            // 隐藏加载界面
+            setTimeout(() => {
+                loadingElement.style.opacity = '0';
+                setTimeout(() => {
+                    loadingElement.style.display = 'none';
+                }, 500);
+            }, 800);
+        }
+        
+        // 初始化像素数据
+        function initPixels() {
+            state.pixels = [];
+            for (let y = 0; y < config.pixelCount; y++) {
+                const row = [];
+                for (let x = 0; x < config.pixelCount; x++) {
+                    // 初始化为黑色
+                    row.push([0, 0, 0]);
+                }
+                state.pixels.push(row);
+            }
+        }
+        
+        // 绘制LED屏幕
+        function drawLED(timestamp) {
+            // 限制渲染频率
+            if (timestamp - state.lastRenderTime < state.renderInterval) {
+                requestAnimationFrame(drawLED);
+                return;
+            }
+            state.lastRenderTime = timestamp;
+            
+            // 清除画布
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // 计算缩放后的子像素大小
+            const scaledSubpixelSize = config.subpixelSize * config.renderScale;
+            
+            // 遍历所有像素
+            for (let y = 0; y < config.pixelCount; y++) {
+                for (let x = 0; x < config.pixelCount; x++) {
+                    const color = state.pixels[y][x];
+                    const [r, g, b] = color;
+                    
+                    // 计算位置
+                    const px = x * scaledSubpixelSize * 3;
+                    const py = y * scaledSubpixelSize;
+                    
+                    // 绘制红色子像素
+                    ctx.fillStyle = `rgb(${r}, 0, 0)`;
+                    ctx.fillRect(px, py, scaledSubpixelSize, scaledSubpixelSize);
+                    
+                    // 绘制绿色子像素
+                    ctx.fillStyle = `rgb(0, ${g}, 0)`;
+                    ctx.fillRect(px + scaledSubpixelSize, py, scaledSubpixelSize, scaledSubpixelSize);
+                    
+                    // 绘制蓝色子像素
+                    ctx.fillStyle = `rgb(0, 0, ${b})`;
+                    ctx.fillRect(px + scaledSubpixelSize * 2, py, scaledSubpixelSize, scaledSubpixelSize);
+                }
+            }
+            
+            // 应用缩放和偏移
+            updateTransform();
+            
+            requestAnimationFrame(drawLED);
+        }
+        
+        // 更新变换（缩放和偏移）
+        function updateTransform() {
+            // 修复：使用正确的变换顺序
+            canvas.style.transform = `translate(${state.offsetX}px, ${state.offsetY}px) scale(${state.zoom})`;
+            zoomLevelDisplay.textContent = `${state.zoom.toFixed(1)}x`;
+            zoomSlider.value = state.zoom * 10;
+        }
+        
+        // 绑定事件
+        function bindEvents() {
+            // 缩放控制
+            document.getElementById('zoomIn').addEventListener('click', () => {
+                if (state.zoom < config.maxZoom) {
+                    state.zoom += config.zoomStep;
+                    updateTransform();
+                }
+            });
+            
+            document.getElementById('zoomOut').addEventListener('click', () => {
+                if (state.zoom > config.minZoom) {
+                    state.zoom -= config.zoomStep;
+                    updateTransform();
+                }
+            });
+            
+            // 缩放滑块
+            zoomSlider.addEventListener('input', () => {
+                state.zoom = parseFloat(zoomSlider.value) / 10;
+                updateTransform();
+            });
+            
+            // 图案预设
+            document.getElementById('patternStripes').addEventListener('click', createStripePattern);
+            
+            // 混合示例
+            document.getElementById('exampleRedGreen').addEventListener('click', () => createColorMixExample('red-green'));
+            document.getElementById('exampleGreenBlue').addEventListener('click', () => createColorMixExample('green-blue'));
+            document.getElementById('exampleRedBlue').addEventListener('click', () => createColorMixExample('red-blue'));
+            document.getElementById('exampleAll').addEventListener('click', () => createColorMixExample('all'));
+            
+            // 拖动控制 - 修复拖动方向
+            canvas.addEventListener('mousedown', startDrag);
+            document.addEventListener('mousemove', drag);
+            document.addEventListener('mouseup', endDrag);
+            document.addEventListener('mouseleave', endDrag);
+            
+            // 滚轮缩放
+            canvas.addEventListener('wheel', handleWheel);
+            
+            // 触摸事件支持
+            canvas.addEventListener('touchstart', handleTouchStart, { passive: false });
+            canvas.addEventListener('touchmove', handleTouchMove, { passive: false });
+            canvas.addEventListener('touchend', handleTouchEnd);
+        }
+        
+        // 拖动控制 - 修复拖动方向
+        function startDrag(e) {
+            if (e.button !== 0) return; // 只响应左键点击
+            
+            const rect = canvas.getBoundingClientRect();
+            state.dragStart.x = e.clientX - rect.left;
+            state.dragStart.y = e.clientY - rect.top;
+            state.isDragging = true;
+            canvas.style.cursor = 'grabbing';
+        }
+        
+        function drag(e) {
+            if (!state.isDragging) return;
+            
+            const rect = canvas.getBoundingClientRect();
+            const currentX = e.clientX - rect.left;
+            const currentY = e.clientY - rect.top;
+            
+            // 计算偏移量变化 - 修复：使用正确的方向
+            const deltaX = (currentX - state.dragStart.x);
+            const deltaY = (currentY - state.dragStart.y);
+            
+            // 更新偏移 - 修复：直接应用差值，方向正确
+            state.offsetX += deltaX;
+            state.offsetY += deltaY;
+            
+            // 限制偏移范围
+            const maxOffset = config.pixelCount * config.subpixelSize * 3 * state.zoom;
+            state.offsetX = Math.max(-maxOffset, Math.min(maxOffset, state.offsetX));
+            state.offsetY = Math.max(-maxOffset, Math.min(maxOffset, state.offsetY));
+            
+            // 更新起始位置
+            state.dragStart.x = currentX;
+            state.dragStart.y = currentY;
+            
+            updateTransform();
+        }
+        
+        function endDrag() {
+            state.isDragging = false;
+            canvas.style.cursor = 'grab';
+        }
+        
+        // 滚轮缩放
+        function handleWheel(e) {
+            e.preventDefault();
+            
+            const rect = canvas.getBoundingClientRect();
+            const mouseX = e.clientX - rect.left;
+            const mouseY = e.clientY - rect.top;
+            
+            // 记录缩放前的鼠标在原始图像上的位置
+            const mouseXOriginal = (mouseX - state.offsetX) / state.zoom;
+            const mouseYOriginal = (mouseY - state.offsetY) / state.zoom;
+            
+            // 根据滚轮方向调整缩放级别
+            if (e.deltaY < 0 && state.zoom < config.maxZoom) {
+                state.zoom += config.zoomStep;
+            } else if (e.deltaY > 0 && state.zoom > config.minZoom) {
+                state.zoom -= config.zoomStep;
+            }
+            
+            // 调整偏移量，使鼠标指向的点保持不变
+            state.offsetX = mouseX - mouseXOriginal * state.zoom;
+            state.offsetY = mouseY - mouseYOriginal * state.zoom;
+            
+            updateTransform();
+        }
+        
+        // 触摸事件处理
+        let lastTouchDistance = null;
+        
+        function handleTouchStart(e) {
+            e.preventDefault();
+            
+            if (e.touches.length === 1) {
+                // 单指触摸 - 开始拖动
+                const touch = e.touches[0];
+                const rect = canvas.getBoundingClientRect();
+                state.dragStart.x = touch.clientX - rect.left;
+                state.dragStart.y = touch.clientY - rect.top;
+                state.isDragging = true;
+            } else if (e.touches.length === 2) {
+                // 双指触摸 - 开始缩放
+                const touch1 = e.touches[0];
+                const touch2 = e.touches[1];
+                lastTouchDistance = Math.hypot(
+                    touch2.clientX - touch1.clientX,
+                    touch2.clientY - touch1.clientY
+                );
+            }
+        }
+        
+        function handleTouchMove(e) {
+            e.preventDefault();
+            
+            if (e.touches.length === 1 && state.isDragging) {
+                // 单指移动 - 拖动
+                const touch = e.touches[0];
+                const rect = canvas.getBoundingClientRect();
+                const currentX = touch.clientX - rect.left;
+                const currentY = touch.clientY - rect.top;
+                
+                // 计算偏移量变化 - 修复：使用正确的方向
+                const deltaX = (currentX - state.dragStart.x);
+                const deltaY = (currentY - state.dragStart.y);
+                
+                // 更新偏移 - 修复：直接应用差值，方向正确
+                state.offsetX += deltaX;
+                state.offsetY += deltaY;
+                
+                // 更新起始位置
+                state.dragStart.x = currentX;
+                state.dragStart.y = currentY;
+                
+                updateTransform();
+            } else if (e.touches.length === 2) {
+                // 双指移动 - 缩放
+                const touch1 = e.touches[0];
+                const touch2 = e.touches[1];
+                const touchDistance = Math.hypot(
+                    touch2.clientX - touch1.clientX,
+                    touch2.clientY - touch1.clientY
+                );
+                
+                if (lastTouchDistance !== null) {
+                    const zoomChange = (touchDistance - lastTouchDistance) * 0.01;
+                    
+                    // 计算中心点
+                    const centerX = (touch1.clientX + touch2.clientX) / 2;
+                    const centerY = (touch1.clientY + touch2.clientY) / 2;
+                    const rect = canvas.getBoundingClientRect();
+                    const mouseX = centerX - rect.left;
+                    const mouseY = centerY - rect.top;
+                    
+                    // 记录缩放前的鼠标在原始图像上的位置
+                    const mouseXOriginal = (mouseX - state.offsetX) / state.zoom;
+                    const mouseYOriginal = (mouseY - state.offsetY) / state.zoom;
+                    
+                    // 更新缩放级别
+                    state.zoom = Math.max(config.minZoom, Math.min(config.maxZoom, state.zoom + zoomChange));
+                    
+                    // 调整偏移量，使中心点保持不变
+                    state.offsetX = mouseX - mouseXOriginal * state.zoom;
+                    state.offsetY = mouseY - mouseYOriginal * state.zoom;
+                    
+                    updateTransform();
+                }
+                
+                lastTouchDistance = touchDistance;
+            }
+        }
+        
+        function handleTouchEnd(e) {
+            if (e.touches.length === 0) {
+                state.isDragging = false;
+                lastTouchDistance = null;
+            } else if (e.touches.length === 1) {
+                // 从双指切换到单指，更新拖动起始点
+                const touch = e.touches[0];
+                const rect = canvas.getBoundingClientRect();
+                state.dragStart.x = touch.clientX - rect.left;
+                state.dragStart.y = touch.clientY - rect.top;
+            }
+        }
+        
+        // 创建图案预设
+        function createStripePattern() {
+            initPixels();
+            
+            const stripeHeight = Math.max(1, Math.floor(config.pixelCount / 7));
+            
+            for (let y = 0; y < config.pixelCount; y++) {
+                let color;
+                
+                if (y < stripeHeight) {
+                    color = [255, 0, 0]; // 红
+                } else if (y < stripeHeight * 2) {
+                    color = [0, 255, 0]; // 绿
+                } else if (y < stripeHeight * 3) {
+                    color = [0, 0, 255]; // 蓝
+                } else if (y < stripeHeight * 4) {
+                    color = [255, 255, 0]; // 黄
+                } else if (y < stripeHeight * 5) {
+                    color = [0, 255, 255]; // 青
+                } else if (y < stripeHeight * 6) {
+                    color = [255, 0, 255]; // 品红
+                } else {
+                    color = [255, 255, 255]; // 白
+                }
+                
+                for (let x = 0; x < config.pixelCount; x++) {
+                    state.pixels[y][x] = color;
+                }
+            }
+        }
+        
+
+        
+        // 创建颜色混合示例
+        function createColorMixExample(type) {
+            initPixels();
+            
+            const centerX = Math.floor(config.pixelCount / 2);
+            const centerY = Math.floor(config.pixelCount / 2);
+            const radius = Math.floor(config.pixelCount / 3);
+            
+            for (let y = 0; y < config.pixelCount; y++) {
+                for (let x = 0; x < config.pixelCount; x++) {
+                    const distance = Math.sqrt(Math.pow(x - centerX, 2) + Math.pow(y - centerY, 2));
+                    
+                    if (distance <= radius) {
+                        let r = 0, g = 0, b = 0;
+                        
+                        switch(type) {
+                            case 'red-green':
+                                r = Math.floor(255 * (1 - distance / radius));
+                                g = Math.floor(255 * (1 - distance / radius));
+                                break;
+                            case 'green-blue':
+                                g = Math.floor(255 * (1 - distance / radius));
+                                b = Math.floor(255 * (1 - distance / radius));
+                                break;
+                            case 'red-blue':
+                                r = Math.floor(255 * (1 - distance / radius));
+                                b = Math.floor(255 * (1 - distance / radius));
+                                break;
+                            case 'all':
+                                r = Math.floor(255 * (1 - distance / radius));
+                                g = Math.floor(255 * (1 - distance / radius));
+                                b = Math.floor(255 * (1 - distance / radius));
+                                break;
+                        }
+                        
+                        state.pixels[y][x] = [r, g, b];
+                    }
+                }
+            }
+        }
+        
+        // 页面加载完成后初始化
+        window.addEventListener('load', init);
+        
+        // 课中练习相关代码
+        document.addEventListener('DOMContentLoaded', function() {
+            const submitButton = document.getElementById('submitAnswers');
+            const resultDiv = document.getElementById('result');
+            
+            submitButton.addEventListener('click', function() {
+                // 答案标准
+                const correctAnswers = {
+                    q1: ['红', '绿', '蓝'],
+                    q2: '黄色',
+                    q3: '品红色',
+                    q4: '青色',
+                    q5: '白色'
+                };
+                
+                // 获取用户答案
+                const userAnswers = {
+                    q1: [
+                        document.getElementById('q1-1').value.trim(),
+                        document.getElementById('q1-2').value.trim(),
+                        document.getElementById('q1-3').value.trim()
+                    ],
+                    q2: document.querySelector('input[name="q2"]:checked')?.value,
+                    q3: document.querySelector('input[name="q3"]:checked')?.value,
+                    q4: document.querySelector('input[name="q4"]:checked')?.value,
+                    q5: document.querySelector('input[name="q5"]:checked')?.value
+                };
+                
+                // 计算得分
+                let correctCount = 0;
+                let totalQuestions = 5;
+                
+                // 检查题目1
+                const q1Correct = userAnswers.q1[0] === correctAnswers.q1[0] && 
+                                  userAnswers.q1[1] === correctAnswers.q1[1] && 
+                                  userAnswers.q1[2] === correctAnswers.q1[2];
+                if (q1Correct) correctCount++;
+                
+                // 检查题目2-5
+                if (userAnswers.q2 === correctAnswers.q2) correctCount++;
+                if (userAnswers.q3 === correctAnswers.q3) correctCount++;
+                if (userAnswers.q4 === correctAnswers.q4) correctCount++;
+                if (userAnswers.q5 === correctAnswers.q5) correctCount++;
+                
+                // 计算正确率
+                const accuracy = Math.round((correctCount / totalQuestions) * 100);
+                
+                // 生成结果HTML
+                let resultHTML = `
+                    <div class="bg-gray-700 p-4 rounded-lg">
+                        <h3 class="text-lg font-medium mb-3 text-white">答案与解析</h3>
+                        <div class="space-y-3">
+                            <div>
+                                <p class="text-gray-300">1. 光的三原色：${correctAnswers.q1[0]}、${correctAnswers.q1[1]}、${correctAnswers.q1[2]}。</p>
+                                <p class="text-sm text-gray-400 mt-1">解析：光的三原色是红、绿、蓝，通过不同比例的混合可以产生各种颜色。</p>
+                            </div>
+                            <div>
+                                <p class="text-gray-300">2. 红+绿=${correctAnswers.q2}。</p>
+                                <p class="text-sm text-gray-400 mt-1">解析：红色和绿色光混合会产生黄色光。</p>
+                            </div>
+                            <div>
+                                <p class="text-gray-300">3. 红+蓝=${correctAnswers.q3}。</p>
+                                <p class="text-sm text-gray-400 mt-1">解析：红色和蓝色光混合会产生品红色光。</p>
+                            </div>
+                            <div>
+                                <p class="text-gray-300">4. 绿+蓝=${correctAnswers.q4}。</p>
+                                <p class="text-sm text-gray-400 mt-1">解析：绿色和蓝色光混合会产生青色光。</p>
+                            </div>
+                            <div>
+                                <p class="text-gray-300">5. 红+绿+蓝=${correctAnswers.q5}。</p>
+                                <p class="text-sm text-gray-400 mt-1">解析：红、绿、蓝三种光按相同比例混合会产生白色光。</p>
+                            </div>
+                        </div>
+                        <div class="mt-4 p-3 bg-gray-600 rounded-lg">
+                            <p class="text-center text-white font-medium">您的正确率：<span class="text-primary text-xl">${accuracy}%</span></p>
+                            <p class="text-center text-gray-300 mt-1">答对 ${correctCount} 题，共 ${totalQuestions} 题</p>
+                        </div>
+                    </div>
+                `;
+                
+                // 显示结果
+                resultDiv.innerHTML = resultHTML;
+                resultDiv.classList.remove('hidden');
+                resultDiv.classList.add('bg-gray-700');
+                
+                // 滚动到结果区域
+                resultDiv.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            });
+        });
+    </script>
+</body>
+</html>

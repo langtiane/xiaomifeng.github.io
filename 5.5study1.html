@@ -1,0 +1,1100 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>眼睛成像原理 - 交互式光路图</title>
+    <link href="https://cdn.tailwindcss.com" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700&family=Orbitron:wght@500;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-primary: #0a0f1a;
+            --bg-secondary: #111827;
+            --accent-cyan: #00d4ff;
+            --accent-orange: #ff6b35;
+            --accent-green: #00ff88;
+            --accent-red: #ff4757;
+            --text-primary: #e8f4f8;
+            --text-muted: #8892a4;
+            --glass-bg: rgba(17, 24, 39, 0.85);
+            --border-color: rgba(0, 212, 255, 0.2);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Noto Sans SC', sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        .title-font {
+            font-family: 'Orbitron', sans-serif;
+        }
+
+        /* 背景效果 */
+        .bg-pattern {
+            position: fixed;
+            inset: 0;
+            background: 
+                radial-gradient(ellipse at 20% 20%, rgba(0, 212, 255, 0.08) 0%, transparent 50%),
+                radial-gradient(ellipse at 80% 80%, rgba(255, 107, 53, 0.06) 0%, transparent 50%),
+                radial-gradient(ellipse at 50% 50%, rgba(0, 255, 136, 0.04) 0%, transparent 60%);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .grid-overlay {
+            position: fixed;
+            inset: 0;
+            background-image: 
+                linear-gradient(rgba(0, 212, 255, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 212, 255, 0.03) 1px, transparent 1px);
+            background-size: 40px 40px;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        /* 主容器 */
+        .main-container {
+            position: relative;
+            z-index: 1;
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        /* 标题区 */
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            font-size: clamp(1.8rem, 4vw, 2.8rem);
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--accent-cyan), var(--accent-green));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 10px;
+            letter-spacing: 2px;
+        }
+
+        .header p {
+            color: var(--text-muted);
+            font-size: 1rem;
+        }
+
+        /* 控制面板 */
+        .control-panel {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            justify-content: center;
+            margin-bottom: 25px;
+            padding: 20px;
+            background: var(--glass-bg);
+            border-radius: 16px;
+            border: 1px solid var(--border-color);
+            backdrop-filter: blur(10px);
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .control-label {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 8px;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: 1px solid var(--border-color);
+            background: rgba(0, 212, 255, 0.05);
+            color: var(--text-primary);
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(135deg, var(--accent-cyan), var(--accent-green));
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .btn:hover {
+            border-color: var(--accent-cyan);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(0, 212, 255, 0.2);
+        }
+
+        .btn.active {
+            border-color: var(--accent-cyan);
+            background: rgba(0, 212, 255, 0.15);
+        }
+
+        .btn.active::before {
+            opacity: 0.1;
+        }
+
+        .btn span {
+            position: relative;
+            z-index: 1;
+        }
+
+        .btn-correction {
+            min-width: 140px;
+        }
+
+        .btn-correction.active-green {
+            border-color: var(--accent-green);
+            background: rgba(0, 255, 136, 0.15);
+        }
+
+        .btn-correction.active-orange {
+            border-color: var(--accent-orange);
+            background: rgba(255, 107, 53, 0.15);
+        }
+
+        /* Canvas容器 */
+        .canvas-container {
+            background: var(--glass-bg);
+            border-radius: 20px;
+            border: 1px solid var(--border-color);
+            padding: 20px;
+            margin-bottom: 25px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .canvas-container::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(0, 212, 255, 0.03) 0%, transparent 50%);
+            animation: pulse 8s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); opacity: 0.5; }
+            50% { transform: scale(1.1); opacity: 0.8; }
+        }
+
+        #eyeCanvas {
+            display: block;
+            width: 100%;
+            height: auto;
+            border-radius: 12px;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* 信息面板 */
+        .info-panel {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+        }
+
+        .info-card {
+            background: var(--glass-bg);
+            border-radius: 16px;
+            border: 1px solid var(--border-color);
+            padding: 20px;
+            transition: all 0.3s ease;
+        }
+
+        .info-card:hover {
+            border-color: var(--accent-cyan);
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(0, 212, 255, 0.1);
+        }
+
+        .info-card h3 {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .info-card h3 .dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+        }
+
+        .info-card p {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            line-height: 1.7;
+        }
+
+        .info-card.normal h3 .dot { background: var(--accent-green); }
+        .info-card.myopia h3 .dot { background: var(--accent-red); }
+        .info-card.hyperopia h3 .dot { background: var(--accent-orange); }
+
+        /* 图例 */
+        .legend {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            justify-content: center;
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+
+        .legend-line {
+            width: 30px;
+            height: 3px;
+            border-radius: 2px;
+        }
+
+        /* 响应式 */
+        @media (max-width: 768px) {
+            .control-panel {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .btn-group {
+                justify-content: center;
+            }
+
+            .btn {
+                flex: 1;
+                min-width: 80px;
+            }
+        }
+
+        /* 动画 */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .animate-in {
+            animation: fadeIn 0.6s ease forwards;
+        }
+
+        .delay-1 { animation-delay: 0.1s; opacity: 0; }
+        .delay-2 { animation-delay: 0.2s; opacity: 0; }
+        .delay-3 { animation-delay: 0.3s; opacity: 0; }
+    </style>
+</head>
+<body>
+    <div class="bg-pattern"></div>
+    <div class="grid-overlay"></div>
+
+    <div class="main-container">
+        <header class="header animate-in">
+            <h1 class="title-font">眼睛成像原理</h1>
+            <p>探索正常眼、近视眼与远视眼的光学成像机制</p>
+        </header>
+
+        <div class="control-panel animate-in delay-1">
+            <div class="control-group">
+                <span class="control-label">眼睛类型</span>
+                <div class="btn-group">
+                    <button class="btn active" data-type="normal" onclick="setEyeType('normal')">
+                        <span>正常眼</span>
+                    </button>
+                    <button class="btn" data-type="myopia" onclick="setEyeType('myopia', 'refractive')">
+                        <span>近视眼</span>
+                    </button>
+                    <button class="btn" data-type="hyperopia" onclick="setEyeType('hyperopia', 'refractive')">
+                        <span>远视眼</span>
+                    </button>
+                </div>
+            </div>
+
+            <div class="control-group" id="myopiaTypeGroup" style="display: none;">
+                <span class="control-label">近视类型</span>
+                <div class="btn-group">
+                    <button class="btn active" data-type="refractive" onclick="setEyeType('myopia', 'refractive')">
+                        <span>屈光性近视</span>
+                    </button>
+                    <button class="btn" data-type="axial" onclick="setEyeType('myopia', 'axial')">
+                        <span>轴性近视</span>
+                    </button>
+                </div>
+            </div>
+
+            <div class="control-group" id="hyperopiaTypeGroup" style="display: none;">
+                <span class="control-label">远视类型</span>
+                <div class="btn-group">
+                    <button class="btn active" data-type="refractive" onclick="setEyeType('hyperopia', 'refractive')">
+                        <span>屈光性远视</span>
+                    </button>
+                    <button class="btn" data-type="axial" onclick="setEyeType('hyperopia', 'axial')">
+                        <span>轴性远视</span>
+                    </button>
+                </div>
+            </div>
+
+            <div class="control-group">
+                <span class="control-label">矫正眼镜</span>
+                <div class="btn-group">
+                    <button class="btn btn-correction" id="glassesBtn" onclick="toggleGlasses()">
+                        <span id="glassesText">添加矫正眼镜</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="canvas-container animate-in delay-2">
+            <canvas id="eyeCanvas" width="1200" height="500"></canvas>
+            <div class="legend">
+                <div class="legend-item">
+                    <div class="legend-line" style="background: #ffdd57;"></div>
+                    <span>入射光线</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-line" style="background: #00d4ff;"></div>
+                    <span>折射光线</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-line" style="background: #00ff88;"></div>
+                    <span>矫正光线</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="info-panel animate-in delay-3">
+            <div class="info-card normal">
+                <h3><span class="dot"></span>正常眼</h3>
+                <p>正常眼的晶状体折光能力适中，来自远处的平行光线经晶状体折射后，恰好会聚在视网膜上，形成清晰的倒立实像。眼睛通过调节晶状体的曲度来看清不同距离的物体。</p>
+            </div>
+            <div class="info-card myopia">
+                <h3><span class="dot"></span>近视眼</h3>
+                <p>近视眼的晶状体折光能力过强或眼球前后径过长，使远处物体的光线会聚在视网膜前方，导致看远处模糊。需佩戴凹透镜（近视眼镜）进行矫正，使光线发散后再进入眼睛。</p>
+            </div>
+            <div class="info-card hyperopia">
+                <h3><span class="dot"></span>远视眼</h3>
+                <p>远视眼的晶状体折光能力过弱或眼球前后径过短，使近处物体的光线会聚在视网膜后方，导致看近处模糊。需佩戴凸透镜（远视眼镜）进行矫正，使光线会聚后再进入眼睛。</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 状态管理
+        let currentEyeType = 'normal';
+        let currentEyeSubType = 'refractive';
+        let showGlasses = false;
+        let animationId = null;
+        let animationProgress = 0;
+        let objectPosition = 100; // 物体初始位置
+        let isDragging = false; // 是否正在拖动
+
+        // Canvas设置
+        const canvas = document.getElementById('eyeCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // 响应式Canvas
+        function resizeCanvas() {
+            const container = canvas.parentElement;
+            const rect = container.getBoundingClientRect();
+            const dpr = window.devicePixelRatio || 1;
+            
+            canvas.width = 1200;
+            canvas.height = 500;
+            canvas.style.width = '100%';
+            canvas.style.height = 'auto';
+            
+            draw();
+        }
+
+        // 颜色配置
+        const colors = {
+            incident: '#ffdd57',
+            refracted: '#00d4ff',
+            corrected: '#00ff88',
+            focal: '#ff4757',
+            retina: '#ff6b9d',
+            lens: '#4facfe',
+            eye: '#2d3748',
+            glasses: '#a0aec0'
+        };
+
+        // 绘制函数
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // 绘制背景网格
+            drawGrid();
+            
+            // 根据眼睛类型绘制
+            const eyeCenterX = 800;
+            const eyeCenterY = 250;
+            const eyeRadius = 150;
+            
+            // 绘制物体（箭头）
+            drawObject();
+            
+            // 绘制眼镜（如果启用）
+            if (showGlasses && currentEyeType !== 'normal') {
+                drawGlasses(eyeCenterX - eyeRadius - 100, eyeCenterY);
+            }
+            
+            // 绘制眼球
+            drawEye(eyeCenterX, eyeCenterY, eyeRadius);
+            
+            // 绘制晶状体
+            drawLens(eyeCenterX - eyeRadius + 30, eyeCenterY, currentEyeType, currentEyeSubType);
+            
+            // 绘制光路
+            drawLightRays(eyeCenterX, eyeCenterY, eyeRadius);
+            
+            // 绘制标注
+            drawLabels(eyeCenterX, eyeCenterY, eyeRadius);
+        }
+
+        function drawGrid() {
+            ctx.strokeStyle = 'rgba(0, 212, 255, 0.05)';
+            ctx.lineWidth = 1;
+            
+            for (let x = 0; x < canvas.width; x += 50) {
+                ctx.beginPath();
+                ctx.moveTo(x, 0);
+                ctx.lineTo(x, canvas.height);
+                ctx.stroke();
+            }
+            
+            for (let y = 0; y < canvas.height; y += 50) {
+                ctx.beginPath();
+                ctx.moveTo(0, y);
+                ctx.lineTo(canvas.width, y);
+                ctx.stroke();
+            }
+        }
+
+        function drawObject() {
+            // 近视眼使用更远的物体，远视眼使用近处物体，正常眼使用objectPosition
+            let objX;
+            if (currentEyeType === 'myopia') {
+                objX = 50; // 更远的物体
+            } else if (currentEyeType === 'hyperopia') {
+                objX = 300; // 近处物体
+            } else {
+                objX = objectPosition; // 正常眼可拖动
+            }
+            const objY = 250;
+            const objHeight = 80;
+            
+            // 箭头主体
+            ctx.strokeStyle = '#ffffff';
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.moveTo(objX, objY - objHeight);
+            ctx.lineTo(objX, objY + objHeight);
+            ctx.stroke();
+            
+            // 箭头头部
+            ctx.fillStyle = '#ffffff';
+            ctx.beginPath();
+            ctx.moveTo(objX, objY - objHeight - 15);
+            ctx.lineTo(objX - 12, objY - objHeight + 10);
+            ctx.lineTo(objX + 12, objY - objHeight + 10);
+            ctx.closePath();
+            ctx.fill();
+            
+            // 标签
+            ctx.font = '14px "Noto Sans SC"';
+            ctx.fillStyle = '#8892a4';
+            ctx.textAlign = 'center';
+            if (currentEyeType === 'myopia') {
+                ctx.fillText('远处物体', objX, objY + objHeight + 25);
+            } else if (currentEyeType === 'normal') {
+                ctx.fillText('物体（可拖动）', objX, objY + objHeight + 25);
+            } else if (currentEyeType === 'hyperopia') {
+                ctx.fillText('近处物体', objX, objY + objHeight + 25);
+            }
+        }
+
+        function drawEye(centerX, centerY, radius) {
+            let eyeWidth = radius * 2;
+            let eyeHeight = radius * 2;
+            let retinaX = centerX;
+            
+            // 轴性近视：眼球横向变长，视网膜在眼球后部
+            if (currentEyeType === 'myopia' && currentEyeSubType === 'axial') {
+                eyeWidth = (radius + 20) * 2;
+                retinaX = centerX + eyeWidth/2 - 20; // 视网膜在眼球后部
+            }
+            // 轴性远视：眼球横向变短，视网膜在眼球后部
+            else if (currentEyeType === 'hyperopia' && currentEyeSubType === 'axial') {
+                eyeWidth = (radius - 15) * 2;
+                retinaX = centerX + eyeWidth/2 - 20; // 视网膜在眼球后部
+            }
+            // 正常眼：根据物体位置调整眼轴长度
+            else if (currentEyeType === 'normal') {
+                // 物体位置范围：100-500
+                // 眼轴长度范围：280-320（半径140-160）
+                const normalizedPos = (objectPosition - 100) / 400; // 0-1
+                const eyeWidthMin = 280; // 最小眼轴长度（远离时）
+                const eyeWidthMax = 320; // 最大眼轴长度（靠近时）
+                eyeWidth = eyeWidthMin + (eyeWidthMax - eyeWidthMin) * normalizedPos;
+                retinaX = centerX + eyeWidth/2 - 20; // 视网膜在眼球后部
+            }
+            // 屈光性近视/远视：视网膜在眼球后部
+            else {
+                retinaX = centerX + radius - 20;
+            }
+            
+            // 眼球外轮廓（椭圆）
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.ellipse(centerX, centerY, eyeWidth/2, eyeHeight/2, 0, 0, Math.PI * 2);
+            ctx.stroke();
+            
+            // 眼球填充（椭圆）
+            const gradient = ctx.createRadialGradient(centerX, centerY, 0, centerX, centerY, eyeWidth/2);
+            gradient.addColorStop(0, 'rgba(45, 55, 72, 0.3)');
+            gradient.addColorStop(1, 'rgba(26, 32, 44, 0.5)');
+            ctx.fillStyle = gradient;
+            ctx.fill();
+            
+            // 视网膜位置（眼球后部）
+            ctx.strokeStyle = colors.retina;
+            ctx.lineWidth = 4;
+            ctx.beginPath();
+            // 与眼睛3.html完全一致的画法
+            const retinaRadius = (eyeWidth/2) - 5;
+            ctx.arc(centerX, centerY, retinaRadius, -0.4, 0.4);
+            ctx.stroke();
+            
+            // 视网膜标签
+            ctx.font = '12px "Noto Sans SC"';
+            ctx.fillStyle = colors.retina;
+            ctx.textAlign = 'left';
+            ctx.fillText('视网膜', centerX + retinaRadius, centerY + 50);
+        }
+
+        function drawLens(x, centerY, type, subType) {
+            const lensHeight = 100;
+            let lensWidth = 25;
+            
+            // 根据眼睛类型和子类型调整晶状体形状
+            if (type === 'myopia' && subType === 'refractive') {
+                lensWidth = 35; // 屈光性近视：晶状体更凸
+            } else if (type === 'hyperopia' && subType === 'refractive') {
+                lensWidth = 18; // 屈光性远视：晶状体较平
+            } else if (type === 'normal') {
+                // 正常眼：根据物体位置调整晶状体厚度
+                // 物体位置范围：100-500
+                // 晶状体宽度范围：18-35
+                const normalizedPos = (objectPosition - 100) / 400; // 0-1
+                const lensWidthMin = 18; // 最远时的晶状体宽度（较平）
+                const lensWidthMax = 35; // 最近时的晶状体宽度（较凸）
+                lensWidth = lensWidthMin + (lensWidthMax - lensWidthMin) * normalizedPos;
+            }
+            
+            // 绘制凸透镜形状
+            ctx.beginPath();
+            ctx.moveTo(x, centerY - lensHeight);
+            ctx.quadraticCurveTo(x + lensWidth, centerY, x, centerY + lensHeight);
+            ctx.quadraticCurveTo(x - lensWidth, centerY, x, centerY - lensHeight);
+            ctx.closePath();
+            
+            // 填充渐变
+            const gradient = ctx.createLinearGradient(x - lensWidth, centerY, x + lensWidth, centerY);
+            gradient.addColorStop(0, 'rgba(79, 172, 254, 0.2)');
+            gradient.addColorStop(0.5, 'rgba(79, 172, 254, 0.5)');
+            gradient.addColorStop(1, 'rgba(79, 172, 254, 0.2)');
+            ctx.fillStyle = gradient;
+            ctx.fill();
+            
+            ctx.strokeStyle = colors.lens;
+            ctx.lineWidth = 2;
+            ctx.stroke();
+            
+            // 晶状体标签
+            ctx.font = '12px "Noto Sans SC"';
+            ctx.fillStyle = colors.lens;
+            ctx.textAlign = 'center';
+            ctx.fillText('晶状体', x, centerY + lensHeight + 20);
+        }
+
+        function drawGlasses(x, centerY) {
+            const lensHeight = 70;
+            let lensWidth = 20;
+            let curveDirection = 1;
+            
+            // 近视眼镜是凹透镜，远视眼镜是凸透镜
+            if (currentEyeType === 'myopia') {
+                // 凹透镜（中间薄，边缘厚）
+                const edgeWidth = 25;
+                const centerIndent = 10;
+                
+                ctx.beginPath();
+                ctx.moveTo(x - edgeWidth, centerY - lensHeight);
+                // 左侧表面（向右凹入）
+                ctx.bezierCurveTo(
+                    x - centerIndent, centerY - lensHeight/3,
+                    x - centerIndent, centerY + lensHeight/3,
+                    x - edgeWidth, centerY + lensHeight
+                );
+                // 底部连接线
+                ctx.lineTo(x + edgeWidth, centerY + lensHeight);
+                // 右侧表面（向左凹入）
+                ctx.bezierCurveTo(
+                    x + centerIndent, centerY + lensHeight/3,
+                    x + centerIndent, centerY - lensHeight/3,
+                    x + edgeWidth, centerY - lensHeight
+                );
+                // 顶部连接线
+                ctx.closePath();
+                
+                // 填充
+                const gradient = ctx.createLinearGradient(x - edgeWidth, centerY, x + edgeWidth, centerY);
+                gradient.addColorStop(0, 'rgba(160, 174, 192, 0.5)');
+                gradient.addColorStop(0.3, 'rgba(160, 174, 192, 0.2)');
+                gradient.addColorStop(0.7, 'rgba(160, 174, 192, 0.2)');
+                gradient.addColorStop(1, 'rgba(160, 174, 192, 0.5)');
+                ctx.fillStyle = gradient;
+                ctx.fill();
+                
+                ctx.strokeStyle = colors.glasses;
+                ctx.lineWidth = 2;
+                ctx.stroke();
+            } else {
+                // 凸透镜（中间厚，边缘薄）
+                const lensWidth = 20;
+                
+                ctx.beginPath();
+                ctx.moveTo(x, centerY - lensHeight);
+                // 右侧曲面（向外凸）
+                ctx.bezierCurveTo(
+                    x + lensWidth, centerY - lensHeight/3,
+                    x + lensWidth, centerY + lensHeight/3,
+                    x, centerY + lensHeight
+                );
+                // 左侧曲面（向外凸）
+                ctx.bezierCurveTo(
+                    x - lensWidth, centerY + lensHeight/3,
+                    x - lensWidth, centerY - lensHeight/3,
+                    x, centerY - lensHeight
+                );
+                ctx.closePath();
+                
+                // 填充
+                const gradient = ctx.createLinearGradient(x - lensWidth, centerY, x + lensWidth, centerY);
+                gradient.addColorStop(0, 'rgba(255, 140, 60, 0.5)');
+                gradient.addColorStop(0.5, 'rgba(255, 107, 53, 0.5)');
+                gradient.addColorStop(1, 'rgba(255, 140, 60, 0.5)');
+                ctx.fillStyle = gradient;
+                ctx.fill();
+                
+                ctx.strokeStyle = '#ff6b35';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+            }
+            
+            // 眼镜框
+            ctx.strokeStyle = '#4a5568';
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.moveTo(x - 30, centerY);
+            ctx.lineTo(x, centerY);
+            ctx.stroke();
+            
+            // 标签
+            ctx.font = '12px "Noto Sans SC"';
+            ctx.fillStyle = currentEyeType === 'myopia' ? colors.glasses : '#ff6b35';
+            ctx.textAlign = 'center';
+            const label = currentEyeType === 'myopia' ? '凹透镜' : '凸透镜';
+            ctx.fillText(label, x + 4, centerY + lensHeight + 20);
+        }
+
+        function drawLightRays(eyeCenterX, eyeCenterY, eyeRadius) {
+            let eyeWidth = eyeRadius * 2;
+            
+            // 轴性近视：眼球横向变长
+            if (currentEyeType === 'myopia' && currentEyeSubType === 'axial') {
+                eyeWidth = (eyeRadius + 20) * 2;
+            }
+            // 轴性远视：眼球横向变短
+            else if (currentEyeType === 'hyperopia' && currentEyeSubType === 'axial') {
+                eyeWidth = (eyeRadius - 15) * 2;
+            }
+            // 正常眼：根据物体位置调整眼轴长度
+            else if (currentEyeType === 'normal') {
+                // 物体位置范围：100-500
+                // 眼轴长度范围：280-320（半径140-160）
+                const normalizedPos = (objectPosition - 100) / 400; // 0-1
+                const eyeWidthMin = 280; // 最小眼轴长度（远离时）
+                const eyeWidthMax = 320; // 最大眼轴长度（靠近时）
+                eyeWidth = eyeWidthMin + (eyeWidthMax - eyeWidthMin) * normalizedPos;
+            }
+            
+            const lensX = eyeCenterX - eyeWidth/2 + 30;
+            const glassesX = showGlasses && currentEyeType !== 'normal' ? lensX - 120 : null;
+            
+            let retinaX;
+            
+            // 轴性近视：眼球横向变长，视网膜在眼球后部
+            if (currentEyeType === 'myopia' && currentEyeSubType === 'axial') {
+                retinaX = eyeCenterX + eyeWidth/2 - 20;
+            }
+            // 轴性远视：眼球横向变短，视网膜在眼球后部
+            else if (currentEyeType === 'hyperopia' && currentEyeSubType === 'axial') {
+                retinaX = eyeCenterX + eyeWidth/2 - 20;
+            }
+            // 正常眼：视网膜在眼球后部
+            else if (currentEyeType === 'normal') {
+                retinaX = eyeCenterX + eyeWidth/2 - 20;
+            }
+            // 屈光性近视/远视：视网膜在眼球后部
+            else {
+                retinaX = eyeCenterX + eyeWidth/2 - 20;
+            }
+            
+            const retinaRadius = eyeRadius - 5;
+            
+            let focalX;
+            let adjustedRetinaX = retinaX;
+            
+            // 轴性近视：焦点在视网膜前
+            if (currentEyeType === 'myopia' && currentEyeSubType === 'axial') {
+                focalX = adjustedRetinaX - 60;
+            }
+            // 轴性远视：焦点在视网膜后
+            else if (currentEyeType === 'hyperopia' && currentEyeSubType === 'axial') {
+                focalX = adjustedRetinaX + 50;
+            }
+            // 屈光性近视：晶状体变厚
+            else if (currentEyeType === 'myopia') {
+                focalX = retinaX - 60; // 焦点在视网膜前
+            }
+            // 屈光性远视：晶状体变薄
+            else if (currentEyeType === 'hyperopia') {
+                focalX = retinaX + 50; // 焦点在视网膜后
+            }
+            // 正常眼：焦点始终在视网膜上
+            else {
+                // 确保焦点始终与视网膜位置同步
+                focalX = retinaX;
+                adjustedRetinaX = retinaX;
+            }
+            
+            let correctedFocalX = adjustedRetinaX;
+            
+            const rayPositions = [-50, 0, 50];
+            // 近视眼使用更远的物体，远视眼使用近处物体，正常眼使用objectPosition
+            let objX;
+            if (currentEyeType === 'myopia') {
+                objX = 50; // 更远的物体
+            } else if (currentEyeType === 'hyperopia') {
+                objX = 300; // 近处物体
+            } else {
+                objX = objectPosition; // 正常眼可拖动
+            }
+            
+            rayPositions.forEach((offset, index) => {
+                let startY;
+                let objY = 250;
+                
+                if (currentEyeType === 'hyperopia' || currentEyeType === 'normal') {
+                    // 远视眼和正常眼：点光源，从箭头中点发出
+                    startY = objY;
+                } else {
+                    // 近视眼：线光源，从不同高度发出
+                    startY = objY + offset;
+                }
+                
+                ctx.lineWidth = 2;
+                ctx.setLineDash([]);
+                
+                let currentColor = colors.incident;
+                
+                ctx.beginPath();
+                let finalLensY;
+                if (glassesX) {
+                    const glassesY = (currentEyeType === 'hyperopia' || currentEyeType === 'normal') ? startY + offset : startY;
+                    
+                    // 计算透镜中心点
+                    const lensCenterX = glassesX + 4; // 透镜宽度的一半
+                    
+                    ctx.strokeStyle = currentColor;
+                    ctx.moveTo(objX, startY);
+                    // 光线到透镜左侧
+                    ctx.lineTo(glassesX, glassesY);
+                    ctx.stroke();
+                    
+                    // 计算偏折后的Y坐标（在透镜内部发生偏折）
+                    if (currentEyeType === 'myopia') {
+                        // 凹透镜：增加发散角度，使偏折更明显
+                        const divergeAngle = (glassesY - 250) * 0.008;
+                        // 偏折发生在透镜中心
+                        const centerY = glassesY + (lensCenterX - glassesX) * divergeAngle;
+                        // 计算到达晶状体的Y坐标
+                        finalLensY = centerY + (lensX - lensCenterX) * divergeAngle;
+                    } else {
+                        // 凸透镜：增加会聚角度
+                        const convergeAngle = (250 - glassesY) * 0.006;
+                        // 偏折发生在透镜中心
+                        const centerY = glassesY + (lensCenterX - glassesX) * convergeAngle;
+                        // 计算到达晶状体的Y坐标
+                        finalLensY = centerY + (lensX - lensCenterX) * convergeAngle;
+                    }
+                    
+                    currentColor = colors.corrected;
+                    ctx.strokeStyle = currentColor;
+                    ctx.beginPath();
+                    // 从透镜左侧到透镜中心（偏折点）
+                    ctx.moveTo(glassesX, glassesY);
+                    // 从透镜中心到晶状体
+                    ctx.lineTo(lensX, finalLensY);
+                    ctx.stroke();
+                } else {
+                    finalLensY = (currentEyeType === 'hyperopia' || currentEyeType === 'normal') ? startY + offset : startY;
+                    ctx.strokeStyle = currentColor;
+                    ctx.moveTo(objX, startY);
+                    ctx.lineTo(lensX, finalLensY);
+                    ctx.stroke();
+                }
+                
+                const targetFocalX = showGlasses ? correctedFocalX : focalX;
+                
+                const slope = (finalLensY - 250) / (lensX - targetFocalX);
+                
+                ctx.strokeStyle = showGlasses ? colors.corrected : colors.refracted;
+                ctx.lineWidth = 2;
+                
+                if (currentEyeType === 'hyperopia' && !showGlasses) {
+                    const retinaCurveX = adjustedRetinaX + 5;
+                    const retinaHitY = 250 + slope * (retinaCurveX - targetFocalX);
+                    
+                    ctx.setLineDash([]);
+                    ctx.beginPath();
+                    ctx.moveTo(lensX, finalLensY);
+                    ctx.lineTo(retinaCurveX, retinaHitY);
+                    ctx.stroke();
+                    
+                    ctx.setLineDash([5, 5]);
+                    ctx.strokeStyle = 'rgba(0, 212, 255, 0.5)';
+                    ctx.beginPath();
+                    ctx.moveTo(retinaCurveX, retinaHitY);
+                    ctx.lineTo(targetFocalX, 250);
+                    ctx.stroke();
+                    ctx.setLineDash([]);
+                } else {
+                    const eyeBackX = adjustedRetinaX + 5;
+                    const finalY = 250 + slope * (eyeBackX - targetFocalX);
+                    
+                    ctx.setLineDash([]);
+                    ctx.beginPath();
+                    ctx.moveTo(lensX, finalLensY);
+                    ctx.lineTo(eyeBackX, finalY);
+                    ctx.stroke();
+                }
+            });
+            
+            ctx.setLineDash([]);
+        }
+
+        function drawLabels(centerX, centerY, radius) {
+            ctx.font = '14px "Noto Sans SC"';
+            ctx.fillStyle = '#8892a4';
+            ctx.textAlign = 'center';
+            
+            // 光轴
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
+            ctx.lineWidth = 1;
+            ctx.setLineDash([10, 10]);
+            ctx.beginPath();
+            ctx.moveTo(50, centerY);
+            ctx.lineTo(centerX + radius, centerY);
+            ctx.stroke();
+            ctx.setLineDash([]);
+            
+            ctx.fillText('主光轴', centerX - radius - 50, centerY + 5);
+            
+            // 眼球类型标签
+            ctx.font = 'bold 18px "Noto Sans SC"';
+            const typeLabels = {
+                'normal': '正常眼',
+                'myopia': '近视眼',
+                'hyperopia': '远视眼'
+            };
+            const typeColors = {
+                'normal': colors.corrected,
+                'myopia': colors.focal,
+                'hyperopia': '#ff6b35'
+            };
+            ctx.fillStyle = typeColors[currentEyeType];
+            ctx.fillText(typeLabels[currentEyeType], centerX, centerY - radius - 30);
+        }
+
+        // 交互函数
+        function setEyeType(type, subType = 'refractive') {
+            currentEyeType = type;
+            currentEyeSubType = subType;
+            showGlasses = false;
+            updateButtons();
+            animateTransition();
+        }
+
+        function toggleGlasses() {
+            if (currentEyeType === 'normal') return;
+            showGlasses = !showGlasses;
+            updateButtons();
+            animateTransition();
+        }
+
+        function updateButtons() {
+            // 更新眼睛类型按钮
+            document.querySelectorAll('.btn[data-type]').forEach(btn => {
+                btn.classList.remove('active');
+                if (btn.dataset.type === currentEyeType) {
+                    btn.classList.add('active');
+                }
+            });
+            
+            // 显示/隐藏子类型选择组
+            document.getElementById('myopiaTypeGroup').style.display = currentEyeType === 'myopia' ? 'flex' : 'none';
+            document.getElementById('hyperopiaTypeGroup').style.display = currentEyeType === 'hyperopia' ? 'flex' : 'none';
+            
+            // 更新子类型按钮
+            if (currentEyeType === 'myopia') {
+                document.querySelectorAll('#myopiaTypeGroup .btn').forEach(btn => {
+                    btn.classList.remove('active');
+                    if (btn.dataset.type === currentEyeSubType) {
+                        btn.classList.add('active');
+                    }
+                });
+            } else if (currentEyeType === 'hyperopia') {
+                document.querySelectorAll('#hyperopiaTypeGroup .btn').forEach(btn => {
+                    btn.classList.remove('active');
+                    if (btn.dataset.type === currentEyeSubType) {
+                        btn.classList.add('active');
+                    }
+                });
+            }
+            
+            // 更新眼镜按钮
+            const glassesBtn = document.getElementById('glassesBtn');
+            const glassesText = document.getElementById('glassesText');
+            
+            if (currentEyeType === 'normal') {
+                glassesBtn.disabled = true;
+                glassesBtn.style.opacity = '0.5';
+                glassesText.textContent = '正常眼无需矫正';
+            } else {
+                glassesBtn.disabled = false;
+                glassesBtn.style.opacity = '1';
+                if (showGlasses) {
+                    glassesText.textContent = currentEyeType === 'myopia' ? '移除凹透镜' : '移除凸透镜';
+                    glassesBtn.classList.add(currentEyeType === 'myopia' ? 'active-green' : 'active-orange');
+                } else {
+                    glassesText.textContent = currentEyeType === 'myopia' ? '添加凹透镜' : '添加凸透镜';
+                    glassesBtn.classList.remove('active-green', 'active-orange');
+                }
+            }
+        }
+
+        function animateTransition() {
+            animationProgress = 0;
+            if (animationId) cancelAnimationFrame(animationId);
+            
+            function animate() {
+                animationProgress += 0.05;
+                if (animationProgress >= 1) {
+                    animationProgress = 1;
+                    draw();
+                    return;
+                }
+                draw();
+                animationId = requestAnimationFrame(animate);
+            }
+            animate();
+        }
+
+        // 鼠标事件处理
+        function handleMouseDown(e) {
+            if (currentEyeType !== 'normal') return;
+            
+            const rect = canvas.getBoundingClientRect();
+            const mouseX = e.clientX - rect.left;
+            const mouseY = e.clientY - rect.top;
+            
+            // 检查是否点击了物体
+            const objX = objectPosition;
+            const objY = 250;
+            const objHeight = 80;
+            
+            // 增大点击区域，确保更容易点击到物体，即使在边界处
+            if (mouseX >= objX - 50 && mouseX <= objX + 50 && mouseY >= objY - objHeight - 50 && mouseY <= objY + objHeight + 50) {
+                isDragging = true;
+            }
+        }
+        
+        function handleMouseMove(e) {
+            if (!isDragging || currentEyeType !== 'normal') return;
+            
+            const rect = canvas.getBoundingClientRect();
+            const mouseX = e.clientX - rect.left;
+            
+            // 限制物体位置在100-500之间，但保持拖动状态
+            objectPosition = Math.max(100, Math.min(500, mouseX));
+            
+            // 即使在边界处，也继续保持拖动状态
+            // 只有当鼠标释放时才停止拖动
+            
+            draw();
+        }
+        
+        function handleMouseUp() {
+            isDragging = false;
+        }
+        
+        // 初始化
+        window.addEventListener('resize', resizeCanvas);
+        canvas.addEventListener('mousedown', handleMouseDown);
+        canvas.addEventListener('mousemove', handleMouseMove);
+        canvas.addEventListener('mouseup', handleMouseUp);
+        canvas.addEventListener('mouseleave', handleMouseUp);
+        resizeCanvas();
+        updateButtons();
+    </script>
+</body>
+</html>

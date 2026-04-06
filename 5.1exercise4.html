@@ -1,0 +1,1810 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>2D光学实验模拟器</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #0a0f1a;
+            --bg-secondary: #111827;
+            --fg: #e8eaed;
+            --muted: #6b7280;
+            --accent: #ff3333;
+            --accent-glow: rgba(255, 51, 51, 0.6);
+            --mirror: #c0d6e4;
+            --absorber: #1a1a1a;
+            --target: #ff9500;
+            --card: rgba(17, 24, 39, 0.8);
+            --border: rgba(255, 255, 255, 0.1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Noto Sans SC', sans-serif;
+            background: var(--bg);
+            color: var(--fg);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        .title-font {
+            font-family: 'Space Grotesk', sans-serif;
+        }
+
+        /* 背景网格 */
+        .grid-bg {
+            position: fixed;
+            inset: 0;
+            background-image: 
+                linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px);
+            background-size: 40px 40px;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        /* 分栏容器 */
+        .split-container {
+            display: flex;
+            width: 100%;
+            height: calc(100vh - 200px);
+            min-height: 500px;
+            gap: 0;
+        }
+
+        /* 左侧题目区 */
+        .question-panel {
+            display: none;
+            background: linear-gradient(135deg, #0d1321 0%, #0a0f1a 50%, #0f172a 100%);
+            border-radius: 12px 0 0 12px;
+            overflow: hidden;
+            box-shadow: 
+                0 0 0 1px var(--border),
+                0 20px 50px rgba(0, 0, 0, 0.5),
+                inset 0 1px 0 rgba(255,255,255,0.05);
+            position: relative;
+        }
+
+        .question-panel.active {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .question-header {
+            padding: 16px 20px;
+            background: rgba(0, 0, 0, 0.3);
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .question-content {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            overflow: auto;
+        }
+
+        .question-content img {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+            border-radius: 8px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        .question-placeholder {
+            text-align: center;
+            color: var(--muted);
+        }
+
+        .question-placeholder svg {
+            width: 64px;
+            height: 64px;
+            margin-bottom: 16px;
+            opacity: 0.3;
+        }
+
+        /* 分割条 */
+        .resizer {
+            width: 8px;
+            background: rgba(255, 255, 255, 0.05);
+            cursor: col-resize;
+            display: none;
+            position: relative;
+            flex-shrink: 0;
+            transition: background 0.2s;
+        }
+
+        .resizer.active {
+            display: block;
+        }
+
+        .resizer:hover,
+        .resizer.dragging {
+            background: rgba(255, 51, 51, 0.3);
+        }
+
+        .resizer::after {
+            content: '';
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            width: 4px;
+            height: 40px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 2px;
+        }
+
+        .resizer:hover::after,
+        .resizer.dragging::after {
+            background: rgba(255, 255, 255, 0.4);
+        }
+
+        /* Canvas容器 */
+        .canvas-container {
+            position: relative;
+            flex: 1;
+            background: linear-gradient(135deg, #0d1321 0%, #0a0f1a 50%, #0f172a 100%);
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 
+                0 0 0 1px var(--border),
+                0 20px 50px rgba(0, 0, 0, 0.5),
+                inset 0 1px 0 rgba(255,255,255,0.05);
+        }
+
+        .split-container.has-question .canvas-container {
+            border-radius: 0 12px 12px 0;
+        }
+
+        #experimentCanvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+            cursor: grab;
+        }
+
+        #experimentCanvas:active {
+            cursor: grabbing;
+        }
+
+        /* 控制面板 */
+        .control-panel {
+            background: var(--card);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+        }
+
+        /* 角度滑块 */
+        .angle-slider {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 100%;
+            height: 8px;
+            border-radius: 4px;
+            background: linear-gradient(90deg, 
+                #1e3a5f 0%, 
+                #2d5a87 25%, 
+                #3d7ab5 50%, 
+                #2d5a87 75%, 
+                #1e3a5f 100%);
+            outline: none;
+            cursor: pointer;
+        }
+
+        .angle-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #fff 0%, #c0d6e4 100%);
+            cursor: pointer;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.3), 0 0 20px rgba(255,255,255,0.2);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .angle-slider::-webkit-slider-thumb:hover {
+            transform: scale(1.1);
+            box-shadow: 0 2px 15px rgba(0,0,0,0.4), 0 0 30px rgba(255,255,255,0.3);
+        }
+
+        .angle-slider::-moz-range-thumb {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #fff 0%, #c0d6e4 100%);
+            cursor: pointer;
+            border: none;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+        }
+
+        /* 角度显示 */
+        .angle-display {
+            font-family: 'Space Grotesk', monospace;
+            font-size: 2rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--accent) 0%, #ff6666 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-shadow: 0 0 30px var(--accent-glow);
+        }
+
+        /* 工具按钮 */
+        .tool-btn {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 12px 16px;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--fg);
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 14px;
+        }
+
+        .tool-btn:hover {
+            background: rgba(255,255,255,0.1);
+            border-color: rgba(255,255,255,0.2);
+            transform: translateY(-2px);
+        }
+
+        .tool-btn.active {
+            background: rgba(255, 51, 51, 0.15);
+            border-color: var(--accent);
+            box-shadow: 0 0 20px rgba(255, 51, 51, 0.2);
+        }
+
+        .tool-btn.primary {
+            background: rgba(34, 197, 94, 0.15);
+            border-color: rgba(34, 197, 94, 0.5);
+        }
+
+        .tool-btn.primary:hover {
+            background: rgba(34, 197, 94, 0.25);
+            border-color: rgba(34, 197, 94, 0.7);
+        }
+
+        .tool-btn.danger {
+            background: rgba(239, 68, 68, 0.15);
+            border-color: rgba(239, 68, 68, 0.5);
+        }
+
+        .tool-btn.danger:hover {
+            background: rgba(239, 68, 68, 0.25);
+            border-color: rgba(239, 68, 68, 0.7);
+        }
+
+        .tool-btn.warning {
+            background: rgba(255, 149, 0, 0.15);
+            border-color: rgba(255, 149, 0, 0.5);
+        }
+
+        .tool-btn.warning:hover {
+            background: rgba(255, 149, 0, 0.25);
+            border-color: rgba(255, 149, 0, 0.7);
+        }
+
+        /* 图例 */
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+            color: var(--muted);
+        }
+
+        .legend-color {
+            width: 24px;
+            height: 4px;
+            border-radius: 2px;
+        }
+
+        /* 信息卡片 */
+        .info-card {
+            background: rgba(255,255,255,0.03);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 12px;
+        }
+
+        /* 提示框 */
+        .tooltip {
+            position: absolute;
+            background: var(--card);
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 8px 12px;
+            font-size: 12px;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.2s;
+            z-index: 100;
+            white-space: nowrap;
+        }
+
+        .tooltip.visible {
+            opacity: 1;
+        }
+
+        /* 隐藏的文件输入 */
+        #imageInput {
+            display: none;
+        }
+
+        /* 动画 */
+        @keyframes pulse-glow {
+            0%, 100% { opacity: 0.6; }
+            50% { opacity: 1; }
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes targetPulse {
+            0%, 100% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.2); opacity: 0.8; }
+        }
+
+        .animate-in {
+            animation: fadeIn 0.5s ease-out forwards;
+        }
+
+        .delay-1 { animation-delay: 0.1s; opacity: 0; }
+        .delay-2 { animation-delay: 0.2s; opacity: 0; }
+        .delay-3 { animation-delay: 0.3s; opacity: 0; }
+
+        /* 响应式 */
+        @media (max-width: 768px) {
+            .split-container {
+                flex-direction: column;
+                height: auto;
+                min-height: 700px;
+            }
+            
+            .question-panel {
+                border-radius: 12px 12px 0 0;
+                min-height: 250px;
+            }
+            
+            .split-container.has-question .canvas-container {
+                border-radius: 0 0 12px 12px;
+                min-height: 400px;
+            }
+            
+            .resizer {
+                width: 100%;
+                height: 8px;
+                cursor: row-resize;
+            }
+            
+            .resizer::after {
+                width: 40px;
+                height: 4px;
+            }
+            
+            .angle-display {
+                font-size: 1.5rem;
+            }
+        }
+
+        /* 减少动画偏好 */
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after {
+                animation-duration: 0.01ms !important;
+                transition-duration: 0.01ms !important;
+            }
+        }
+    </style>
+</head>
+<body class="p-4 md:p-6">
+    <div class="grid-bg"></div>
+    
+    <div class="max-w-7xl mx-auto relative z-10">
+        <!-- 标题 -->
+        <header class="text-center mb-6 animate-in">
+            <h1 class="title-font text-3xl md:text-4xl font-bold mb-2 tracking-tight">
+                2D光学实验模拟器
+            </h1>
+            <p class="text-gray-400 text-sm md:text-base">
+                拖动元件探索光的反射定律 · 入射角等于反射角
+            </p>
+        </header>
+
+        <div class="flex flex-col lg:flex-row gap-4">
+            <!-- 主区域 -->
+            <div class="flex-1 animate-in delay-1">
+                <div class="split-container" id="splitContainer">
+            
+                    
+                    <!-- 右侧实验区 -->
+                    <div class="canvas-container" id="canvasContainer">
+                        <canvas id="experimentCanvas"></canvas>
+                        <div id="tooltip" class="tooltip"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 控制面板 -->
+            <div class="w-full lg:w-80 space-y-4 animate-in delay-2">
+                <!-- 导入题目 -->
+                <div class="control-panel">
+                    <h3 class="title-font font-bold text-lg mb-4 flex items-center gap-2">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                            <circle cx="8.5" cy="8.5" r="1.5"/>
+                            <polyline points="21 15 16 10 5 21"/>
+                        </svg>
+                        导入题目
+                    </h3>
+                    
+                    <input type="file" id="imageInput" accept="image/jpeg,image/png,image/jpg" onchange="handleImageUpload(event)" style="display: none;">
+                    
+                    <div class="space-y-2">
+                        <button class="tool-btn primary w-full" onclick="importFromPlatform()">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                                <polyline points="17 8 12 3 7 8"/>
+                                <line x1="12" y1="3" x2="12" y2="15"/>
+                            </svg>
+                            平台题库导入
+                        </button>
+                        <button class="tool-btn w-full" onclick="document.getElementById('imageInput').click()">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                                <polyline points="17 8 12 3 7 8"/>
+                                <line x1="12" y1="3" x2="12" y2="15"/>
+                            </svg>
+                            自定义导入
+                        </button>
+                    </div>
+                    
+                    <p class="text-xs text-gray-500 mt-2">
+                        平台题库：自动导入激光打靶练习1和练习2图片<br>
+                        自定义导入：上传自己的题目图片<br>
+                        操作提示：鼠标右键点击删除物品
+                    </p>
+                </div>
+
+                <!-- 激光角度控制 -->
+                <div class="control-panel">
+                    <h3 class="title-font font-bold text-lg mb-4 flex items-center gap-2">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="3"/>
+                            <path d="M12 2v4M12 18v4M2 12h4M18 12h4"/>
+                        </svg>
+                        激光角度控制
+                    </h3>
+                    
+                    <div class="text-center mb-4">
+                        <span class="angle-display" id="angleValue">0</span>
+                        <span class="text-gray-500 text-sm">度</span>
+                    </div>
+                    
+                    <input type="range" id="angleSlider" class="angle-slider" min="0" max="360" value="0">
+                    
+                    <div class="flex justify-between text-xs text-gray-500 mt-2">
+                        <span>0°</span>
+                        <span>90°</span>
+                        <span>180°</span>
+                        <span>270°</span>
+                        <span>360°</span>
+                    </div>
+
+                    <div class="grid grid-cols-4 gap-2 mt-4">
+                        <button class="tool-btn justify-center text-xs" onclick="setAngle(0)">0°</button>
+                        <button class="tool-btn justify-center text-xs" onclick="setAngle(90)">90°</button>
+                        <button class="tool-btn justify-center text-xs" onclick="setAngle(180)">180°</button>
+                        <button class="tool-btn justify-center text-xs" onclick="setAngle(270)">270°</button>
+                    </div>
+                </div>
+
+                <!-- 工具箱 -->
+                <div class="control-panel">
+                    <h3 class="title-font font-bold text-lg mb-4 flex items-center gap-2">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>
+                        </svg>
+                        实验工具
+                    </h3>
+                    
+                    <div class="space-y-2">
+                        <button class="tool-btn w-full" id="addMirrorBtn" onclick="addMirror()">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <line x1="4" y1="4" x2="20" y2="20"/>
+                            </svg>
+                            添加平面镜
+                        </button>
+                        <button class="tool-btn w-full" id="addAbsorberBtn" onclick="addAbsorber()">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <line x1="4" y1="20" x2="20" y2="4"/>
+                            </svg>
+                            添加吸光纸
+                        </button>
+                        <button class="tool-btn w-full warning" id="addTargetBtn" onclick="addTarget()">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="12" cy="12" r="10"/>
+                                <circle cx="12" cy="12" r="6"/>
+                                <circle cx="12" cy="12" r="2"/>
+                            </svg>
+                            添加靶子
+                        </button>
+                        <button class="tool-btn w-full" style="background: rgba(255, 51, 51, 0.15); border-color: rgba(255, 51, 51, 0.5);" onclick="addLaser('red')">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="12" cy="12" r="3"/>
+                                <path d="M12 2v4M12 18v4M2 12h4M18 12h4"/>
+                            </svg>
+                            添加红色激光笔
+                        </button>
+                        <button class="tool-btn w-full" style="background: rgba(34, 197, 94, 0.15); border-color: rgba(34, 197, 94, 0.5);" onclick="addLaser('green')">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="12" cy="12" r="3"/>
+                                <path d="M12 2v4M12 18v4M2 12h4M18 12h4"/>
+                            </svg>
+                            添加绿色激光笔
+                        </button>
+                        <button class="tool-btn w-full" onclick="resetExperiment()">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
+                                <path d="M3 3v5h5"/>
+                            </svg>
+                            重置实验
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 图例说明 -->
+                <div class="control-panel">
+                    <h3 class="title-font font-bold text-lg mb-4">图例说明</h3>
+                    <div class="space-y-3">
+                        <div class="legend-item">
+                            <div class="legend-color" style="background: linear-gradient(90deg, #ff3333, #ff6666);"></div>
+                            <span>激光束</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-color" style="background: linear-gradient(90deg, #c0d6e4, #fff);"></div>
+                            <span>平面镜（可反射光线）</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-color" style="background: linear-gradient(90deg, #333, #555);"></div>
+                            <span>吸光纸（吸收光线）</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-color" style="background: #ff3333; width: 12px; height: 12px; border-radius: 50%;"></div>
+                            <span>激光笔（拖动移动）</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-color" style="background: #ff9500; width: 10px; height: 10px; border-radius: 50%;"></div>
+                            <span>靶子（光线目标点）</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 物理信息 -->
+                <div class="control-panel">
+                    <h3 class="title-font font-bold text-lg mb-3">反射信息</h3>
+                    <div class="info-card space-y-2 text-sm">
+                        <div class="flex justify-between">
+                            <span class="text-gray-400">反射次数</span>
+                            <span id="reflectCount" class="font-mono text-green-400">0</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-gray-400">光路总长</span>
+                            <span id="pathLength" class="font-mono text-blue-400">0 px</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-gray-400">最终状态</span>
+                            <span id="finalState" class="font-mono text-yellow-400">传播中</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-gray-400">靶子命中</span>
+                            <span id="targetHit" class="font-mono text-orange-400">未命中</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 操作提示 -->
+        <div class="mt-4 text-center text-gray-500 text-sm animate-in delay-3">
+            <p>拖动激光笔、平面镜、吸光纸、靶子或图片移动位置 · 端点可旋转调整角度 · 图片角落可拖动缩放 · 右键删除元件</p>
+        </div>
+    </div>
+
+    <script>
+        // ============ 初始化变量 ============
+        const canvas = document.getElementById('experimentCanvas');
+        const ctx = canvas.getContext('2d');
+        const tooltip = document.getElementById('tooltip');
+        const angleSlider = document.getElementById('angleSlider');
+        const angleValue = document.getElementById('angleValue');
+
+        // 高DPI支持
+        let dpr = window.devicePixelRatio || 1;
+        let canvasWidth = 0;
+        let canvasHeight = 0;
+
+        // 实验对象
+        let lasers = []; // 激光笔数组
+
+        let mirrors = [];
+        let absorbers = [];
+        let targets = []; // 靶子数组
+        let images = []; // 图片数组
+
+        // 拖拽状态
+        let isDragging = false;
+        let dragTarget = null;
+        let dragType = null;
+        let dragOffset = { x: 0, y: 0 };
+        let dragEndPoint = null;
+
+        // 光线路径
+        let lightPath = [];
+        const MAX_REFLECTIONS = 50;
+
+        // 分栏拖动相关
+        let isResizing = false;
+        let splitRatio = 0.4; // 左侧占比
+
+        // 靶子命中状态
+        let hitTargetIndex = -1;
+        
+        // 当前选中的激光笔索引
+        let selectedLaserIndex = 0;
+
+        // 平台题库导入索引
+        let platformImportIndex = 0;
+
+        // ============ 图片上传功能 ============
+        function handleImageUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            // 验证文件类型
+            if (!file.type.match(/image\/(jpeg|png|jpg)/)) {
+                alert('请上传 JPG 或 PNG 格式的图片');
+                return;
+            }
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const img = new Image();
+                img.src = e.target.result;
+                img.onload = function() {
+                    // 添加图片到数组
+                    const newImage = {
+                        x: canvasWidth / 2,
+                        y: canvasHeight / 2,
+                        width: Math.min(600, img.width),
+                        height: Math.min(600 * (img.height / img.width), img.height),
+                        image: img,
+                        selected: false
+                    };
+                    images.push(newImage);
+                    
+                    // 重新计算canvas大小
+                    resizeCanvas();
+                    calculateLightPath();
+                    render();
+                };
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function importFromPlatform() {
+            // 平台题库图片路径
+            const platformImages = [
+                '激光打靶练习1.png',
+                '激光打靶练习2.png'
+            ];
+            
+            // 获取当前要导入的图片路径
+            const currentImagePath = platformImages[platformImportIndex];
+            
+            // 创建图片对象
+            const img = new Image();
+            img.src = currentImagePath;
+            
+            img.onload = function() {
+                // 添加图片到数组
+                const newImage = {
+                    x: canvasWidth / 2,
+                    y: canvasHeight / 2,
+                    width: Math.min(600, img.width),
+                    height: Math.min(600 * (img.height / img.width), img.height),
+                    image: img,
+                    selected: false
+                };
+                images.push(newImage);
+                
+                // 更新导入索引，循环导入
+                platformImportIndex = (platformImportIndex + 1) % platformImages.length;
+                
+                // 重新计算canvas大小
+                resizeCanvas();
+                calculateLightPath();
+                render();
+            };
+            
+            img.onerror = function() {
+                alert('无法加载平台题库图片，请确保激光打靶练习1和练习2图片与HTML文件在同一文件夹中');
+            };
+        }
+
+        function addLaser(color) {
+            const newLaser = {
+                x: 100 + Math.random() * 200,
+                y: 100 + Math.random() * 200,
+                angle: Math.random() * 360,
+                radius: 15,
+                color: color
+            };
+            lasers.push(newLaser);
+            
+            // 自动选中新添加的激光笔
+            selectedLaserIndex = lasers.length - 1;
+            // 更新角度滑块的值为新激光笔的角度
+            angleSlider.value = newLaser.angle;
+            angleValue.textContent = Math.round(newLaser.angle);
+            
+            calculateLightPath();
+            render();
+        }
+
+
+
+        // ============ 初始化 ============
+        function init() {
+            resizeCanvas();
+            
+            // 添加初始激光笔
+            lasers.push({
+                x: 100,
+                y: 300,
+                angle: 0,
+                radius: 15,
+                color: 'red'
+            });
+            
+            // 添加初始元件
+            mirrors.push({
+                x1: 400,
+                y1: 150,
+                x2: 400,
+                y2: 450,
+                length: 300
+            });
+            
+            mirrors.push({
+                x1: 600,
+                y1: 200,
+                x2: 800,
+                y2: 350,
+                length: Math.sqrt(200*200 + 150*150)
+            });
+
+            // 吸光纸改为线段形式
+            absorbers.push({
+                x1: 700,
+                y1: 450,
+                x2: 820,
+                y2: 530,
+                length: 150
+            });
+
+            // 初始不添加靶子，需要手动添加
+            calculateLightPath();
+            render();
+        }
+
+        function resizeCanvas() {
+            const container = document.getElementById('canvasContainer');
+            const rect = container.getBoundingClientRect();
+            
+            canvasWidth = rect.width;
+            canvasHeight = rect.height;
+            
+            canvas.width = canvasWidth * dpr;
+            canvas.height = canvasHeight * dpr;
+            canvas.style.width = canvasWidth + 'px';
+            canvas.style.height = canvasHeight + 'px';
+            
+            ctx.setTransform(1, 0, 0, 1, 0, 0);
+            ctx.scale(dpr, dpr);
+        }
+
+        // ============ 光线追踪计算 ============
+        function calculateLightPath() {
+            lightPath = [];
+            let reflectCount = 0;
+            let totalLength = 0;
+            let finalState = '传播中';
+            hitTargetIndex = -1;
+
+            // 遍历所有激光笔
+            for (let laser of lasers) {
+                let startX = laser.x;
+                let startY = laser.y;
+                let dirX = Math.cos(laser.angle * Math.PI / 180);
+                let dirY = Math.sin(laser.angle * Math.PI / 180);
+
+                let laserPath = [{ x: startX, y: startY }];
+                let laserReflectCount = 0;
+                let laserTotalLength = 0;
+
+                for (let i = 0; i < MAX_REFLECTIONS; i++) {
+                    let closestHit = null;
+                    let closestDist = Infinity;
+                    let hitType = null;
+                    let hitObject = null;
+                    let hitNormal = null;
+
+                    // 检测与靶子的交点
+                    for (let j = 0; j < targets.length; j++) {
+                        const target = targets[j];
+                        const hit = rayCircleIntersection(
+                            startX, startY, dirX, dirY,
+                            target.x, target.y, target.radius
+                        );
+                        
+                        if (hit && hit.dist > 0.1 && hit.dist < closestDist) {
+                            closestDist = hit.dist;
+                            closestHit = hit;
+                            hitType = 'target';
+                            hitObject = target;
+                            hitTargetIndex = j;
+                        }
+                    }
+
+                    // 检测与平面镜的交点
+                    for (let mirror of mirrors) {
+                        const hit = rayLineIntersection(
+                            startX, startY, dirX, dirY,
+                            mirror.x1, mirror.y1, mirror.x2, mirror.y2
+                        );
+                        
+                        if (hit && hit.dist > 0.1 && hit.dist < closestDist) {
+                            closestDist = hit.dist;
+                            closestHit = hit;
+                            hitType = 'mirror';
+                            hitObject = mirror;
+                            // 计算法线
+                            const dx = mirror.x2 - mirror.x1;
+                            const dy = mirror.y2 - mirror.y1;
+                            const len = Math.sqrt(dx*dx + dy*dy);
+                            hitNormal = { x: -dy/len, y: dx/len };
+                        }
+                    }
+
+                    // 检测与吸光纸的交点（线段形式）
+                    for (let absorber of absorbers) {
+                        const hit = rayLineIntersection(
+                            startX, startY, dirX, dirY,
+                            absorber.x1, absorber.y1, absorber.x2, absorber.y2
+                        );
+                        
+                        if (hit && hit.dist > 0.1 && hit.dist < closestDist) {
+                            closestDist = hit.dist;
+                            closestHit = hit;
+                            hitType = 'absorber';
+                            hitObject = absorber;
+                        }
+                    }
+
+                    // 检测与边界的交点
+                    const boundaryEdges = [
+                        { x1: 0, y1: 0, x2: canvasWidth, y2: 0 },
+                        { x1: canvasWidth, y1: 0, x2: canvasWidth, y2: canvasHeight },
+                        { x1: canvasWidth, y1: canvasHeight, x2: 0, y2: canvasHeight },
+                        { x1: 0, y1: canvasHeight, x2: 0, y2: 0 }
+                    ];
+                    
+                    for (let edge of boundaryEdges) {
+                        const hit = rayLineIntersection(
+                            startX, startY, dirX, dirY,
+                            edge.x1, edge.y1, edge.x2, edge.y2
+                        );
+                        
+                        if (hit && hit.dist > 0.1 && hit.dist < closestDist) {
+                            closestDist = hit.dist;
+                            closestHit = hit;
+                            hitType = 'boundary';
+                        }
+                    }
+
+                    if (!closestHit) break;
+
+                    laserPath.push({ x: closestHit.x, y: closestHit.y });
+                    laserTotalLength += closestDist;
+
+                    if (hitType === 'target') {
+                        finalState = '命中靶子';
+                        break;
+                    } else if (hitType === 'absorber') {
+                        finalState = '被吸收';
+                        break;
+                    } else if (hitType === 'boundary') {
+                        finalState = '出射边界';
+                        break;
+                    } else if (hitType === 'mirror') {
+                        laserReflectCount++;
+                        // 计算反射方向
+                        const dot = dirX * hitNormal.x + dirY * hitNormal.y;
+                        dirX = dirX - 2 * dot * hitNormal.x;
+                        dirY = dirY - 2 * dot * hitNormal.y;
+                        
+                        startX = closestHit.x;
+                        startY = closestHit.y;
+                    }
+                }
+
+                // 添加激光笔的路径到总路径
+                lightPath.push({ path: laserPath, color: laser.color });
+                reflectCount += laserReflectCount;
+                totalLength += laserTotalLength;
+            }
+
+            // 更新UI信息
+            document.getElementById('reflectCount').textContent = reflectCount;
+            document.getElementById('pathLength').textContent = Math.round(totalLength) + ' px';
+            document.getElementById('finalState').textContent = finalState;
+            
+            // 根据最终状态设置颜色
+            const stateEl = document.getElementById('finalState');
+            if (finalState === '被吸收') {
+                stateEl.className = 'font-mono text-red-400';
+            } else if (finalState === '出射边界') {
+                stateEl.className = 'font-mono text-blue-400';
+            } else if (finalState === '命中靶子') {
+                stateEl.className = 'font-mono text-orange-400';
+            } else {
+                stateEl.className = 'font-mono text-yellow-400';
+            }
+
+            // 更新靶子命中状态
+            const targetHitEl = document.getElementById('targetHit');
+            if (hitTargetIndex >= 0) {
+                targetHitEl.textContent = '命中!';
+                targetHitEl.className = 'font-mono text-green-400';
+            } else if (targets.length > 0) {
+                targetHitEl.textContent = '未命中';
+                targetHitEl.className = 'font-mono text-orange-400';
+            } else {
+                targetHitEl.textContent = '无靶子';
+                targetHitEl.className = 'font-mono text-gray-400';
+            }
+        }
+
+        // 射线与线段交点
+        function rayLineIntersection(rx, ry, rdx, rdy, x1, y1, x2, y2) {
+            const dx = x2 - x1;
+            const dy = y2 - y1;
+            
+            const denom = rdx * dy - rdy * dx;
+            if (Math.abs(denom) < 0.0001) return null;
+            
+            const t = ((x1 - rx) * dy - (y1 - ry) * dx) / denom;
+            const u = ((x1 - rx) * rdy - (y1 - ry) * rdx) / denom;
+            
+            if (t > 0 && u >= 0 && u <= 1) {
+                return {
+                    x: rx + t * rdx,
+                    y: ry + t * rdy,
+                    dist: t,
+                    param: u
+                };
+            }
+            return null;
+        }
+
+        // 射线与圆的交点
+        function rayCircleIntersection(rx, ry, rdx, rdy, cx, cy, cr) {
+            const dx = rx - cx;
+            const dy = ry - cy;
+            
+            const a = rdx * rdx + rdy * rdy;
+            const b = 2 * (dx * rdx + dy * rdy);
+            const c = dx * dx + dy * dy - cr * cr;
+            
+            const discriminant = b * b - 4 * a * c;
+            
+            if (discriminant < 0) return null;
+            
+            const sqrtDisc = Math.sqrt(discriminant);
+            const t1 = (-b - sqrtDisc) / (2 * a);
+            const t2 = (-b + sqrtDisc) / (2 * a);
+            
+            // 返回最近的正交点
+            const t = (t1 > 0.1) ? t1 : ((t2 > 0.1) ? t2 : null);
+            
+            if (t !== null) {
+                return {
+                    x: rx + t * rdx,
+                    y: ry + t * rdy,
+                    dist: t
+                };
+            }
+            return null;
+        }
+
+        // ============ 渲染 ============
+        function render() {
+            ctx.clearRect(0, 0, canvasWidth, canvasHeight);
+            
+            // 绘制网格背景
+            drawGrid();
+            
+            // 绘制图片（放在最底层）
+            for (let image of images) {
+                drawImage(image);
+            }
+            
+            // 绘制吸光纸
+            for (let absorber of absorbers) {
+                drawAbsorber(absorber);
+            }
+            
+            // 绘制平面镜
+            for (let mirror of mirrors) {
+                drawMirror(mirror);
+            }
+            
+            // 绘制靶子
+            for (let i = 0; i < targets.length; i++) {
+                drawTarget(targets[i], i === hitTargetIndex);
+            }
+            
+            // 绘制光线路径
+            drawLightPath();
+            
+            // 绘制激光笔
+            for (let laser of lasers) {
+                drawLaser(laser);
+            }
+        }
+
+        function drawImage(image) {
+            ctx.save();
+            
+            // 绘制图片
+            ctx.drawImage(image.image, image.x - image.width / 2, image.y - image.height / 2, image.width, image.height);
+            
+            // 绘制选中边框
+            if (image.selected) {
+                ctx.strokeStyle = '#ff3333';
+                ctx.lineWidth = 2;
+                ctx.setLineDash([5, 5]);
+                ctx.strokeRect(image.x - image.width / 2, image.y - image.height / 2, image.width, image.height);
+                ctx.setLineDash([]);
+                
+                // 绘制缩放控制点
+                const controlSize = 8;
+                ctx.fillStyle = '#ff3333';
+                // 四个角的控制点
+                ctx.fillRect(image.x - image.width / 2 - controlSize / 2, image.y - image.height / 2 - controlSize / 2, controlSize, controlSize);
+                ctx.fillRect(image.x + image.width / 2 - controlSize / 2, image.y - image.height / 2 - controlSize / 2, controlSize, controlSize);
+                ctx.fillRect(image.x - image.width / 2 - controlSize / 2, image.y + image.height / 2 - controlSize / 2, controlSize, controlSize);
+                ctx.fillRect(image.x + image.width / 2 - controlSize / 2, image.y + image.height / 2 - controlSize / 2, controlSize, controlSize);
+            }
+            
+            ctx.restore();
+        }
+
+        function drawGrid() {
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.03)';
+            ctx.lineWidth = 1;
+            
+            const gridSize = 50;
+            for (let x = 0; x < canvasWidth; x += gridSize) {
+                ctx.beginPath();
+                ctx.moveTo(x, 0);
+                ctx.lineTo(x, canvasHeight);
+                ctx.stroke();
+            }
+            for (let y = 0; y < canvasHeight; y += gridSize) {
+                ctx.beginPath();
+                ctx.moveTo(0, y);
+                ctx.lineTo(canvasWidth, y);
+                ctx.stroke();
+            }
+        }
+
+        function drawLaser(laser) {
+            const x = laser.x;
+            const y = laser.y;
+            const r = laser.radius;
+            const color = laser.color === 'green' ? '#00ff00' : '#ff3333';
+            const colorLight = laser.color === 'green' ? 'rgba(0, 255, 0, 0.4)' : 'rgba(255, 51, 51, 0.4)';
+            const colorMedium = laser.color === 'green' ? 'rgba(0, 255, 0, 0.1)' : 'rgba(255, 51, 51, 0.1)';
+            const colorDark = laser.color === 'green' ? '#00aa00' : '#cc0000';
+            
+            // 发光效果
+            const glow = ctx.createRadialGradient(x, y, 0, x, y, r * 3);
+            glow.addColorStop(0, colorLight);
+            glow.addColorStop(0.5, colorMedium);
+            glow.addColorStop(1, 'rgba(0, 0, 0, 0)');
+            ctx.fillStyle = glow;
+            ctx.beginPath();
+            ctx.arc(x, y, r * 3, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // 激光笔主体
+            const bodyGrad = ctx.createRadialGradient(x - 5, y - 5, 0, x, y, r);
+            bodyGrad.addColorStop(0, color);
+            bodyGrad.addColorStop(0.5, color);
+            bodyGrad.addColorStop(1, colorDark);
+            
+            ctx.fillStyle = bodyGrad;
+            ctx.beginPath();
+            ctx.arc(x, y, r, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // 边框
+            ctx.strokeStyle = '#fff';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+            
+            // 方向指示器
+            const angleRad = laser.angle * Math.PI / 180;
+            const indicatorLen = r * 1.8;
+            ctx.beginPath();
+            ctx.moveTo(x, y);
+            ctx.lineTo(
+                x + Math.cos(angleRad) * indicatorLen,
+                y + Math.sin(angleRad) * indicatorLen
+            );
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
+            ctx.lineWidth = 3;
+            ctx.lineCap = 'round';
+            ctx.stroke();
+        }
+
+        function drawMirror(mirror) {
+            const { x1, y1, x2, y2 } = mirror;
+            
+            // 镜面发光效果
+            ctx.shadowColor = 'rgba(192, 214, 228, 0.5)';
+            ctx.shadowBlur = 15;
+            
+            // 镜面主体
+            const grad = ctx.createLinearGradient(x1, y1, x2, y2);
+            grad.addColorStop(0, '#e0e8f0');
+            grad.addColorStop(0.5, '#ffffff');
+            grad.addColorStop(1, '#c0d6e4');
+            
+            ctx.strokeStyle = grad;
+            ctx.lineWidth = 6;
+            ctx.lineCap = 'round';
+            ctx.beginPath();
+            ctx.moveTo(x1, y1);
+            ctx.lineTo(x2, y2);
+            ctx.stroke();
+            
+            ctx.shadowBlur = 0;
+            
+            // 端点
+            ctx.fillStyle = '#fff';
+            ctx.strokeStyle = '#8899aa';
+            ctx.lineWidth = 2;
+            
+            ctx.beginPath();
+            ctx.arc(x1, y1, 8, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+            
+            ctx.beginPath();
+            ctx.arc(x2, y2, 8, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+        }
+
+        function drawAbsorber(absorber) {
+            const { x1, y1, x2, y2 } = absorber;
+            
+            // 吸光纸发光效果（暗色）
+            ctx.shadowColor = 'rgba(50, 50, 50, 0.8)';
+            ctx.shadowBlur = 10;
+            
+            // 吸光纸主体 - 深色线段
+            const grad = ctx.createLinearGradient(x1, y1, x2, y2);
+            grad.addColorStop(0, '#2a2a2a');
+            grad.addColorStop(0.5, '#444444');
+            grad.addColorStop(1, '#2a2a2a');
+            
+            ctx.strokeStyle = grad;
+            ctx.lineWidth = 10;
+            ctx.lineCap = 'round';
+            ctx.beginPath();
+            ctx.moveTo(x1, y1);
+            ctx.lineTo(x2, y2);
+            ctx.stroke();
+            
+            ctx.shadowBlur = 0;
+            
+            // 内部纹理线
+            ctx.strokeStyle = 'rgba(80, 80, 80, 0.6)';
+            ctx.lineWidth = 6;
+            ctx.beginPath();
+            ctx.moveTo(x1, y1);
+            ctx.lineTo(x2, y2);
+            ctx.stroke();
+            
+            // 端点 - 深色圆形
+            ctx.fillStyle = '#333';
+            ctx.strokeStyle = '#555';
+            ctx.lineWidth = 2;
+            
+            ctx.beginPath();
+            ctx.arc(x1, y1, 8, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+            
+            ctx.beginPath();
+            ctx.arc(x2, y2, 8, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+        }
+
+        function drawTarget(target, isHit) {
+            const x = target.x;
+            const y = target.y;
+            const r = target.radius;
+            
+            // 脉冲动画效果
+            const time = Date.now() / 1000;
+            const pulse = Math.sin(time * 3) * 0.1 + 1;
+            
+            // 外发光
+            const glowColor = isHit ? 'rgba(0, 255, 100, 0.5)' : 'rgba(255, 149, 0, 0.4)';
+            const glow = ctx.createRadialGradient(x, y, 0, x, y, r * 2.5 * pulse);
+            glow.addColorStop(0, glowColor);
+            glow.addColorStop(0.6, isHit ? 'rgba(0, 255, 100, 0.1)' : 'rgba(255, 149, 0, 0.1)');
+            glow.addColorStop(1, 'rgba(255, 149, 0, 0)');
+            ctx.fillStyle = glow;
+            ctx.beginPath();
+            ctx.arc(x, y, r * 2.5 * pulse, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // 中心圆点
+            const centerGrad = ctx.createRadialGradient(x, y, 0, x, y, r);
+            if (isHit) {
+                centerGrad.addColorStop(0, '#00ff64');
+                centerGrad.addColorStop(1, '#00aa44');
+            } else {
+                centerGrad.addColorStop(0, '#ffcc44');
+                centerGrad.addColorStop(1, '#ff9500');
+            }
+            ctx.fillStyle = centerGrad;
+            ctx.beginPath();
+            ctx.arc(x, y, r, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // 边框
+            ctx.strokeStyle = isHit ? '#00ff64' : '#ffaa33';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+        }
+
+        function drawLightPath() {
+            if (lightPath.length === 0) return;
+            
+            // 遍历每个激光笔的路径
+            for (let laserPathData of lightPath) {
+                const laserPath = laserPathData.path;
+                const color = laserPathData.color === 'green' ? '#00ff00' : '#ff3333';
+                const shadowColor = laserPathData.color === 'green' ? 'rgba(0, 255, 0, 0.8)' : 'rgba(255, 51, 51, 0.8)';
+                
+                if (laserPath.length < 2) continue;
+                
+                // 绘制光线发光效果
+                ctx.shadowColor = shadowColor;
+                ctx.shadowBlur = 10;
+                
+                ctx.strokeStyle = color;
+                ctx.lineWidth = 2;
+                ctx.lineCap = 'round';
+                ctx.lineJoin = 'round';
+                
+                ctx.beginPath();
+                ctx.moveTo(laserPath[0].x, laserPath[0].y);
+                
+                for (let i = 1; i < laserPath.length; i++) {
+                    ctx.lineTo(laserPath[i].x, laserPath[i].y);
+                }
+                ctx.stroke();
+                
+                ctx.shadowBlur = 0;
+                
+                // 绘制反射点
+                for (let i = 1; i < laserPath.length - 1; i++) {
+                    ctx.fillStyle = '#ffcc00';
+                    ctx.beginPath();
+                    ctx.arc(laserPath[i].x, laserPath[i].y, 4, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+                
+                // 绘制终点标记
+                if (laserPath.length > 1) {
+                    const last = laserPath[laserPath.length - 1];
+                    ctx.fillStyle = '#fff';
+                    ctx.beginPath();
+                    ctx.arc(last.x, last.y, 6, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.strokeStyle = color;
+                    ctx.lineWidth = 2;
+                    ctx.stroke();
+                }
+            }
+        }
+
+        // ============ 交互处理 ============
+        function getMousePos(e) {
+            const rect = canvas.getBoundingClientRect();
+            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+            const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+            return {
+                x: clientX - rect.left,
+                y: clientY - rect.top
+            };
+        }
+
+        function hitTest(pos) {
+            // 检测激光笔
+            for (let i = 0; i < lasers.length; i++) {
+                const laser = lasers[i];
+                const dx = pos.x - laser.x;
+                const dy = pos.y - laser.y;
+                if (dx * dx + dy * dy < laser.radius * laser.radius * 2) {
+                    return { type: 'laser', target: laser, index: i };
+                }
+            }
+            
+            // 检测靶子
+            for (let i = 0; i < targets.length; i++) {
+                const target = targets[i];
+                const tdx = pos.x - target.x;
+                const tdy = pos.y - target.y;
+                if (tdx * tdx + tdy * tdy < (target.radius * 3) * (target.radius * 3)) {
+                    return { type: 'target', target: target, index: i };
+                }
+            }
+            
+            // 检测平面镜端点
+            for (let i = 0; i < mirrors.length; i++) {
+                const mirror = mirrors[i];
+                const d1 = Math.sqrt((pos.x - mirror.x1) ** 2 + (pos.y - mirror.y1) ** 2);
+                const d2 = Math.sqrt((pos.x - mirror.x2) ** 2 + (pos.y - mirror.y2) ** 2);
+                
+                if (d1 < 15) return { type: 'mirrorEnd', target: mirror, endPoint: 1, index: i };
+                if (d2 < 15) return { type: 'mirrorEnd', target: mirror, endPoint: 2, index: i };
+                
+                // 检测平面镜整体
+                if (pointToLineDistance(pos.x, pos.y, mirror.x1, mirror.y1, mirror.x2, mirror.y2) < 10) {
+                    return { type: 'mirror', target: mirror, index: i };
+                }
+            }
+            
+            // 检测吸光纸端点
+            for (let i = 0; i < absorbers.length; i++) {
+                const absorber = absorbers[i];
+                const d1 = Math.sqrt((pos.x - absorber.x1) ** 2 + (pos.y - absorber.y1) ** 2);
+                const d2 = Math.sqrt((pos.x - absorber.x2) ** 2 + (pos.y - absorber.y2) ** 2);
+                
+                if (d1 < 15) return { type: 'absorberEnd', target: absorber, endPoint: 1, index: i };
+                if (d2 < 15) return { type: 'absorberEnd', target: absorber, endPoint: 2, index: i };
+                
+                // 检测吸光纸整体
+                if (pointToLineDistance(pos.x, pos.y, absorber.x1, absorber.y1, absorber.x2, absorber.y2) < 12) {
+                    return { type: 'absorber', target: absorber, index: i };
+                }
+            }
+            
+            // 检测图片（放在最后，确保工具优先被检测）
+            for (let i = 0; i < images.length; i++) {
+                const image = images[i];
+                const controlSize = 8;
+                
+                // 检测缩放控制点
+                const corners = [
+                    { x: image.x - image.width / 2, y: image.y - image.height / 2 },
+                    { x: image.x + image.width / 2, y: image.y - image.height / 2 },
+                    { x: image.x - image.width / 2, y: image.y + image.height / 2 },
+                    { x: image.x + image.width / 2, y: image.y + image.height / 2 }
+                ];
+                
+                for (let j = 0; j < corners.length; j++) {
+                    const corner = corners[j];
+                    const cdx = pos.x - (corner.x);
+                    const cdy = pos.y - (corner.y);
+                    if (Math.abs(cdx) < controlSize && Math.abs(cdy) < controlSize) {
+                        return { type: 'imageResize', target: image, corner: j, index: i };
+                    }
+                }
+                
+                // 检测图片整体
+                if (pos.x >= image.x - image.width / 2 && pos.x <= image.x + image.width / 2 &&
+                    pos.y >= image.y - image.height / 2 && pos.y <= image.y + image.height / 2) {
+                    return { type: 'image', target: image, index: i };
+                }
+            }
+            
+            return null;
+        }
+
+        function pointToLineDistance(px, py, x1, y1, x2, y2) {
+            const A = px - x1;
+            const B = py - y1;
+            const C = x2 - x1;
+            const D = y2 - y1;
+            
+            const dot = A * C + B * D;
+            const lenSq = C * C + D * D;
+            let param = -1;
+            
+            if (lenSq !== 0) param = dot / lenSq;
+            
+            let xx, yy;
+            
+            if (param < 0) {
+                xx = x1;
+                yy = y1;
+            } else if (param > 1) {
+                xx = x2;
+                yy = y2;
+            } else {
+                xx = x1 + param * C;
+                yy = y1 + param * D;
+            }
+            
+            return Math.sqrt((px - xx) ** 2 + (py - yy) ** 2);
+        }
+
+        canvas.addEventListener('mousedown', handleStart);
+        canvas.addEventListener('touchstart', handleStart, { passive: false });
+
+        function handleStart(e) {
+            e.preventDefault();
+            const pos = getMousePos(e);
+            const hit = hitTest(pos);
+            
+            // 取消所有图片的选中状态
+            images.forEach(img => img.selected = false);
+            
+            if (hit) {
+                isDragging = true;
+                dragTarget = hit.target;
+                dragType = hit.type;
+                dragEndPoint = hit.endPoint || null;
+                
+                if (hit.type === 'laser') {
+                    // 更新当前选中的激光笔索引
+                    selectedLaserIndex = hit.index;
+                    // 更新角度滑块的值为当前选中激光笔的角度
+                    angleSlider.value = lasers[selectedLaserIndex].angle;
+                    angleValue.textContent = Math.round(lasers[selectedLaserIndex].angle);
+                    // 计算拖拽偏移量
+                    dragOffset = { x: pos.x - hit.target.x, y: pos.y - hit.target.y };
+                } else if (hit.type === 'target') {
+                    dragOffset = { x: pos.x - hit.target.x, y: pos.y - hit.target.y };
+                } else if (hit.type === 'mirror' || hit.type === 'absorber') {
+                    dragOffset = { x: pos.x, y: pos.y };
+                } else if (hit.type === 'mirrorEnd' || hit.type === 'absorberEnd') {
+                    dragOffset = { x: pos.x, y: pos.y };
+                } else if (hit.type === 'image') {
+                    hit.target.selected = true;
+                    dragOffset = { x: pos.x - hit.target.x, y: pos.y - hit.target.y };
+                } else if (hit.type === 'imageResize') {
+                    hit.target.selected = true;
+                    dragOffset = { x: pos.x, y: pos.y };
+                }
+            }
+        }
+
+        canvas.addEventListener('mousemove', handleMove);
+        canvas.addEventListener('touchmove', handleMove, { passive: false });
+
+        function handleMove(e) {
+            e.preventDefault();
+            const pos = getMousePos(e);
+            
+            // 更新提示
+            const hit = hitTest(pos);
+            if (hit && !isDragging) {
+                tooltip.classList.add('visible');
+                tooltip.style.left = (pos.x + 15) + 'px';
+                tooltip.style.top = (pos.y - 30) + 'px';
+                
+                if (hit.type === 'laser') {
+                    tooltip.textContent = '激光笔 - 拖动移动';
+                } else if (hit.type === 'target') {
+                    tooltip.textContent = '靶子 - 拖动移动，右键删除';
+                } else if (hit.type === 'mirror' || hit.type === 'mirrorEnd') {
+                    tooltip.textContent = '平面镜 - 拖动端点旋转';
+                } else if (hit.type === 'absorber' || hit.type === 'absorberEnd') {
+                    tooltip.textContent = '吸光纸 - 拖动端点调整';
+                } else if (hit.type === 'image' || hit.type === 'imageResize') {
+                    tooltip.textContent = '图片 - 拖动移动，拖动角落缩放';
+                }
+            } else {
+                tooltip.classList.remove('visible');
+            }
+            
+            // 拖拽处理
+            if (!isDragging) return;
+            
+            if (dragType === 'laser') {
+                dragTarget.x = Math.max(dragTarget.radius, Math.min(canvasWidth - dragTarget.radius, pos.x - dragOffset.x));
+                dragTarget.y = Math.max(dragTarget.radius, Math.min(canvasHeight - dragTarget.radius, pos.y - dragOffset.y));
+            } else if (dragType === 'target') {
+                dragTarget.x = Math.max(20, Math.min(canvasWidth - 20, pos.x - dragOffset.x));
+                dragTarget.y = Math.max(20, Math.min(canvasHeight - 20, pos.y - dragOffset.y));
+            } else if (dragType === 'mirror') {
+                const mirror = dragTarget;
+                const dx = pos.x - dragOffset.x;
+                const dy = pos.y - dragOffset.y;
+                
+                mirror.x1 += dx;
+                mirror.y1 += dy;
+                mirror.x2 += dx;
+                mirror.y2 += dy;
+                
+                dragOffset = { x: pos.x, y: pos.y };
+            } else if (dragType === 'mirrorEnd') {
+                const mirror = dragTarget;
+                if (dragEndPoint === 1) {
+                    mirror.x1 = pos.x;
+                    mirror.y1 = pos.y;
+                } else {
+                    mirror.x2 = pos.x;
+                    mirror.y2 = pos.y;
+                }
+                mirror.length = Math.sqrt((mirror.x2 - mirror.x1) ** 2 + (mirror.y2 - mirror.y1) ** 2);
+            } else if (dragType === 'absorber') {
+                const absorber = dragTarget;
+                const dx = pos.x - dragOffset.x;
+                const dy = pos.y - dragOffset.y;
+                
+                absorber.x1 += dx;
+                absorber.y1 += dy;
+                absorber.x2 += dx;
+                absorber.y2 += dy;
+                
+                dragOffset = { x: pos.x, y: pos.y };
+            } else if (dragType === 'absorberEnd') {
+                const absorber = dragTarget;
+                if (dragEndPoint === 1) {
+                    absorber.x1 = pos.x;
+                    absorber.y1 = pos.y;
+                } else {
+                    absorber.x2 = pos.x;
+                    absorber.y2 = pos.y;
+                }
+                absorber.length = Math.sqrt((absorber.x2 - absorber.x1) ** 2 + (absorber.y2 - absorber.y1) ** 2);
+            } else if (dragType === 'image') {
+                dragTarget.x = pos.x - dragOffset.x;
+                dragTarget.y = pos.y - dragOffset.y;
+            } else if (dragType === 'imageResize') {
+                const image = dragTarget;
+                const dx = pos.x - dragOffset.x;
+                const dy = pos.y - dragOffset.y;
+                
+                // 根据角落调整图片大小
+                switch (hit.corner) {
+                    case 0: // 左上角
+                        image.width = Math.max(50, image.width - dx);
+                        image.height = Math.max(50, image.height - dy);
+                        image.x = image.x - dx / 2;
+                        image.y = image.y - dy / 2;
+                        break;
+                    case 1: // 右上角
+                        image.width = Math.max(50, image.width + dx);
+                        image.height = Math.max(50, image.height - dy);
+                        image.x = image.x + dx / 2;
+                        image.y = image.y - dy / 2;
+                        break;
+                    case 2: // 左下角
+                        image.width = Math.max(50, image.width - dx);
+                        image.height = Math.max(50, image.height + dy);
+                        image.x = image.x - dx / 2;
+                        image.y = image.y + dy / 2;
+                        break;
+                    case 3: // 右下角
+                        image.width = Math.max(50, image.width + dx);
+                        image.height = Math.max(50, image.height + dy);
+                        image.x = image.x + dx / 2;
+                        image.y = image.y + dy / 2;
+                        break;
+                }
+                
+                dragOffset = { x: pos.x, y: pos.y };
+            }
+            
+            calculateLightPath();
+            render();
+        }
+
+        canvas.addEventListener('mouseup', handleEnd);
+        canvas.addEventListener('touchend', handleEnd);
+        canvas.addEventListener('mouseleave', handleEnd);
+
+        function handleEnd() {
+            isDragging = false;
+            dragTarget = null;
+            dragType = null;
+            dragEndPoint = null;
+        }
+
+        // 右键删除
+        canvas.addEventListener('contextmenu', function(e) {
+            e.preventDefault();
+            const pos = getMousePos(e);
+            const hit = hitTest(pos);
+            
+            if (hit && hit.type === 'target') {
+                targets.splice(hit.index, 1);
+                calculateLightPath();
+                render();
+            } else if (hit && (hit.type === 'mirror' || hit.type === 'mirrorEnd')) {
+                mirrors.splice(hit.index, 1);
+                calculateLightPath();
+                render();
+            } else if (hit && (hit.type === 'absorber' || hit.type === 'absorberEnd')) {
+                absorbers.splice(hit.index, 1);
+                calculateLightPath();
+                render();
+            } else if (hit && (hit.type === 'image' || hit.type === 'imageResize')) {
+                images.splice(hit.index, 1);
+                calculateLightPath();
+                render();
+            } else if (hit && hit.type === 'laser') {
+                // 检查是否删除的是当前选中的激光笔
+                const isSelectedLaser = (hit.index === selectedLaserIndex);
+                
+                // 删除激光笔
+                lasers.splice(hit.index, 1);
+                
+                // 如果删除的是当前选中的激光笔，更新选中索引
+                if (isSelectedLaser && lasers.length > 0) {
+                    // 选择最后一个激光笔
+                    selectedLaserIndex = lasers.length - 1;
+                    // 更新角度滑块的值
+                    angleSlider.value = lasers[selectedLaserIndex].angle;
+                    angleValue.textContent = Math.round(lasers[selectedLaserIndex].angle);
+                } else if (lasers.length === 0) {
+                    // 如果没有激光笔了，重置选中索引
+                    selectedLaserIndex = 0;
+                }
+                
+                calculateLightPath();
+                render();
+            }
+        });
+
+        // 角度滑块
+        angleSlider.addEventListener('input', function() {
+            // 如果有激光笔，调整当前选中的激光笔的角度
+            if (lasers.length > 0) {
+                // 确保选中的索引在有效范围内
+                selectedLaserIndex = Math.min(selectedLaserIndex, lasers.length - 1);
+                lasers[selectedLaserIndex].angle = parseFloat(this.value);
+                angleValue.textContent = Math.round(lasers[selectedLaserIndex].angle);
+                calculateLightPath();
+                render();
+            }
+        });
+
+        // ============ 工具函数 ============
+        function setAngle(angle) {
+            // 如果有激光笔，设置当前选中的激光笔的角度
+            if (lasers.length > 0) {
+                // 确保选中的索引在有效范围内
+                selectedLaserIndex = Math.min(selectedLaserIndex, lasers.length - 1);
+                lasers[selectedLaserIndex].angle = angle;
+                angleSlider.value = angle;
+                angleValue.textContent = angle;
+                calculateLightPath();
+                render();
+            }
+        }
+
+        function addMirror() {
+            const newMirror = {
+                x1: 100 + Math.random() * 200,
+                y1: 100 + Math.random() * 100,
+                x2: 100 + Math.random() * 200,
+                y2: 300 + Math.random() * 100,
+                length: 200
+            };
+            newMirror.length = Math.sqrt((newMirror.x2 - newMirror.x1) ** 2 + (newMirror.y2 - newMirror.y1) ** 2);
+            mirrors.push(newMirror);
+            calculateLightPath();
+            render();
+        }
+
+        function addAbsorber() {
+            const newAbsorber = {
+                x1: 200 + Math.random() * 300,
+                y1: 200 + Math.random() * 100,
+                x2: 300 + Math.random() * 300,
+                y2: 350 + Math.random() * 100,
+                length: 150
+            };
+            newAbsorber.length = Math.sqrt((newAbsorber.x2 - newAbsorber.x1) ** 2 + (newAbsorber.y2 - newAbsorber.y1) ** 2);
+            absorbers.push(newAbsorber);
+            calculateLightPath();
+            render();
+        }
+
+        function addTarget() {
+            const newTarget = {
+                x: 150 + Math.random() * (canvasWidth - 300),
+                y: 150 + Math.random() * (canvasHeight - 300),
+                radius: 8  // 缩小靶子半径
+            };
+            targets.push(newTarget);
+            calculateLightPath();
+            render();
+        }
+
+        function resetExperiment() {
+            lasers = [{ x: 100, y: 300, angle: 0, radius: 15, color: 'red' }];
+            mirrors = [{
+                x1: 400, y1: 150, x2: 400, y2: 450, length: 300
+            }, {
+                x1: 600, y1: 200, x2: 800, y2: 350, length: Math.sqrt(200*200 + 150*150)
+            }];
+            absorbers = [{
+                x1: 700, y1: 450, x2: 820, y2: 530, length: 150
+            }];
+            targets = []; // 重置时清空靶子
+            images = []; // 重置时清空图片
+            angleSlider.value = 0;
+            angleValue.textContent = '0';
+            calculateLightPath();
+            render();
+        }
+
+        // 动画循环（用于靶子脉冲效果）
+        function animate() {
+            calculateLightPath();
+            render();
+            requestAnimationFrame(animate);
+        }
+
+        // 窗口大小变化
+        window.addEventListener('resize', function() {
+            resizeCanvas();
+            calculateLightPath();
+            render();
+        });
+
+        // 初始化
+        init();
+        // 启动动画循环
+        animate();
+    </script>
+</body>
+</html>

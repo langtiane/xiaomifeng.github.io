@@ -1,0 +1,2151 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>小蜜蜂初中物理教学平台（光现象单元）</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary: #4A90E2;
+            --secondary: #FF9500;
+            --accent: #50E3C2;
+            --light: #F8FAFC;
+            --dark: #1A202C;
+            --success: #38A169;
+            --danger: #E53E3E;
+            --shadow: rgba(0, 0, 0, 0.08);
+            --shadow-hover: rgba(0, 0, 0, 0.15);
+            --border-radius: 16px;
+            --transition: all 0.3s ease;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif;
+        }
+
+        body {
+            background-color: #F0F9FF;
+            color: var(--dark);
+            line-height: 1.6;
+            padding-top: 80px;
+            min-height: 100vh;
+            background-image: url('背景.png');
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            background-attachment: fixed;
+            cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32"><text x="0" y="24" font-size="24">🐝</text></svg>'), auto;
+        }
+
+        /* 导航栏 */
+        .nav-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            background-color: rgba(255, 255, 255, 0.98);
+            backdrop-filter: blur(15px);
+            box-shadow: 0 2px 20px rgba(0, 0, 0, 0.1);
+            z-index: 1000;
+            padding: 0 20px;
+        }
+
+        .nav-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            height: 80px;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            font-weight: bold;
+            font-size: 1.4rem;
+            color: var(--primary);
+        }
+
+        .logo i {
+            margin-right: 10px;
+            color: var(--secondary);
+            font-size: 1.8rem;
+        }
+
+        .nav-buttons {
+            display: flex;
+            gap: 15px;
+        }
+
+        .nav-btn {
+            background: transparent;
+            border: none;
+            padding: 12px 20px;
+            border-radius: var(--border-radius);
+            font-weight: 600;
+            font-size: 1rem;
+            cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32"><text x="0" y="24" font-size="24">🐝</text></svg>'), auto;
+            transition: var(--transition);
+            color: var(--dark);
+            position: relative;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .nav-btn:hover {
+            background-color: rgba(74, 144, 226, 0.1);
+            transform: translateY(-2px);
+        }
+
+        .nav-btn.active {
+            background-color: var(--primary);
+            color: white;
+        }
+
+        .nav-btn.active:hover {
+            background-color: #357ABD;
+        }
+
+        .nav-btn i {
+            font-size: 1.1rem;
+        }
+
+        /* 主要内容区域 */
+        .main-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            min-height: calc(100vh - 160px);
+            animation: fadeIn 0.5s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* 首页模块 */
+        .home-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 60px 20px;
+            min-height: 70vh;
+            background-color: rgba(255, 255, 255, 0.9);
+            border-radius: var(--border-radius);
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(5px);
+            margin: 20px 0;
+        }
+
+        .home-title {
+            font-size: 3rem;
+            color: var(--primary);
+            margin-bottom: 20px;
+            text-shadow: 2px 2px 8px rgba(74, 144, 226, 0.2);
+            font-weight: 700;
+        }
+
+        .home-subtitle {
+            font-size: 1.5rem;
+            color: var(--dark);
+            margin-bottom: 40px;
+            max-width: 800px;
+            opacity: 1;
+        }
+
+        .start-btn {
+            background: linear-gradient(135deg, var(--secondary), #FFB74D);
+            color: white;
+            border: none;
+            padding: 18px 40px;
+            font-size: 1.4rem;
+            font-weight: bold;
+            border-radius: 50px;
+            cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32"><text x="0" y="24" font-size="24">🐝</text></svg>'), auto;
+            transition: var(--transition);
+            box-shadow: 0 6px 20px rgba(255, 149, 0, 0.3);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-top: 20px;
+        }
+
+        .start-btn:hover {
+            transform: translateY(-5px) scale(1.05);
+            box-shadow: 0 10px 25px rgba(255, 149, 0, 0.4);
+        }
+
+        /* 目录模块 */
+        .directory-container {
+            padding: 30px 0;
+        }
+
+        .section-title {
+            font-size: 2.2rem;
+            color: var(--primary);
+            margin-bottom: 30px;
+            padding: 15px 20px;
+            border-bottom: 3px solid var(--accent);
+            background: rgba(255, 255, 255, 0.8);
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            display: inline-block;
+        }
+
+        .chapter-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 25px;
+            margin-top: 30px;
+        }
+
+        .chapter-card {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: var(--border-radius);
+            padding: 25px;
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
+            transition: var(--transition);
+            cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32"><text x="0" y="24" font-size="24">🐝</text></svg>'), auto;
+            border-left: 5px solid var(--primary);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .chapter-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 12px 25px var(--shadow-hover);
+        }
+
+        .chapter-card h3 {
+            font-size: 1.4rem;
+            color: var(--primary);
+            margin-bottom: 10px;
+            padding: 10px 15px;
+            background: rgba(255, 255, 255, 0.8);
+            border-radius: 8px;
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
+            display: inline-block;
+        }
+
+        .chapter-card p {
+            color: var(--dark);
+            margin-bottom: 15px;
+        }
+
+        .chapter-badge {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background-color: var(--secondary);
+            color: white;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: bold;
+        }
+
+        /* 学习模块 */
+        .study-container, .exercise-container {
+            padding: 30px 0;
+        }
+
+        .module-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+
+        .module-title {
+            font-size: 2rem;
+            color: var(--primary);
+            padding: 15px 20px;
+            background: rgba(255, 255, 255, 0.8);
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            display: inline-block;
+            margin-bottom: 20px;
+        }
+
+        .module-subtitle {
+            font-size: 1.2rem;
+            color: var(--dark);
+            text-shadow: -1px -1px 0 white, 1px -1px 0 white, -1px 1px 0 white, 1px 1px 0 white;
+        }
+
+        .action-btn {
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: var(--border-radius);
+            font-weight: 600;
+            cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32"><text x="0" y="24" font-size="24">🐝</text></svg>'), auto;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .action-btn:hover {
+            background-color: #3a5a8c;
+            transform: translateY(-3px);
+        }
+
+        .cards-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 25px;
+            margin-top: 30px;
+        }
+
+        .card {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: var(--border-radius);
+            overflow: hidden;
+            box-shadow: 0 4px 15px var(--shadow);
+            transition: var(--transition);
+            cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32"><text x="0" y="24" font-size="24">🐝</text></svg>'), auto;
+            position: relative;
+        }
+
+        .card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 12px 25px var(--shadow-hover);
+        }
+
+        .card-img {
+            width: 100%;
+            height: 180px;
+            background-color: #E0F2FE;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--primary);
+            font-size: 3.5rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .card-img img {
+            width: 110%;
+            height: 100%;
+            object-fit: cover;
+            min-width: 110%;
+            min-height: 100%;
+            transform: translateX(5%);
+        }
+
+        .card-content {
+            padding: 20px;
+        }
+
+        .card-title {
+            font-size: 1.2rem;
+            color: var(--primary);
+            margin-bottom: 10px;
+            font-weight: 600;
+        }
+
+        .card-desc {
+            color: var(--dark);
+            font-size: 0.9rem;
+            margin-bottom: 15px;
+        }
+
+        .card-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 15px;
+        }
+
+        .card-badge {
+            background-color: rgba(74, 144, 226, 0.1);
+            color: var(--primary);
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: bold;
+        }
+
+        .fav-btn {
+            background: transparent;
+            border: none;
+            font-size: 2rem;
+            color: #ddd;
+            cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32"><text x="0" y="24" font-size="24">🐝</text></svg>'), auto;
+            transition: var(--transition);
+        }
+
+        .fav-btn:hover {
+            color: var(--secondary);
+            transform: scale(1.5);
+        }
+
+        .fav-btn.active {
+            color: var(--secondary);
+        }
+
+        /* 收藏模块 */
+        .fav-container {
+            padding: 30px 0;
+        }
+
+        .fav-empty {
+            text-align: center;
+            padding: 60px 20px;
+            color: #888;
+        }
+
+        .fav-empty i {
+            font-size: 4rem;
+            margin-bottom: 20px;
+            color: #ddd;
+        }
+
+        .fav-section {
+            margin-bottom: 40px;
+        }
+
+        .fav-section-title {
+            font-size: 1.5rem;
+            color: var(--primary);
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid rgba(74, 144, 226, 0.2);
+        }
+
+        /* 打卡模块 */
+        .checkin-container {
+            padding: 30px 0;
+        }
+
+        .checkin-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 25px;
+            margin-bottom: 40px;
+        }
+
+        .stat-card {
+            background: white;
+            border-radius: var(--border-radius);
+            padding: 25px;
+            box-shadow: 0 4px 15px var(--shadow);
+            text-align: center;
+            transition: var(--transition);
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px var(--shadow-hover);
+        }
+
+        .stat-card h3 {
+            font-size: 1.3rem;
+            color: var(--dark);
+            margin-bottom: 15px;
+        }
+
+        .stat-value {
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: var(--secondary);
+            margin-bottom: 10px;
+        }
+
+        .stat-label {
+            color: #666;
+            font-size: 0.9rem;
+        }
+
+        .flowers-container {
+            background: white;
+            border-radius: var(--border-radius);
+            padding: 30px;
+            box-shadow: 0 4px 15px var(--shadow);
+            margin-bottom: 40px;
+            transition: var(--transition);
+        }
+
+        .flowers-container:hover {
+            box-shadow: 0 10px 25px var(--shadow-hover);
+        }
+
+        .flowers-title {
+            font-size: 1.5rem;
+            color: var(--primary);
+            margin-bottom: 20px;
+        }
+
+        .flowers-garden {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            min-height: 80px;
+            padding: 20px;
+            background-color: #f9f9f9;
+            border-radius: var(--border-radius);
+            margin-bottom: 30px;
+        }
+
+        .flower {
+            font-size: 2.5rem;
+            transition: transform 0.3s;
+            padding: 10px;
+            border-radius: 50%;
+            background-color: rgba(255, 149, 0, 0.1);
+        }
+
+        .flower {
+            font-size: 2.5rem;
+            transition: transform 0.3s;
+            padding: 10px;
+            border-radius: 50%;
+            background-color: rgba(255, 149, 0, 0.1);
+            cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32"><text x="0" y="24" font-size="24">🐝</text></svg>'), auto;
+            position: relative;
+        }
+
+        .flower:hover {
+            transform: scale(1.5) rotate(15deg);
+            background-color: rgba(255, 149, 0, 0.2);
+        }
+
+        .flower.harvested {
+            filter: grayscale(100%);
+            opacity: 0.7;
+        }
+
+        .honey-progress {
+            position: absolute;
+            bottom: -20px;
+            left: 0;
+            width: 100%;
+            height: 8px;
+            background-color: #f0f0f0;
+            border-radius: 4px;
+            overflow: hidden;
+            z-index: 1000;
+        }
+
+        .honey-progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #FFD700, #FFA500);
+            border-radius: 4px;
+            transition: width 0.1s linear;
+        }
+
+        .honey-status {
+            position: absolute;
+            bottom: -40px;
+            left: 0;
+            width: 100%;
+            text-align: center;
+            font-size: 0.8rem;
+            color: var(--primary);
+            font-weight: bold;
+            z-index: 1000;
+        }
+
+        /* 饱食度进度条 */
+        .hunger-container {
+            background: white;
+            border-radius: var(--border-radius);
+            padding: 20px;
+            box-shadow: 0 4px 15px var(--shadow);
+            margin-bottom: 30px;
+            transition: var(--transition);
+        }
+
+        .hunger-container:hover {
+            box-shadow: 0 10px 25px var(--shadow-hover);
+        }
+
+        .hunger-title {
+            font-size: 1.2rem;
+            color: var(--primary);
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+        }
+
+        .hunger-title i {
+            margin-right: 10px;
+        }
+
+        .hunger-progress {
+            width: 100%;
+            height: 12px;
+            background-color: #f0f0f0;
+            border-radius: 6px;
+            overflow: hidden;
+            margin-bottom: 10px;
+        }
+
+        .hunger-progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #FFD700, #FFA500);
+            border-radius: 6px;
+            transition: width 0.3s ease;
+        }
+
+        .hunger-status {
+            font-size: 0.9rem;
+            color: #666;
+            text-align: right;
+        }
+
+        .checkin-btn {
+            background: linear-gradient(135deg, var(--secondary), #FF6B00);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            font-size: 1.2rem;
+            font-weight: bold;
+            border-radius: var(--border-radius);
+            cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32"><text x="0" y="24" font-size="24">🐝</text></svg>'), auto;
+            transition: var(--transition);
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            margin-right: 20px;
+        }
+
+        .checkin-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(255, 149, 0, 0.4);
+        }
+
+        .knowledge-card-container {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: var(--border-radius);
+            padding: 30px;
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
+            transition: var(--transition);
+        }
+
+        .knowledge-card-container:hover {
+            box-shadow: 0 10px 25px var(--shadow-hover);
+        }
+
+        .knowledge-card-title {
+            font-size: 1.5rem;
+            color: var(--primary);
+            margin-bottom: 20px;
+        }
+
+        .random-card-btn {
+            background-color: var(--secondary);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            border-radius: var(--border-radius);
+            cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32"><text x="0" y="24" font-size="24">🐝</text></svg>'), auto;
+            transition: var(--transition);
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .random-card-btn:hover {
+            background-color: #e6a037;
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(245, 176, 65, 0.4);
+        }
+
+        /* 弹层 */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(74, 144, 226, 0.7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: var(--border-radius);
+            padding: 40px;
+            width: 90%;
+            max-width: 600px;
+            max-height: 80vh;
+            overflow-y: auto;
+            position: relative;
+            animation: slideIn 0.3s ease;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.15);
+        }
+
+        @keyframes scaleIn {
+            from { transform: scale(0.9); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+
+        .modal-header {
+            padding: 20px;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-header h3 {
+            color: var(--primary);
+            font-size: 1.5rem;
+        }
+
+        .close-modal {
+            background: transparent;
+            border: none;
+            font-size: 2rem;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32"><text x="0" y="24" font-size="24">🐝</text></svg>'), auto;
+            color: var(--secondary);
+            transition: var(--transition);
+        }
+
+        .close-modal:hover {
+            color: var(--primary);
+            transform: scale(1.5);
+        }
+
+        /* 弹窗放大效果 */
+        .modal-content {
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            cursor: pointer;
+        }
+
+        .modal-content:hover {
+            transform: scale(1.02);
+        }
+
+        .modal-content.zoomed {
+            transform: scale(1.5);
+            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.3);
+            z-index: 1001;
+        }
+
+        .modal-body {
+            padding: 20px;
+        }
+
+        .modal-image {
+            width: 100%;
+            max-height: 400px;
+            object-fit: contain;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        /* 响应式设计 */
+        @media (max-width: 768px) {
+            .home-title {
+                font-size: 2.2rem;
+            }
+            
+            .chapter-list {
+                grid-template-columns: 1fr;
+            }
+            
+            .cards-grid {
+                grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+            }
+            
+            .checkin-stats {
+                grid-template-columns: 1fr;
+            }
+            
+            .nav-buttons {
+                gap: 5px;
+            }
+            
+            .nav-btn {
+                padding: 10px 12px;
+                font-size: 0.9rem;
+            }
+            
+            .nav-btn span {
+                display: none;
+            }
+            
+            .nav-btn i {
+                font-size: 1.2rem;
+            }
+            
+            .module-header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+        }
+
+        /* 加载状态 */
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #888;
+        }
+
+        /* Toast消息 */
+        .toast-container {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            z-index: 3000;
+        }
+
+        .toast {
+            background-color: var(--dark);
+            color: white;
+            padding: 15px 25px;
+            border-radius: var(--border-radius);
+            margin-bottom: 15px;
+            box-shadow: 0 6px 15px rgba(0, 0, 0, 0.2);
+            animation: slideIn 0.3s ease, fadeOut 0.3s ease 2.7s forwards;
+            max-width: 300px;
+        }
+
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
+        @keyframes fadeOut {
+            from { opacity: 1; }
+            to { opacity: 0; }
+        }
+
+        .toast.success {
+            background-color: var(--success);
+        }
+
+        .toast.error {
+            background-color: var(--danger);
+        }
+
+        .toast.info {
+            background-color: var(--primary);
+        }
+
+        /* 悬浮窗返回按钮 */
+        .floating-back-button {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            width: 120px;
+            height: 50px;
+            background-color: #ff4d4f;
+            color: white;
+            border-radius: 25px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32"><text x="0" y="24" font-size="24">🐝</text></svg>'), auto;
+            box-shadow: 0 6px 16px rgba(255, 77, 79, 0.4);
+            transition: var(--transition);
+            z-index: 999;
+            opacity: 0;
+            visibility: hidden;
+            font-weight: bold;
+            font-size: 16px;
+        }
+
+        .floating-back-button.show {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .floating-back-button:hover {
+            background-color: #ff7875;
+            transform: scale(1.05);
+            box-shadow: 0 8px 20px rgba(255, 77, 79, 0.5);
+        }
+    </style>
+</head>
+<body>
+    <!-- 导航栏 -->
+    <div class="nav-container">
+        <div class="nav-content">
+            <div class="logo">
+                <i class="fas fa-bee"></i>
+                <span>小蜜蜂物理</span>
+            </div>
+            <div class="nav-buttons">
+                <button class="nav-btn active" data-page="home">
+                    <i class="fas fa-home"></i>
+                    <span>首页</span>
+                </button>
+                <button class="nav-btn" data-page="directory" id="directory-btn">
+                    <i class="fas fa-list"></i>
+                    <span>目录</span>
+                </button>
+                <button class="nav-btn" data-page="favorites">
+                    <i class="fas fa-star"></i>
+                    <span>收藏</span>
+                </button>
+                <button class="nav-btn" data-page="checkin">
+                    <i class="fas fa-calendar-check"></i>
+                    <span>打卡</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 主要内容区域 -->
+    <div class="main-content" id="main-content">
+        <!-- 首页内容将在加载时显示 -->
+    </div>
+
+    <!-- Toast消息容器 -->
+    <div class="toast-container" id="toast-container"></div>
+
+    <!-- 知识卡片弹层 -->
+    <div class="modal-overlay" id="knowledge-modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>物理知识卡片</h3>
+                <button class="close-modal" id="close-knowledge-modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <img id="knowledge-card-image" class="modal-image" alt="物理知识卡片">
+                <p id="knowledge-card-text">这是随机抽取的物理知识卡片，帮助你更好地理解光现象单元的知识点。</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- 悬浮窗返回按钮 -->
+    <div class="floating-back-button" id="floating-back-button">
+        <i class="fas fa-arrow-left"></i>
+        <span style="margin-left: 8px;">返回</span>
+    </div>
+
+    <script>
+        // 全局变量和状态
+        const state = {
+            currentPage: 'home',
+            currentSection: null,
+            studyTime: 0,
+            studyTimer: null,
+            flowers: [],
+            favorites: {},
+            lastCheckDate: null,
+            openedWindow: null, // 存储打开的窗口引用
+            hasCheckedIn: false, // 今日是否已打卡
+            hasSecondCheckIn: false, // 今日是否已二次打卡
+            honeyCount: 0, // 今日采蜜次数
+            harvestedFlowers: [] // 已采蜜的花朵索引
+        };
+
+        // 页面数据
+        const pages = {
+            home: {
+                title: "小蜜蜂初中物理教学平台（光现象单元）",
+                subtitle: "欢迎来到光现象的学习世界！"
+            },
+            directory: {
+                title: "课程目录",
+                subtitle: "上海科学技术出版社 - 第4章 光现象"
+            },
+            favorites: {
+                title: "我的收藏",
+                subtitle: "收藏的重要知识点和练习题"
+            },
+            checkin: {
+                title: "学习打卡",
+                subtitle: "记录学习进度，积累学习成果"
+            }
+        };
+
+        // 章节数据
+        const chapters = [
+            { id: "5.1", title: "第1节 光的反射", desc: "学习光的反射定律、镜面反射和漫反射等知识。" },
+            { id: "5.2", title: "第2节 平面镜成像", desc: "探究平面镜成像的特点、原理及应用。" },
+            { id: "5.3", title: "第3节 光的折射", desc: "了解光的折射现象、折射定律及其应用。" },
+            { id: "5.4", title: "第4节 凸透镜成像", desc: "学习凸透镜成像规律、成像特点及应用。" },
+            { id: "5.5", title: "第5节 透镜的应用", desc: "探究透镜在生活中的各种应用，如显微镜、望远镜等。" },
+            { id: "5.6", title: "第4章单元复习", desc: "巩固光现象单元所有知识点，进行综合复习。" }
+        ];
+
+        // 初始化函数
+        function init() {
+            loadStateFromStorage();
+            setupEventListeners();
+            renderPage('home');
+            startStudyTimer();
+        }
+
+        // 从本地存储加载状态
+        function loadStateFromStorage() {
+            // 加载收藏
+            const favs = localStorage.getItem('beePhysics_favs');
+            if (favs) {
+                state.favorites = JSON.parse(favs);
+            }
+            
+            // 加载学习时间
+            const studyTime = localStorage.getItem('beePhysics_studyTime');
+            if (studyTime) {
+                state.studyTime = parseInt(studyTime);
+            }
+            
+            // 加载花朵花园
+            const garden = localStorage.getItem('beePhysics_flowerGarden');
+            if (garden) {
+                state.flowers = JSON.parse(garden);
+            }
+            
+            // 加载最后打卡日期
+            state.lastCheckDate = localStorage.getItem('beePhysics_lastCheckDate');
+            
+            // 加载打卡状态
+            const hasCheckedIn = localStorage.getItem('beePhysics_hasCheckedIn');
+            state.hasCheckedIn = hasCheckedIn === 'true';
+            
+            const hasSecondCheckIn = localStorage.getItem('beePhysics_hasSecondCheckIn');
+            state.hasSecondCheckIn = hasSecondCheckIn === 'true';
+            
+            // 加载采蜜状态
+            const honeyCount = localStorage.getItem('beePhysics_honeyCount');
+            state.honeyCount = honeyCount ? parseInt(honeyCount) : 0;
+            
+            const harvestedFlowers = localStorage.getItem('beePhysics_harvestedFlowers');
+            if (harvestedFlowers) {
+                state.harvestedFlowers = JSON.parse(harvestedFlowers);
+            }
+            
+            // 检查是否需要月度重置花园
+            checkMonthlyReset();
+        }
+
+        // 检查是否需要月度重置花园
+        function checkMonthlyReset() {
+            const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+            const todayMonth = today.substring(0, 7); // YYYY-MM
+            
+            if (state.lastCheckDate) {
+                const lastMonth = state.lastCheckDate.substring(0, 7);
+                if (todayMonth !== lastMonth) {
+                    // 新月份，清空花园
+                    state.flowers = [];
+                    localStorage.setItem('beePhysics_flowerGarden', JSON.stringify(state.flowers));
+                }
+            }
+            
+            // 检查是否需要每日重置
+            const lastDate = state.lastCheckDate ? state.lastCheckDate.split('T')[0] : '';
+            if (lastDate !== today) {
+                // 新的一天，重置打卡和采蜜状态
+                state.hasCheckedIn = false;
+                state.hasSecondCheckIn = false;
+                state.honeyCount = 0;
+                state.harvestedFlowers = [];
+                localStorage.setItem('beePhysics_hasCheckedIn', 'false');
+                localStorage.setItem('beePhysics_hasSecondCheckIn', 'false');
+                localStorage.setItem('beePhysics_honeyCount', '0');
+                localStorage.setItem('beePhysics_harvestedFlowers', '[]');
+            }
+            
+            // 更新最后打卡日期
+            state.lastCheckDate = today;
+            localStorage.setItem('beePhysics_lastCheckDate', state.lastCheckDate);
+        }
+
+        // 设置事件监听器
+        function setupEventListeners() {
+            // 导航按钮点击事件
+            document.querySelectorAll('.nav-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const page = btn.getAttribute('data-page');
+                    renderPage(page);
+                });
+            });
+            
+            // 关闭知识卡片弹层
+            document.getElementById('close-knowledge-modal').addEventListener('click', () => {
+                document.getElementById('knowledge-modal').style.display = 'none';
+                // 重置放大状态
+                const modalContent = document.querySelector('.modal-content');
+                if (modalContent) {
+                    modalContent.classList.remove('zoomed');
+                }
+            });
+            
+            // 点击弹层外部关闭
+            document.getElementById('knowledge-modal').addEventListener('click', (e) => {
+                if (e.target.id === 'knowledge-modal') {
+                    document.getElementById('knowledge-modal').style.display = 'none';
+                    // 重置放大状态
+                    const modalContent = document.querySelector('.modal-content');
+                    if (modalContent) {
+                        modalContent.classList.remove('zoomed');
+                    }
+                }
+            });
+            
+            // 点击弹窗内容放大查看
+            const modalContent = document.querySelector('.modal-content');
+            if (modalContent) {
+                modalContent.addEventListener('click', (e) => {
+                    // 避免点击关闭按钮时触发放大
+                    if (!e.target.closest('.close-modal')) {
+                        modalContent.classList.toggle('zoomed');
+                    }
+                });
+            }
+            
+            // 悬浮窗返回按钮点击事件
+            document.getElementById('floating-back-button').addEventListener('click', () => {
+                if (state.openedWindow) {
+                    try {
+                        state.openedWindow.close();
+                        state.openedWindow = null;
+                        // 隐藏悬浮窗返回按钮
+                        document.getElementById('floating-back-button').classList.remove('show');
+                        showToast('已关闭子窗口并返回主界面', 'success');
+                    } catch (e) {
+                        // 忽略错误
+                        showToast('无法关闭子窗口', 'error');
+                    }
+                }
+            });
+        }
+        
+        // 向子窗口注入返回按钮功能
+        function injectBackButtonFunctionality(childWindow) {
+            try {
+                // 检查子窗口是否已经有悬浮窗返回按钮
+                if (childWindow.document.getElementById('floating-back-button')) {
+                    return;
+                }
+                
+                // 创建按钮元素
+                const button = childWindow.document.createElement('div');
+                button.className = 'floating-back-button';
+                button.id = 'floating-back-button';
+                button.innerHTML = '<i class="fas fa-arrow-left"></i><span style="margin-left: 8px;">返回</span>';
+                
+                // 添加按钮样式
+                button.style.position = 'fixed';
+                button.style.bottom = '30px';
+                button.style.right = '30px';
+                button.style.width = '120px';
+                button.style.height = '50px';
+                button.style.backgroundColor = '#ff4d4f';
+                button.style.color = 'white';
+                button.style.borderRadius = '25px';
+                button.style.display = 'flex';
+                button.style.alignItems = 'center';
+                button.style.justifyContent = 'center';
+                button.style.cursor = 'pointer';
+                button.style.boxShadow = '0 6px 16px rgba(255, 77, 79, 0.4)';
+                button.style.transition = 'all 0.3s ease';
+                button.style.zIndex = '999';
+                button.style.opacity = '1';
+                button.style.visibility = 'visible';
+                button.style.fontWeight = 'bold';
+                button.style.fontSize = '16px';
+                
+                // 添加悬停效果
+                button.addEventListener('mouseenter', function() {
+                    this.style.backgroundColor = '#ff7875';
+                    this.style.transform = 'scale(1.05)';
+                    this.style.boxShadow = '0 8px 20px rgba(255, 77, 79, 0.5)';
+                });
+                
+                button.addEventListener('mouseleave', function() {
+                    this.style.backgroundColor = '#ff4d4f';
+                    this.style.transform = 'scale(1)';
+                    this.style.boxShadow = '0 6px 16px rgba(255, 77, 79, 0.4)';
+                });
+                
+                // 添加点击事件
+                button.addEventListener('click', function() {
+                    try {
+                        childWindow.close();
+                    } catch (e) {
+                        // 忽略错误
+                    }
+                });
+                
+                // 将按钮添加到子窗口页面
+                childWindow.document.body.appendChild(button);
+                
+                // 检查是否需要加载Font Awesome
+                if (!childWindow.document.querySelector('link[href*="font-awesome"]')) {
+                    const link = childWindow.document.createElement('link');
+                    link.rel = 'stylesheet';
+                    link.href = 'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css';
+                    childWindow.document.head.appendChild(link);
+                }
+            } catch (e) {
+                // 忽略错误
+                console.error('无法向子窗口注入返回按钮功能:', e);
+            }
+        }
+
+        // 渲染页面
+        function renderPage(pageName) {
+            state.currentPage = pageName;
+            
+            // 更新导航按钮状态
+            document.querySelectorAll('.nav-btn').forEach(btn => {
+                if (btn.getAttribute('data-page') === pageName) {
+                    btn.classList.add('active');
+                } else {
+                    btn.classList.remove('active');
+                }
+            });
+            
+            // 更新目录/返回目录按钮
+            const directoryBtn = document.getElementById('directory-btn');
+            if (pageName === 'study' || pageName === 'exercise') {
+                directoryBtn.innerHTML = '<i class="fas fa-arrow-left"></i><span>返回目录</span>';
+                directoryBtn.setAttribute('data-page', 'directory');
+            } else {
+                directoryBtn.innerHTML = '<i class="fas fa-list"></i><span>目录</span>';
+                directoryBtn.setAttribute('data-page', 'directory');
+            }
+            
+            // 渲染页面内容
+            const contentDiv = document.getElementById('main-content');
+            
+            switch (pageName) {
+                case 'home':
+                    renderHomePage(contentDiv);
+                    break;
+                case 'directory':
+                    renderDirectoryPage(contentDiv);
+                    break;
+                case 'study':
+                    renderStudyPage(contentDiv);
+                    break;
+                case 'exercise':
+                    renderExercisePage(contentDiv);
+                    break;
+                case 'favorites':
+                    renderFavoritesPage(contentDiv);
+                    break;
+                case 'checkin':
+                    renderCheckinPage(contentDiv);
+                    break;
+                default:
+                    renderHomePage(contentDiv);
+            }
+        }
+
+        // 渲染首页
+        function renderHomePage(container) {
+            const page = pages.home;
+            const hungerPercentage = (state.honeyCount / 2) * 100;
+            const hungerStatus = state.honeyCount >= 2 ? '小蜜蜂已经吃饱了！' : `小蜜蜂饱食度：${state.honeyCount}/2`;
+            
+            container.innerHTML = `
+                <div class="home-container">
+                    <h1 class="home-title">${page.title}</h1>
+                    <p class="home-subtitle">${page.subtitle}</p>
+                    
+                    <div class="hunger-container">
+                        <h3 class="hunger-title"><i class="fas fa-hamburger"></i>今日饱食度</h3>
+                        <div class="hunger-progress">
+                            <div class="hunger-progress-bar" style="width: ${hungerPercentage}%"></div>
+                        </div>
+                        <div class="hunger-status">${hungerStatus}</div>
+                        <div class="hunger-tip" style="font-size: 0.8rem; color: #888; margin-top: 10px;">提示：在打卡界面打卡获得鲜花喂养小蜜蜂</div>
+                    </div>
+                    
+                    <button class="start-btn" id="start-journey-btn">
+                        <i class="fas fa-play-circle"></i>
+                        开启物理之旅吧！
+                    </button>
+                </div>
+            `;
+            
+            // 添加开始旅程按钮事件
+            document.getElementById('start-journey-btn').addEventListener('click', () => {
+                renderPage('directory');
+            });
+        }
+
+        // 渲染目录页
+        function renderDirectoryPage(container) {
+            const page = pages.directory;
+            
+            let chaptersHTML = '';
+            chapters.forEach((chapter, index) => {
+                chaptersHTML += `
+                    <div class="chapter-card" data-section="${chapter.id}">
+                        <div class="chapter-badge">第${index + 1}节</div>
+                        <h3>${chapter.title}</h3>
+                        <p>${chapter.desc}</p>
+                        <div class="card-footer">
+                            <div class="card-badge">点击开始学习</div>
+                            <i class="fas fa-chevron-right"></i>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            container.innerHTML = `
+                <div class="directory-container">
+                    <h1 class="section-title">${page.title}</h1>
+                    <p class="module-subtitle">${page.subtitle}</p>
+                    <div class="chapter-list">
+                        ${chaptersHTML}
+                    </div>
+                </div>
+            `;
+            
+            // 添加章节点击事件
+            document.querySelectorAll('.chapter-card').forEach(card => {
+                card.addEventListener('click', () => {
+                    const section = card.getAttribute('data-section');
+                    state.currentSection = section;
+                    renderPage('study');
+                });
+            });
+        }
+
+        // 渲染学习页面
+        function renderStudyPage(container) {
+            if (!state.currentSection) {
+                renderDirectoryPage(container);
+                return;
+            }
+            
+            const chapter = chapters.find(ch => ch.id === state.currentSection);
+            const chapterIndex = chapters.findIndex(ch => ch.id === state.currentSection) + 1;
+            
+            // 扫描学习文件
+            const studyFiles = scanFiles(state.currentSection, 'study');
+            
+            let cardsHTML = '';
+            studyFiles.forEach(file => {
+                const isFav = state.favorites[file.id] || false;
+                cardsHTML += `
+                    <div class="card" data-file-id="${file.id}" data-html="${file.html}">
+                        <div class="card-img">
+                            <img src="${file.img}" alt="${file.title}" onerror="this.parentElement.innerHTML='<i class=\"fas fa-lightbulb\"></i>'">
+                        </div>
+                        <div class="card-content">
+                            <h3 class="card-title">${file.title}</h3>
+                            <p class="card-desc">${file.desc}</p>
+                            <div class="card-footer">
+                                <div class="card-badge">知识点</div>
+                                <button class="fav-btn ${isFav ? 'active' : ''}" data-file-id="${file.id}">
+                                    <i class="fas fa-star"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            container.innerHTML = `
+                <div class="study-container">
+                    <div class="module-header">
+                        <div>
+                            <h1 class="module-title">${chapter.title} 学习模块</h1>
+                            <p class="module-subtitle">点击知识点卡片查看详细内容，可收藏重要知识点</p>
+                        </div>
+                        <button class="action-btn" id="to-exercise-btn">
+                            <i class="fas fa-pencil-alt"></i>
+                            进入练习
+                        </button>
+                    </div>
+                    <div class="cards-grid">
+                        ${cardsHTML || '<div class="loading"><p>暂无学习资料</p></div>'}
+                    </div>
+                </div>
+            `;
+            
+            // 添加卡片点击事件
+            document.querySelectorAll('.card').forEach(card => {
+                card.addEventListener('click', (e) => {
+                    // 如果不是点击收藏按钮
+                    if (!e.target.closest('.fav-btn')) {
+                        const htmlFile = card.getAttribute('data-html');
+                        showToast('在新标签页中打开学习内容', 'info');
+                        setTimeout(() => {
+                            // 关闭之前可能打开的窗口
+                            if (state.openedWindow) {
+                                try {
+                                    state.openedWindow.close();
+                                } catch (e) {
+                                    // 忽略错误
+                                }
+                            }
+                            // 打开新窗口并存储引用
+                            state.openedWindow = window.open(htmlFile, '_blank');
+                            // 显示悬浮窗返回按钮
+                            document.getElementById('floating-back-button').classList.add('show');
+                            
+                            // 检测子窗口是否关闭
+                            const checkWindowClosed = setInterval(() => {
+                                try {
+                                    if (!state.openedWindow || state.openedWindow.closed) {
+                                        clearInterval(checkWindowClosed);
+                                        // 隐藏悬浮窗返回按钮
+                                        document.getElementById('floating-back-button').classList.remove('show');
+                                        state.openedWindow = null;
+                                    }
+                                } catch (e) {
+                                    // 忽略错误
+                                    clearInterval(checkWindowClosed);
+                                    document.getElementById('floating-back-button').classList.remove('show');
+                                    state.openedWindow = null;
+                                }
+                            }, 500);
+                            
+                            // 等待窗口加载完成后注入返回按钮功能
+                            const checkWindowLoaded = setInterval(() => {
+                                try {
+                                    if (state.openedWindow && state.openedWindow.document && state.openedWindow.document.readyState === 'complete') {
+                                        clearInterval(checkWindowLoaded);
+                                        // 注入返回按钮功能
+                                        injectBackButtonFunctionality(state.openedWindow);
+                                    }
+                                } catch (e) {
+                                    // 忽略错误
+                                    clearInterval(checkWindowLoaded);
+                                }
+                            }, 100);
+                        }, 500);
+                    }
+                });
+            });
+            
+            // 添加收藏按钮事件
+            document.querySelectorAll('.fav-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const fileId = btn.getAttribute('data-file-id');
+                    toggleFavorite(fileId, btn);
+                });
+            });
+            
+            // 添加进入练习按钮事件
+            document.getElementById('to-exercise-btn').addEventListener('click', () => {
+                renderPage('exercise');
+            });
+        }
+
+        // 渲染练习页面
+        function renderExercisePage(container) {
+            if (!state.currentSection) {
+                renderDirectoryPage(container);
+                return;
+            }
+            
+            const chapter = chapters.find(ch => ch.id === state.currentSection);
+            
+            // 扫描练习文件
+            const exerciseFiles = scanFiles(state.currentSection, 'exercise');
+            
+            let cardsHTML = '';
+            exerciseFiles.forEach(file => {
+                const isFav = state.favorites[file.id] || false;
+                cardsHTML += `
+                    <div class="card" data-file-id="${file.id}" data-html="${file.html}">
+                        <div class="card-img">
+                            <img src="${file.img}" alt="${file.title}" onerror="this.parentElement.innerHTML='<i class=\"fas fa-clipboard-list\"></i>'">
+                        </div>
+                        <div class="card-content">
+                            <h3 class="card-title">${file.title}</h3>
+                            <p class="card-desc">${file.desc}</p>
+                            <div class="card-footer">
+                                <div class="card-badge">练习题</div>
+                                <button class="fav-btn ${isFav ? 'active' : ''}" data-file-id="${file.id}">
+                                    <i class="fas fa-star"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            container.innerHTML = `
+                <div class="exercise-container">
+                    <div class="module-header">
+                        <div>
+                            <h1 class="module-title">${chapter.title} 练习模块</h1>
+                            <p class="module-subtitle">点击练习卡片开始做题，可收藏重要练习题</p>
+                        </div>
+                        <button class="action-btn" id="to-study-btn">
+                            <i class="fas fa-book"></i>
+                            返回学习
+                        </button>
+                    </div>
+                    <div class="cards-grid">
+                        ${cardsHTML || '<div class="loading"><p>暂无练习题</p></div>'}
+                    </div>
+                </div>
+            `;
+            
+            // 添加卡片点击事件
+            document.querySelectorAll('.card').forEach(card => {
+                card.addEventListener('click', (e) => {
+                    // 如果不是点击收藏按钮
+                    if (!e.target.closest('.fav-btn')) {
+                        const htmlFile = card.getAttribute('data-html');
+                        showToast('在新标签页中打开练习题', 'info');
+                        setTimeout(() => {
+                            // 关闭之前可能打开的窗口
+                            if (state.openedWindow) {
+                                try {
+                                    state.openedWindow.close();
+                                } catch (e) {
+                                    // 忽略错误
+                                }
+                            }
+                            // 打开新窗口并存储引用
+                            state.openedWindow = window.open(htmlFile, '_blank');
+                            // 显示悬浮窗返回按钮
+                            document.getElementById('floating-back-button').classList.add('show');
+                            
+                            // 检测子窗口是否关闭
+                            const checkWindowClosed = setInterval(() => {
+                                try {
+                                    if (!state.openedWindow || state.openedWindow.closed) {
+                                        clearInterval(checkWindowClosed);
+                                        // 隐藏悬浮窗返回按钮
+                                        document.getElementById('floating-back-button').classList.remove('show');
+                                        state.openedWindow = null;
+                                    }
+                                } catch (e) {
+                                    // 忽略错误
+                                    clearInterval(checkWindowClosed);
+                                    document.getElementById('floating-back-button').classList.remove('show');
+                                    state.openedWindow = null;
+                                }
+                            }, 500);
+                            
+                            // 等待窗口加载完成后注入返回按钮功能
+                            const checkWindowLoaded = setInterval(() => {
+                                try {
+                                    if (state.openedWindow && state.openedWindow.document && state.openedWindow.document.readyState === 'complete') {
+                                        clearInterval(checkWindowLoaded);
+                                        // 注入返回按钮功能
+                                        injectBackButtonFunctionality(state.openedWindow);
+                                    }
+                                } catch (e) {
+                                    // 忽略错误
+                                    clearInterval(checkWindowLoaded);
+                                }
+                            }, 100);
+                        }, 500);
+                    }
+                });
+            });
+            
+            // 添加收藏按钮事件
+            document.querySelectorAll('.fav-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const fileId = btn.getAttribute('data-file-id');
+                    toggleFavorite(fileId, btn);
+                });
+            });
+            
+            // 添加返回学习按钮事件
+            document.getElementById('to-study-btn').addEventListener('click', () => {
+                renderPage('study');
+            });
+        }
+
+        // 渲染收藏页面
+        function renderFavoritesPage(container) {
+            const page = pages.favorites;
+            
+            // 收集所有收藏项
+            const allFavs = [];
+            
+            // 填充收藏数据
+            Object.keys(state.favorites).forEach(fileId => {
+                if (state.favorites[fileId]) {
+                    const section = fileId.substring(0, 3); // 5.1, 5.2等
+                    const type = fileId.includes('study') ? '学习' : '练习';
+                    const num = fileId.match(/\d+$/)[0];
+                    
+                    const chapter = chapters.find(ch => ch.id === section);
+                    if (chapter) {
+                        const imgFile = `${fileId}.png`;
+                        allFavs.push({
+                            id: fileId,
+                            title: fileTitles[fileId] || `${chapter.title} - ${type}${num}`,
+                            type: type,
+                            img: imgFile,
+                            html: `${fileId}.html`
+                        });
+                    }
+                }
+            });
+            
+            let cardsHTML = '';
+            if (allFavs.length > 0) {
+                allFavs.forEach(fav => {
+                    cardsHTML += `
+                        <div class="card" data-file-id="${fav.id}" data-html="${fav.html}">
+                            <div class="card-img">
+                                <img src="${fav.img}" alt="${fav.title}" onerror="this.parentElement.innerHTML = '<i class="fas fa-star"></i>';">
+                            </div>
+                            <div class="card-content">
+                                <h3 class="card-title">${fav.title}</h3>
+                                <p class="card-desc">${fav.type}内容</p>
+                                <div class="card-footer">
+                                    <span class="card-badge">${fav.type}</span>
+                                    <button class="fav-btn active" data-file-id="${fav.id}">
+                                        <i class="fas fa-star"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                });
+            }
+            
+            container.innerHTML = `
+                <div class="fav-container">
+                    <h1 class="section-title">${page.title}</h1>
+                    <p class="module-subtitle">${page.subtitle}</p>
+                    ${allFavs.length > 0 ? `
+                        <div class="cards-grid">
+                            ${cardsHTML}
+                        </div>
+                    ` : `
+                        <div class="fav-empty">
+                            <i class="fas fa-star"></i>
+                            <h3>暂无收藏内容</h3>
+                            <p>在学习或练习页面点击星号收藏知识点或练习题</p>
+                        </div>
+                    `}
+                </div>
+            `;
+            
+            // 添加卡片点击事件
+            document.querySelectorAll('.card[data-file-id]').forEach(card => {
+                card.addEventListener('click', (e) => {
+                    // 如果不是点击收藏按钮
+                    if (!e.target.closest('.fav-btn')) {
+                        const htmlFile = card.getAttribute('data-html');
+                        showToast('在新标签页中打开内容', 'info');
+                        setTimeout(() => {
+                            // 关闭之前可能打开的窗口
+                            if (state.openedWindow) {
+                                try {
+                                    state.openedWindow.close();
+                                } catch (e) {
+                                    // 忽略错误
+                                }
+                            }
+                            // 打开新窗口并存储引用
+                            state.openedWindow = window.open(htmlFile, '_blank');
+                            // 显示悬浮窗返回按钮
+                            document.getElementById('floating-back-button').classList.add('show');
+                            
+                            // 检测子窗口是否关闭
+                            const checkWindowClosed = setInterval(() => {
+                                try {
+                                    if (!state.openedWindow || state.openedWindow.closed) {
+                                        clearInterval(checkWindowClosed);
+                                        // 隐藏悬浮窗返回按钮
+                                        document.getElementById('floating-back-button').classList.remove('show');
+                                        state.openedWindow = null;
+                                    }
+                                } catch (e) {
+                                    // 忽略错误
+                                    clearInterval(checkWindowClosed);
+                                    document.getElementById('floating-back-button').classList.remove('show');
+                                    state.openedWindow = null;
+                                }
+                            }, 500);
+                            
+                            // 等待窗口加载完成后注入返回按钮功能
+                            const checkWindowLoaded = setInterval(() => {
+                                try {
+                                    if (state.openedWindow && state.openedWindow.document && state.openedWindow.document.readyState === 'complete') {
+                                        clearInterval(checkWindowLoaded);
+                                        // 注入返回按钮功能
+                                        injectBackButtonFunctionality(state.openedWindow);
+                                    }
+                                } catch (e) {
+                                    // 忽略错误
+                                    clearInterval(checkWindowLoaded);
+                                }
+                            }, 100);
+                        }, 500);
+                    }
+                });
+            });
+            
+            // 添加收藏按钮事件
+            document.querySelectorAll('.fav-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const fileId = btn.getAttribute('data-file-id');
+                    toggleFavorite(fileId, btn);
+                });
+            });
+        }
+
+        // 渲染打卡页面
+        function renderCheckinPage(container) {
+            const page = pages.checkin;
+            
+            // 花朵emoji数组
+            const flowerEmojis = ['🌸', '🌺', '🌻', '🌷', '🌹', '🌼', '💐', '🥀', '🪷', '🌱'];
+            
+            let flowersHTML = '';
+            state.flowers.forEach((flower, index) => {
+                const isHarvested = state.harvestedFlowers.includes(index);
+                const harvestedClass = isHarvested ? ' harvested' : '';
+                flowersHTML += `<span class="flower${harvestedClass}" data-index="${index}">${flower}</span>`;
+            });
+            
+            const hungerPercentage = (state.honeyCount / 2) * 100;
+            const hungerStatus = state.honeyCount >= 2 ? '小蜜蜂已经吃饱了！' : `小蜜蜂饱食度：${state.honeyCount}/2`;
+            
+            container.innerHTML = `
+                <div class="checkin-container">
+                    <h1 class="section-title">${page.title}</h1>
+                    <p class="module-subtitle">${page.subtitle}</p>
+                    
+                    <div class="hunger-container">
+                        <h3 class="hunger-title"><i class="fas fa-hamburger"></i>今日饱食度</h3>
+                        <div class="hunger-progress">
+                            <div class="hunger-progress-bar" style="width: ${hungerPercentage}%"></div>
+                        </div>
+                        <div class="hunger-status">${hungerStatus}</div>
+                        <div class="hunger-tip" style="font-size: 0.8rem; color: #888; margin-top: 10px;">提示：在打卡界面打卡获得鲜花喂养小蜜蜂</div>
+                    </div>
+                    
+                    <div class="checkin-stats">
+                        <div class="stat-card">
+                            <h3>今日学习时间</h3>
+                            <div class="stat-value">${state.studyTime}</div>
+                            <div class="stat-label">分钟</div>
+                        </div>
+                        <div class="stat-card">
+                            <h3>本月花朵数</h3>
+                            <div class="stat-value">${state.flowers.length}</div>
+                            <div class="stat-label">朵</div>
+                        </div>
+                        <div class="stat-card">
+                            <h3>连续打卡</h3>
+                            <div class="stat-value">${Math.min(state.flowers.length, 30)}</div>
+                            <div class="stat-label">天</div>
+                        </div>
+                    </div>
+                    
+                    <div class="flowers-container">
+                        <h3 class="flowers-title">本月花园（让小蜜蜂在花卉上停留可自动喂食）</h3>
+                        <div class="flowers-garden">
+                            ${flowersHTML || '<p style="color:#888; width:100%; text-align:center;">花园里还没有花朵，点击下方打卡按钮获取花朵吧！</p>'}
+                        </div>
+                        <div>
+                            <button class="checkin-btn" id="checkin-flower-btn">
+                                <i class="fas fa-seedling"></i>
+                                每日打卡
+                            </button>
+                            <p style="display:inline-block; color:#666;">每日打卡可获得花朵奖励（浏览界面10分钟后可二次打卡）</p>
+                        </div>
+                    </div>
+                    
+                    <div class="knowledge-card-container">
+                        <h3 class="knowledge-card-title">物理知识卡片</h3>
+                        <p style="margin-bottom:20px; color:#666;">点击按钮随机抽取一张物理知识卡片，帮助你更好地理解光现象单元的知识点。</p>
+                        <button class="random-card-btn" id="random-card-btn">
+                            <i class="fas fa-random"></i>
+                            随机抽取知识卡片
+                        </button>
+                    </div>
+                </div>
+            `;
+            
+            // 添加打卡按钮事件
+            document.getElementById('checkin-flower-btn').addEventListener('click', () => {
+                addRandomFlower();
+            });
+            
+            // 添加随机卡片按钮事件
+            document.getElementById('random-card-btn').addEventListener('click', () => {
+                showRandomKnowledgeCard();
+            });
+            
+            // 添加采蜜功能事件监听器
+            setupHoneyHarvest();
+        }
+        
+        // 设置采蜜功能
+        function setupHoneyHarvest() {
+            const flowers = document.querySelectorAll('.flower');
+            flowers.forEach(flower => {
+                bindFlowerEvents(flower);
+            });
+        }
+        
+        // 完成采蜜
+        function completeHarvest(flower) {
+            const flowerIndex = parseInt(flower.getAttribute('data-index'));
+            
+            // 标记花朵为已采蜜
+            state.harvestedFlowers.push(flowerIndex);
+            localStorage.setItem('beePhysics_harvestedFlowers', JSON.stringify(state.harvestedFlowers));
+            
+            // 增加采蜜次数
+            state.honeyCount++;
+            localStorage.setItem('beePhysics_honeyCount', state.honeyCount);
+            
+            // 更新花朵样式
+            flower.classList.add('harvested');
+            
+            // 移除进度条
+            removeProgressBar(flower);
+            
+            // 显示成功消息
+            showToast('采蜜成功！', 'success');
+            
+            // 检查是否已经采蜜两次
+            if (state.honeyCount >= 2) {
+                setTimeout(() => {
+                    showToast('小蜜蜂已经吃饱了！', 'info');
+                }, 1000);
+            }
+        }
+        
+        // 移除进度条
+        function removeProgressBar(flower) {
+            const progressBar = flower.querySelector('.honey-progress');
+            const statusText = flower.querySelector('.honey-status');
+            
+            if (progressBar) {
+                progressBar.remove();
+            }
+            if (statusText) {
+                statusText.remove();
+            }
+        }
+        
+        // 为单个花朵绑定采蜜事件
+        function bindFlowerEvents(flower) {
+            let currentFlower = null;
+            let harvestTimer = null;
+            let progress = 0;
+            
+            flower.addEventListener('mouseenter', (e) => {
+                // 检查是否已经采过蜜
+                const flowerIndex = parseInt(flower.getAttribute('data-index'));
+                if (state.harvestedFlowers.includes(flowerIndex)) {
+                    return;
+                }
+                
+                // 检查小蜜蜂是否已经吃饱
+                if (state.honeyCount >= 2) {
+                    showToast('小蜜蜂已经吃饱了！', 'info');
+                    return;
+                }
+                
+                currentFlower = flower;
+                
+                // 创建进度条
+                const progressBar = document.createElement('div');
+                progressBar.className = 'honey-progress';
+                progressBar.innerHTML = '<div class="honey-progress-bar" style="width: 0%"></div>';
+                flower.appendChild(progressBar);
+                
+                // 创建状态文本
+                const statusText = document.createElement('div');
+                statusText.className = 'honey-status';
+                statusText.textContent = '采蜜中...';
+                flower.appendChild(statusText);
+                
+                // 开始采蜜计时器
+                progress = 0;
+                harvestTimer = setInterval(() => {
+                    progress += 1;
+                    const progressBarElement = flower.querySelector('.honey-progress-bar');
+                    if (progressBarElement) {
+                        progressBarElement.style.width = `${progress}%`;
+                    }
+                    
+                    // 采蜜完成
+                    if (progress >= 100) {
+                        clearInterval(harvestTimer);
+                        completeHarvest(flower);
+                    }
+                }, 30); // 3000ms / 100 = 30ms per percent
+            });
+            
+            flower.addEventListener('mouseleave', () => {
+                if (currentFlower === flower) {
+                    clearInterval(harvestTimer);
+                    removeProgressBar(flower);
+                    currentFlower = null;
+                }
+            });
+        }
+
+        // 文件标题配置对象，用于存储自定义标题
+        const fileTitles = {
+            // 学习文件标题配置
+            "5.1study1": "5.1 知识点1 光的直线传播",
+            "5.1study2": "5.1 知识点2 日食和月食的形成",
+            "5.1study3": "5.1 知识点3 小孔成像",
+            "5.1study4": "5.1 知识点4 探究光的反射定律",
+            "5.1study5": "5.1 知识点5 镜面反射和漫反射",
+
+            "5.2study1": "5.2 知识点1 探究平面镜成像特点",
+
+            
+            "5.3study1": "5.3 知识点1 探究光的折射定律",
+            "5.3study2": "5.3 知识点2 色散现象",
+            "5.3study3": "5.3 知识点3 光的三原色与LED显示屏原理",
+
+
+            "5.4study1": "5.4 知识点1 凸透镜凹透镜对光的作用",
+            "5.4study2": "5.4 知识点2 凸透镜成像实验记录与数据处理",
+            "5.4study3": "5.4 知识点3 凸透镜成像光路仿真",
+
+            "5.5study1": "5.5 知识点1 眼睛成像与视力矫正",
+            "5.5study2": "5.5 知识点2 透镜的应用",
+           
+            "5.6study1": "5.5 知识点1 光现象单元知识梳理",
+
+            
+            // 练习文件标题配置
+            "5.1exercise1": "5.1 练习1 影子的变化",
+            "5.1exercise2": "5.1 练习2 日食和月食的形成",
+            "5.1exercise3": "5.1 练习3 小孔成像情况分析",
+            "5.1exercise4": "5.1 练习4 激光打靶",
+            "5.1exercise5": "5.1 练习5 镜面反射和漫反射分类",
+            
+            "5.2exercise1": "5.2 练习1 平面镜成像情况分析",
+ 
+            
+            "5.3exercise1": "5.3 练习1 光的折射光路分析",
+            "5.3exercise2": "5.3 练习2 光的色散填色",
+            "5.3exercise3": "5.3 练习3 光的三原色合成大作战",
+
+            "5.4exercise1": "5.4 练习1 进阶版激光打靶",
+            "5.4exercise2": "5.4 练习2 凸透镜成像竞速",
+
+
+            "5.5exercise1": "5.5 练习1 我是小小眼科医生",
+            "5.5exercise2": "5.5 练习2 光路配对翻翻乐",
+   
+        };
+
+        // 扫描文件函数（模拟）
+        function scanFiles(section, type) {
+            const files = [];
+            const maxFiles = 5; // 每个章节最多5个文件
+            
+            for (let i = 1; i <= maxFiles; i++) {
+                const id = `${section}${type}${i}`;
+                
+                // 检查是否有对应的标题配置
+                if (fileTitles[id]) {
+                    const htmlFile = `${section}${type}${i}.html`;
+                    const imgFile = `${section}${type}${i}.png`;
+                    
+                    // 构建文件对象
+                    const fileObj = {
+                        id: id,
+                        title: fileTitles[id],
+                        desc: type === 'study' 
+                            ? `详细的理论讲解和示例。`
+                            : `检验你对知识点的掌握程度。`,
+                        html: htmlFile,
+                        img: imgFile
+                    };
+                    
+                    files.push(fileObj);
+                }
+            }
+            
+            return files;
+        }
+
+        // 切换收藏状态
+        function toggleFavorite(fileId, button) {
+            state.favorites[fileId] = !state.favorites[fileId];
+            
+            // 更新按钮状态
+            if (state.favorites[fileId]) {
+                button.classList.add('active');
+                showToast('已添加到收藏', 'success');
+            } else {
+                button.classList.remove('active');
+                showToast('已从收藏移除', 'info');
+            }
+            
+            // 保存到本地存储
+            localStorage.setItem('beePhysics_favs', JSON.stringify(state.favorites));
+            
+            // 如果当前在收藏页面，重新渲染
+            if (state.currentPage === 'favorites') {
+                renderPage('favorites');
+            }
+        }
+
+        // 开始学习计时器
+        function startStudyTimer() {
+            // 清除现有计时器
+            if (state.studyTimer) {
+                clearInterval(state.studyTimer);
+            }
+            
+            // 每分钟更新学习时间
+            state.studyTimer = setInterval(() => {
+                if (state.currentPage === 'study' || state.currentPage === 'exercise') {
+                    state.studyTime++;
+                    localStorage.setItem('beePhysics_studyTime', state.studyTime);
+                    
+                    // 如果当前在打卡页面，更新显示
+                    if (state.currentPage === 'checkin') {
+                        const studyTimeElement = document.querySelector('.stat-value');
+                        if (studyTimeElement) {
+                            studyTimeElement.textContent = state.studyTime;
+                        }
+                    }
+                }
+            }, 60000); // 每分钟
+        }
+
+        // 添加随机花朵
+        function addRandomFlower() {
+            const today = new Date().toISOString().split('T')[0];
+            
+            // 检查是否已经完成两次打卡
+            if (state.hasCheckedIn && state.hasSecondCheckIn) {
+                showToast('今天已经完成两次打卡了，明天再来吧！', 'info');
+                return;
+            }
+            
+            // 检查是否是二次打卡
+            if (state.hasCheckedIn && !state.hasSecondCheckIn) {
+                // 二次打卡需要学习时间达到10分钟
+                if (state.studyTime < 10) {
+                    showToast('需要学习10分钟后才能进行二次打卡！', 'info');
+                    return;
+                }
+                
+                // 二次打卡成功
+                state.hasSecondCheckIn = true;
+                localStorage.setItem('beePhysics_hasSecondCheckIn', 'true');
+            } else {
+                // 第一次打卡
+                state.hasCheckedIn = true;
+                localStorage.setItem('beePhysics_hasCheckedIn', 'true');
+            }
+            
+            const flowerEmojis = ['🌸', '🌺', '🌻', '🌷', '🌹', '🌼', '💐', '🥀', '🪷', '🌱'];
+            const randomFlower = flowerEmojis[Math.floor(Math.random() * flowerEmojis.length)];
+            
+            state.flowers.push(randomFlower);
+            localStorage.setItem('beePhysics_flowerGarden', JSON.stringify(state.flowers));
+            
+            // 更新显示
+            const garden = document.querySelector('.flowers-garden');
+            if (garden) {
+                const flowerSpan = document.createElement('span');
+                flowerSpan.className = 'flower';
+                flowerSpan.textContent = randomFlower;
+                flowerSpan.setAttribute('data-index', state.flowers.length - 1); // 设置索引
+                garden.appendChild(flowerSpan);
+                
+                // 为新花朵绑定采蜜事件
+                bindFlowerEvents(flowerSpan);
+                
+                // 更新花朵数量
+                const flowerCountElement = document.querySelector('.checkin-stats .stat-card:nth-child(2) .stat-value');
+                if (flowerCountElement) {
+                    flowerCountElement.textContent = state.flowers.length;
+                }
+            }
+            
+            showToast(`获得 ${randomFlower} 一朵！`, 'success');
+        }
+
+        // 显示随机知识卡片
+        function showRandomKnowledgeCard() {
+            // 最多检测10个知识卡片文件
+            const maxCards = 10;
+            
+            // 从1到maxCards中随机选择一个数字
+            const selectedCardNum = Math.floor(Math.random() * maxCards) + 1;
+            const cardImage = document.getElementById('knowledge-card-image');
+            const cardText = document.getElementById('knowledge-card-text');
+            
+            // 使用实际的卡片图片
+            const cardImageSrc = `知识卡片${selectedCardNum}.png`;
+            cardImage.src = cardImageSrc;
+            cardImage.alt = `物理知识卡片 ${selectedCardNum}`;
+            
+            // 添加图片加载错误处理
+            cardImage.onerror = function() {
+                this.src = `https://placehold.co/600x400/4a6fa5/ffffff?text=知识卡片${selectedCardNum}`;
+                cardText.textContent = "知识卡片图片未找到，这是一个示例内容。";
+            };
+            
+            // 随机知识卡片内容
+            const cardContents = [
+                "光在同种均匀介质中沿直线传播。",
+                "光的反射定律：反射光线、入射光线和法线在同一平面内，反射光线和入射光线分居法线两侧，反射角等于入射角。",
+                "平面镜成像特点：等大、等距、垂直、虚像。",
+                "光的折射：光从一种介质斜射入另一种介质时，传播方向发生改变的现象。",
+                "凸透镜对光有会聚作用，凹透镜对光有发散作用。",
+                "凸透镜成像规律：物距大于2倍焦距时，成倒立、缩小的实像。",
+                "近视眼佩戴凹透镜矫正，远视眼佩戴凸透镜矫正。",
+                "光的色散：白光通过三棱镜分解成七种色光的现象。"
+            ];
+            
+            const randomContent = cardContents[Math.floor(Math.random() * cardContents.length)];
+            cardText.textContent = randomContent;
+            
+            // 显示弹层
+            document.getElementById('knowledge-modal').style.display = 'flex';
+        }
+
+        // 显示Toast消息
+        function showToast(message, type = 'info') {
+            const toastContainer = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.textContent = message;
+            
+            toastContainer.appendChild(toast);
+            
+            // 3秒后移除
+            setTimeout(() => {
+                toast.remove();
+            }, 3000);
+        }
+
+        // 页面加载完成后初始化
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>

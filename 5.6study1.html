@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>光现象 单元知识梳理</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: "Microsoft YaHei", sans-serif;
+        }
+
+        body {
+            min-height: 100vh;
+            background: linear-gradient(135deg, #e0f7fa, #b2ebf2);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .title {
+            font-size: 28px;
+            color: #00695c;
+            margin-bottom: 20px;
+            text-align: center;
+            font-weight: bold;
+        }
+
+        .page-info {
+            font-size: 18px;
+            color: #004d40;
+            margin-bottom: 15px;
+        }
+
+        .card-container {
+            width: 95%;
+            max-width: 1200px;
+            height: 800px;
+            perspective: 1000px;
+            margin-bottom: 30px;
+        }
+
+        .card {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            transform-style: preserve-3d;
+            transition: transform 0.6s ease;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            border-radius: 15px;
+        }
+
+        .card.flip {
+            transform: rotateY(180deg);
+        }
+
+        .card-front, .card-back {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            backface-visibility: hidden;
+            border-radius: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+
+        .card-front {
+            background: white;
+        }
+
+        .card-front img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            padding: 20px;
+        }
+
+        .card-back {
+            background: #ffffff;
+            transform: rotateY(180deg);
+            font-size: 32px;
+            color: #00796b;
+            font-weight: bold;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .btn {
+            padding: 14px 36px;
+            font-size: 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: bold;
+        }
+
+        .prev-btn {
+            background: #ff9800;
+            color: white;
+        }
+        .prev-btn:hover {
+            background: #f57c00;
+            transform: translateY(-3px);
+        }
+
+        .flip-btn {
+            background: #00bcd4;
+            color: white;
+        }
+        .flip-btn:hover {
+            background: #0097a7;
+            transform: translateY(-3px);
+        }
+
+        .next-btn {
+            background: #4caf50;
+            color: white;
+        }
+        .next-btn:hover {
+            background: #388e3c;
+            transform: translateY(-3px);
+        }
+
+        .btn:disabled {
+            background: #ccc !important;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+    </style>
+</head>
+<body>
+    <div class="title">光现象 单元知识梳理复习卡片</div>
+    <div class="page-info">当前：第 <span id="current-page">1</span> 张 / 共28张</div>
+
+    <div class="card-container">
+        <div class="card" id="flashCard">
+            <div class="card-front">
+                <img id="cardImage" src="卡片1.png" alt="光现象知识点">
+            </div>
+            <div class="card-back">请开始背诵知识点</div>
+        </div>
+    </div>
+
+    <div class="btn-group">
+        <button class="btn prev-btn" id="prevBtn">上一页</button>
+        <button class="btn flip-btn" id="flipBtn">翻转卡片</button>
+        <button class="btn next-btn" id="nextBtn">下一页</button>
+    </div>
+
+    <script>
+        const flashCard = document.getElementById('flashCard');
+        const cardImage = document.getElementById('cardImage');
+        const prevBtn = document.getElementById('prevBtn');
+        const flipBtn = document.getElementById('flipBtn');
+        const nextBtn = document.getElementById('nextBtn');
+        const currentPageSpan = document.getElementById('current-page');
+
+        const totalCards = 28;
+        let currentPage = 1;
+
+        // 翻转卡片
+        flipBtn.addEventListener('click', () => {
+            flashCard.classList.toggle('flip');
+        });
+
+        // 更新按钮状态
+        function updateBtnStatus() {
+            prevBtn.disabled = currentPage <= 1;
+        }
+
+        // 上一页
+        prevBtn.addEventListener('click', () => {
+            if (currentPage > 1) {
+                currentPage--;
+                cardImage.src = `卡片${currentPage}.png`;
+                currentPageSpan.textContent = currentPage;
+                flashCard.classList.remove('flip');
+                updateBtnStatus();
+            }
+        });
+
+        // 下一页
+        nextBtn.addEventListener('click', () => {
+            if (currentPage >= totalCards) {
+                alert('🎉 恭喜你！复习完本单元所有知识点啦！');
+                currentPage = 1;
+                cardImage.src = `卡片${currentPage}.png`;
+                currentPageSpan.textContent = currentPage;
+                flashCard.classList.remove('flip');
+                updateBtnStatus();
+                return;
+            }
+
+            currentPage++;
+            cardImage.src = `卡片${currentPage}.png`;
+            currentPageSpan.textContent = currentPage;
+            flashCard.classList.remove('flip');
+            updateBtnStatus();
+        });
+
+        updateBtnStatus();
+    </script>
+</body>
+</html>

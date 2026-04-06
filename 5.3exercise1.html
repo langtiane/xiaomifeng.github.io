@@ -1,0 +1,1436 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>光的折射 - 交互式学件</title>
+    <link href="https://cdn.tailwindcss.com" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700&family=Orbitron:wght@500;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #0a0e17;
+            --bg-secondary: #111827;
+            --fg: #e8edf5;
+            --muted: #6b7a94;
+            --accent: #00d4aa;
+            --accent-glow: rgba(0, 212, 170, 0.3);
+            --incident: #ffd700;
+            --refracted: #00ff88;
+            --normal: #ff6b6b;
+            --card: rgba(17, 24, 39, 0.8);
+            --border: rgba(107, 122, 148, 0.3);
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Noto Sans SC', sans-serif;
+            background: var(--bg);
+            color: var(--fg);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+        
+        .title-font {
+            font-family: 'Orbitron', sans-serif;
+        }
+        
+        /* 背景动效 */
+        .bg-pattern {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 0;
+            background: 
+                radial-gradient(ellipse at 20% 20%, rgba(0, 212, 170, 0.08) 0%, transparent 50%),
+                radial-gradient(ellipse at 80% 80%, rgba(0, 136, 255, 0.06) 0%, transparent 50%),
+                radial-gradient(ellipse at 50% 50%, rgba(255, 215, 0, 0.04) 0%, transparent 60%);
+        }
+        
+        .grid-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 1;
+            background-image: 
+                linear-gradient(rgba(107, 122, 148, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(107, 122, 148, 0.03) 1px, transparent 1px);
+            background-size: 40px 40px;
+        }
+        
+        .main-container {
+            position: relative;
+            z-index: 10;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+        
+        /* 标题样式 */
+        .main-title {
+            font-size: clamp(1.8rem, 4vw, 2.5rem);
+            font-weight: 700;
+            text-align: center;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(135deg, var(--fg) 0%, var(--accent) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .subtitle {
+            text-align: center;
+            color: var(--muted);
+            font-size: 0.95rem;
+            margin-bottom: 2rem;
+        }
+        
+        /* 主内容区 */
+        .content-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 1.5rem;
+        }
+        
+        @media (min-width: 900px) {
+            .content-grid {
+                grid-template-columns: 1fr 320px;
+            }
+        }
+        
+        /* Canvas容器 */
+        .canvas-wrapper {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 1rem;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+        
+        .canvas-container {
+            position: relative;
+            width: 100%;
+            aspect-ratio: 4/3;
+            border-radius: 12px;
+            overflow: hidden;
+            background: linear-gradient(180deg, rgba(10, 14, 23, 0.9) 0%, rgba(10, 14, 23, 0.95) 100%);
+        }
+        
+        #mainCanvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+        
+        /* 控制面板 */
+        .control-panel {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 1.5rem;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+        
+        .panel-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 1.5rem;
+            padding-bottom: 0.75rem;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .panel-title::before {
+            content: '';
+            width: 4px;
+            height: 18px;
+            background: var(--accent);
+            border-radius: 2px;
+        }
+        
+        .control-group {
+            margin-bottom: 1.5rem;
+        }
+        
+        .control-label {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.9rem;
+            color: var(--muted);
+            margin-bottom: 0.75rem;
+        }
+        
+        .control-value {
+            font-family: 'Orbitron', sans-serif;
+            color: var(--accent);
+            font-weight: 500;
+        }
+        
+        /* 滑块样式 */
+        input[type="range"] {
+            width: 100%;
+            height: 6px;
+            border-radius: 3px;
+            background: linear-gradient(90deg, var(--border) 0%, var(--border) 100%);
+            outline: none;
+            -webkit-appearance: none;
+            cursor: pointer;
+        }
+        
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: var(--accent);
+            box-shadow: 0 0 12px var(--accent-glow);
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        
+        input[type="range"]::-webkit-slider-thumb:hover {
+            transform: scale(1.15);
+            box-shadow: 0 0 20px var(--accent-glow);
+        }
+        
+        input[type="range"]::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: var(--accent);
+            box-shadow: 0 0 12px var(--accent-glow);
+            cursor: pointer;
+            border: none;
+        }
+        
+        /* 下拉选择样式 */
+        select {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            border-radius: 8px;
+            background: var(--bg);
+            border: 1px solid var(--border);
+            color: var(--fg);
+            font-size: 0.95rem;
+            cursor: pointer;
+            outline: none;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+        
+        select:hover, select:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px var(--accent-glow);
+        }
+        
+        /* 信息卡片 */
+        .info-card {
+            background: rgba(0, 212, 170, 0.05);
+            border: 1px solid rgba(0, 212, 170, 0.2);
+            border-radius: 10px;
+            padding: 1rem;
+            margin-top: 1rem;
+        }
+        
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.5rem 0;
+            border-bottom: 1px solid rgba(107, 122, 148, 0.15);
+        }
+        
+        .info-row:last-child {
+            border-bottom: none;
+        }
+        
+        .info-label {
+            color: var(--muted);
+            font-size: 0.85rem;
+        }
+        
+        .info-value {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 0.95rem;
+            font-weight: 500;
+        }
+        
+        .info-value.incident {
+            color: var(--incident);
+        }
+        
+        .info-value.refracted {
+            color: var(--refracted);
+        }
+        
+        /* 图例 */
+        .legend {
+            margin-top: 1.5rem;
+            padding-top: 1rem;
+            border-top: 1px solid var(--border);
+        }
+        
+        .legend-title {
+            font-size: 0.85rem;
+            color: var(--muted);
+            margin-bottom: 0.75rem;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.85rem;
+            margin-bottom: 0.5rem;
+        }
+        
+        .legend-line {
+            width: 24px;
+            height: 3px;
+            border-radius: 2px;
+        }
+        
+        .legend-line.incident {
+            background: var(--incident);
+        }
+        
+        .legend-line.refracted {
+            background: var(--refracted);
+        }
+        
+        .legend-line.normal {
+            background: var(--normal);
+            height: 2px;
+            border-style: dashed;
+            background: repeating-linear-gradient(
+                90deg,
+                var(--normal) 0px,
+                var(--normal) 4px,
+                transparent 4px,
+                transparent 8px
+            );
+        }
+        
+        /* 公式展示 */
+        .formula-box {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 8px;
+            padding: 1rem;
+            margin-top: 1rem;
+            text-align: center;
+        }
+        
+        .formula {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1rem;
+            color: var(--fg);
+            letter-spacing: 0.05em;
+        }
+        
+        .formula-name {
+            font-size: 0.75rem;
+            color: var(--muted);
+            margin-top: 0.5rem;
+        }
+        
+        /* 全反射提示 */
+        .total-reflection-alert {
+            background: rgba(255, 107, 107, 0.1);
+            border: 1px solid rgba(255, 107, 107, 0.3);
+            border-radius: 8px;
+            padding: 0.75rem;
+            margin-top: 1rem;
+            text-align: center;
+            color: #ff6b6b;
+            font-size: 0.9rem;
+            display: none;
+        }
+        
+        .total-reflection-alert.active {
+            display: block;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+        
+        /* 动画入场 */
+        .fade-in {
+            animation: fadeIn 0.6s ease-out forwards;
+        }
+        
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .delay-1 { animation-delay: 0.1s; }
+        .delay-2 { animation-delay: 0.2s; }
+        .delay-3 { animation-delay: 0.3s; }
+    </style>
+</head>
+<body>
+    <div class="bg-pattern"></div>
+    <div class="grid-overlay"></div>
+    
+    <div class="main-container">
+        <h1 class="main-title title-font fade-in">光的折射</h1>
+
+        
+        <div class="content-grid">
+            <div class="canvas-wrapper fade-in delay-2">
+                <div class="canvas-container">
+                    <canvas id="mainCanvas"></canvas>
+                </div>
+            </div>
+            
+            <div class="control-panel fade-in delay-3">
+                <h2 class="panel-title">参数控制</h2>
+                
+                <div class="control-group">
+                    <div class="control-label">
+                        <span>上方介质</span>
+                    </div>
+                    <select id="medium1Select" disabled>
+                        <option value="air">空气 (n=1.00)</option>
+                        <option value="water">水 (n=1.33)</option>
+                        <option value="glass">玻璃 (n=1.50)</option>
+                    </select>
+                </div>
+                
+                <div class="control-group">
+                    <div class="control-label">
+                        <span>下方介质</span>
+                    </div>
+                    <select id="medium2Select" disabled>
+                        <option value="air">空气 (n=1.00)</option>
+                        <option value="water" selected>水 (n=1.33)</option>
+                        <option value="glass">玻璃 (n=1.50)</option>
+                    </select>
+                </div>
+                
+                <div id="practiceSection" class="mt-4 hidden">
+                    <div class="bg-gradient-to-br from-teal-900/30 to-green-900/30 border border-teal-500/30 rounded-lg p-4">
+                        <h3 class="text-teal-400 font-semibold mb-2">练习模式</h3>
+                        <p id="practiceHint" class="text-sm text-gray-300 mb-4">
+                            <!-- 练习提示将动态生成 -->
+                        </p>
+                        
+                        <!-- 情况1：区分光线类型的选项 -->
+                        <div id="lightTypeOptions" class="space-y-3 mb-4 hidden">
+                            <!-- 光线类型选项将动态生成 -->
+                        </div>
+                        
+                        <!-- 情况2：选择缺失光线类型的选项 -->
+                        <div id="missingLightOptions" class="space-y-3 mb-4 hidden">
+                            <!-- 缺失光线选项将动态生成 -->
+                        </div>
+                        
+                        <!-- 情况2：摆放缺失光线的角度滑块 -->
+                        <div id="missingLightAngle" class="mb-4 hidden">
+                            <div class="flex items-center justify-between mb-2">
+                                <span class="text-sm text-gray-300">缺失光线角度</span>
+                                <span id="missingAngleValue" class="text-sm text-teal-400">45°</span>
+                            </div>
+                            <input type="range" id="missingAngleSlider" min="0" max="90" value="45" class="w-full">
+                        </div>
+                        
+                        <button id="submitAnswer" class="w-full py-2 px-4 bg-teal-600 text-white rounded-lg hover:opacity-90 transition-opacity">
+                            提交答案
+                        </button>
+                        
+                        <div id="feedback" class="mt-4 p-3 rounded-lg hidden">
+                            <!-- 反馈信息将动态生成 -->
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="info-card">
+                    <div class="info-row">
+                        <span class="info-label">入射角 θ₁</span>
+                        <span class="info-value incident" id="incidentAngle">45.0°</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">折射角 θ₂</span>
+                        <span class="info-value refracted" id="refractedAngle">32.1°</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">折射率比 n₁/n₂</span>
+                        <span class="info-value" id="ratioValue" style="color: var(--accent);">0.75</span>
+                    </div>
+                </div>
+                
+                <div class="total-reflection-alert" id="totalReflectionAlert">
+                    发生全反射！入射角大于临界角
+                </div>
+                
+
+                
+                <div class="legend">
+                    <div class="legend-title">图例说明</div>
+                    <div class="legend-item">
+                        <div class="legend-line incident"></div>
+                        <span>入射光线 / 反射光线</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-line refracted"></div>
+                        <span>折射光线</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-line normal"></div>
+                        <span>法线</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 介质折射率数据
+        const mediaData = {
+            air: { name: '空气', n: 1.0, color: 'rgba(135, 206, 250, 0.15)', textColor: '#87CEEB' },
+            water: { name: '水', n: 1.33, color: 'rgba(0, 150, 255, 0.25)', textColor: '#0096FF' },
+            glass: { name: '玻璃', n: 1.5, color: 'rgba(200, 180, 255, 0.25)', textColor: '#C8B4FF' }
+        };
+
+        // 初始化变量
+        let canvas = null;
+        let ctx = null;
+        let incidentAngle = 45;
+        let medium1 = 'air';
+        let medium2 = 'water';
+        let animationId = null;
+        let lightProgress = 0;
+        let reverseIncident = false;
+        
+        // 练习模式变量
+        let practiceMode = false;
+        let case1Count = 0; // 记录情况1的出现次数
+        let practiceData = {
+            caseType: 1, // 1: 区分光线类型, 2: 选择缺失光线
+            showIncident: true,
+            showReflected: true,
+            showRefracted: true,
+            showArrows: false,
+            missingLightType: '',
+            userMissingAngle: 45,
+            lightTypes: {},
+            correctAnswers: {}
+        };
+
+        // DOM元素
+        let medium1Select = null;
+        let medium2Select = null;
+        let incidentAngleDisplay = null;
+        let refractedAngleDisplay = null;
+        let ratioValue = null;
+        let totalReflectionAlert = null;
+        let practiceSection = null;
+        let practiceHint = null;
+        let lightTypeOptions = null;
+        let missingLightOptions = null;
+        let missingLightAngle = null;
+        let missingAngleSlider = null;
+        let missingAngleValue = null;
+        let submitAnswer = null;
+        let feedback = null;
+
+        // 初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            canvas = document.getElementById('mainCanvas');
+            ctx = canvas.getContext('2d');
+            
+            medium1Select = document.getElementById('medium1Select');
+            medium2Select = document.getElementById('medium2Select');
+            incidentAngleDisplay = document.getElementById('incidentAngle');
+            refractedAngleDisplay = document.getElementById('refractedAngle');
+            ratioValue = document.getElementById('ratioValue');
+            totalReflectionAlert = document.getElementById('totalReflectionAlert');
+            practiceSection = document.getElementById('practiceSection');
+            practiceHint = document.getElementById('practiceHint');
+            lightTypeOptions = document.getElementById('lightTypeOptions');
+            missingLightOptions = document.getElementById('missingLightOptions');
+            missingLightAngle = document.getElementById('missingLightAngle');
+            missingAngleSlider = document.getElementById('missingAngleSlider');
+            missingAngleValue = document.getElementById('missingAngleValue');
+            submitAnswer = document.getElementById('submitAnswer');
+            feedback = document.getElementById('feedback');
+
+            // 设置Canvas尺寸
+            resizeCanvas();
+            window.addEventListener('resize', resizeCanvas);
+
+            // 事件监听
+            medium1Select.addEventListener('change', onMediumChange);
+            medium2Select.addEventListener('change', onMediumChange);
+            submitAnswer.addEventListener('click', onSubmitAnswer);
+            missingAngleSlider.addEventListener('input', onMissingAngleChange);
+
+            // 直接进入练习模式
+            practiceMode = true;
+            practiceSection.classList.remove('hidden');
+            generatePracticeQuestion();
+
+            // 开始动画
+            animate();
+        });
+
+        function resizeCanvas() {
+            const container = canvas.parentElement;
+            const rect = container.getBoundingClientRect();
+            const dpr = window.devicePixelRatio || 1;
+            
+            canvas.width = rect.width * dpr;
+            canvas.height = rect.height * dpr;
+            canvas.style.width = rect.width + 'px';
+            canvas.style.height = rect.height + 'px';
+            
+            ctx.scale(dpr, dpr);
+        }
+
+        function onAngleChange() {
+            incidentAngle = parseInt(angleSlider.value);
+            angleValue.textContent = incidentAngle + '°';
+            updateInfo();
+            draw();
+        }
+
+        function onMediumChange() {
+            medium1 = medium1Select.value;
+            medium2 = medium2Select.value;
+            updateInfo();
+            draw();
+        }
+
+        function onReverseIncident() {
+            let newAngle;
+            
+            if (!reverseIncident) {
+                // 从正向切换到逆向
+                const n1 = mediaData[medium1].n;
+                const n2 = mediaData[medium2].n;
+                const theta1Rad = incidentAngle * Math.PI / 180;
+                
+                // 计算当前折射角
+                const sinTheta2 = (n1 / n2) * Math.sin(theta1Rad);
+                
+                if (Math.abs(sinTheta2) <= 1) {
+                    const theta2Rad = Math.asin(sinTheta2);
+                    const theta2Deg = theta2Rad * 180 / Math.PI;
+                    newAngle = Math.round(theta2Deg);
+                } else {
+                    return; // 全反射时不切换
+                }
+            } else {
+                // 从逆向切换到正向
+                const n1 = mediaData[medium2].n;
+                const n2 = mediaData[medium1].n;
+                const theta1Rad = incidentAngle * Math.PI / 180;
+                
+                // 计算当前折射角（即原来的入射角）
+                const sinTheta2 = (n1 / n2) * Math.sin(theta1Rad);
+                
+                if (Math.abs(sinTheta2) <= 1) {
+                    const theta2Rad = Math.asin(sinTheta2);
+                    const theta2Deg = theta2Rad * 180 / Math.PI;
+                    newAngle = Math.round(theta2Deg);
+                } else {
+                    return; // 全反射时不切换
+                }
+            }
+            
+            // 切换逆向入射状态
+            reverseIncident = !reverseIncident;
+            
+            // 设置新的入射角
+            incidentAngle = newAngle;
+            angleSlider.value = incidentAngle;
+            angleValue.textContent = incidentAngle + '°';
+            
+            // 更新按钮文本
+            const button = document.getElementById('reverseButton');
+            if (reverseIncident) {
+                button.textContent = '正向入射';
+            } else {
+                button.textContent = '逆向入射';
+            }
+            
+            // 更新信息和界面
+            updateInfo();
+            draw();
+        }
+
+        function onPracticeMode() {
+            practiceMode = !practiceMode;
+            
+            if (practiceMode) {
+                // 进入练习模式
+                practiceButton.textContent = '退出练习';
+                practiceSection.classList.remove('hidden');
+                generatePracticeQuestion();
+            } else {
+                // 退出练习模式
+                practiceButton.textContent = '开始练习';
+                practiceSection.classList.add('hidden');
+                feedback.classList.add('hidden');
+                lightTypeOptions.classList.add('hidden');
+                missingLightOptions.classList.add('hidden');
+                missingLightAngle.classList.add('hidden');
+            }
+            
+            draw();
+        }
+
+        function generatePracticeQuestion() {
+            // 随机选择不同的介质
+            const mediaTypes = ['air', 'water', 'glass'];
+            let randomMedium1, randomMedium2;
+            
+            do {
+                randomMedium1 = mediaTypes[Math.floor(Math.random() * mediaTypes.length)];
+                randomMedium2 = mediaTypes[Math.floor(Math.random() * mediaTypes.length)];
+            } while (randomMedium1 === randomMedium2);
+            
+            // 更新介质选择框
+            medium1 = randomMedium1;
+            medium2 = randomMedium2;
+            medium1Select.value = randomMedium1;
+            medium2Select.value = randomMedium2;
+            
+            // 禁用介质选择框
+            medium1Select.disabled = true;
+            medium2Select.disabled = true;
+            
+            // 随机生成入射角，避免全反射
+            let validAngle = false;
+            while (!validAngle) {
+                incidentAngle = Math.floor(Math.random() * 60) + 10; // 10-70度
+                
+                // 检查是否会发生全反射
+                const n1 = mediaData[medium1].n;
+                const n2 = mediaData[medium2].n;
+                
+                if (n1 > n2) {
+                    // 从光密介质到光疏介质，可能发生全反射
+                    const criticalAngle = Math.asin(n2 / n1) * 180 / Math.PI;
+                    if (incidentAngle < criticalAngle) {
+                        validAngle = true;
+                    }
+                } else {
+                    // 从光疏介质到光密介质，不会发生全反射
+                    validAngle = true;
+                }
+            }
+            
+            // 答对情况1一次后，生成情况2
+            if (case1Count < 1) {
+                practiceData.caseType = 1;
+            } else {
+                practiceData.caseType = 2;
+            }
+            
+            if (practiceData.caseType === 1) {
+                // 情况1：光线齐全但无箭头，让用户区分光线类型
+                practiceData.showIncident = true;
+                practiceData.showReflected = true;
+                practiceData.showRefracted = true;
+                practiceData.showArrows = false;
+                
+                // 随机分配光线颜色到光线类型
+                const lightColors = ['#ffd700', '#00ff88', '#ff6b6b'];
+                const lightTypes = ['入射光线', '反射光线', '折射光线'];
+                
+                // 打乱颜色顺序
+                for (let i = lightColors.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [lightColors[i], lightColors[j]] = [lightColors[j], lightColors[i]];
+                }
+                
+                // 分配颜色到光线类型
+                practiceData.lightTypes = {
+                    incident: { color: lightColors[0], type: lightTypes[0] },
+                    reflected: { color: lightColors[1], type: lightTypes[1] },
+                    refracted: { color: lightColors[2], type: lightTypes[2] }
+                };
+                
+                // 设置正确答案
+                practiceData.correctAnswers = {
+                    [lightColors[0]]: lightTypes[0],
+                    [lightColors[1]]: lightTypes[1],
+                    [lightColors[2]]: lightTypes[2]
+                };
+                
+                // 更新提示信息
+                practiceHint.textContent = '请根据光线的传播方向，选择每种颜色的光线对应的类型。';
+                
+                // 显示光线类型选项，隐藏其他选项
+                lightTypeOptions.classList.remove('hidden');
+                missingLightOptions.classList.add('hidden');
+                missingLightAngle.classList.add('hidden');
+                
+                // 生成光线类型选项HTML
+                lightTypeOptions.innerHTML = '';
+                Object.entries(practiceData.lightTypes).forEach(([key, data], index) => {
+                    const div = document.createElement('div');
+                    div.className = 'flex items-center gap-2';
+                    div.innerHTML = `
+                        <div class="w-4 h-4 rounded-full" style="background-color: ${data.color}"></div>
+                        <select id="lightType${index}" class="bg-gray-800 text-gray-300 border border-gray-700 rounded px-2 py-1 text-sm">
+                            <option value="">请选择</option>
+                            <option value="入射光线">入射光线</option>
+                            <option value="反射光线">反射光线</option>
+                            <option value="折射光线">折射光线</option>
+                        </select>
+                    `;
+                    lightTypeOptions.appendChild(div);
+                });
+            } else {
+                // 情况2：显示2根光线并标箭头，让用户选择缺失光线类型并摆放位置
+                practiceData.showArrows = true;
+                
+                // 随机选择缺失的光线
+                const lightTypes = ['incident', 'reflected', 'refracted'];
+                const missingIndex = Math.floor(Math.random() * lightTypes.length);
+                practiceData.missingLightType = lightTypes[missingIndex];
+                
+                // 设置显示的光线
+                practiceData.showIncident = practiceData.missingLightType !== 'incident';
+                practiceData.showReflected = practiceData.missingLightType !== 'reflected';
+                practiceData.showRefracted = practiceData.missingLightType !== 'refracted';
+                
+                // 设置正确答案
+                const typeMap = {
+                    incident: '入射光线',
+                    reflected: '反射光线',
+                    refracted: '折射光线'
+                };
+                practiceData.correctAnswers = {
+                    missingType: typeMap[practiceData.missingLightType]
+                };
+                
+                // 更新提示信息
+                practiceHint.textContent = '请选择缺失的光线类型，并调整其角度。';
+                
+                // 显示缺失光线选项和角度滑块，隐藏其他选项
+                lightTypeOptions.classList.add('hidden');
+                missingLightOptions.classList.remove('hidden');
+                missingLightAngle.classList.remove('hidden');
+                
+                // 生成缺失光线选项HTML
+                missingLightOptions.innerHTML = '';
+                const options = ['入射光线', '反射光线', '折射光线'];
+                options.forEach((option, index) => {
+                    const div = document.createElement('div');
+                    div.className = 'flex items-center gap-2';
+                    div.innerHTML = `
+                        <input type="radio" id="missingLight${index}" name="missingLightType" value="${option}">
+                        <label for="missingLight${index}" class="text-sm text-gray-300">${option}</label>
+                    `;
+                    missingLightOptions.appendChild(div);
+                });
+                
+                // 重置缺失光线角度
+                practiceData.userMissingAngle = 45;
+                missingAngleSlider.value = practiceData.userMissingAngle;
+                missingAngleValue.textContent = practiceData.userMissingAngle + '°';
+            }
+            
+            // 隐藏反馈
+            feedback.classList.add('hidden');
+            
+            // 更新信息和界面
+            updateInfo();
+        }
+
+        function onMissingAngleChange() {
+            practiceData.userMissingAngle = parseInt(missingAngleSlider.value);
+            missingAngleValue.textContent = practiceData.userMissingAngle + '°';
+            draw();
+        }
+
+        function onSubmitAnswer() {
+            if (practiceData.caseType === 1) {
+                // 情况1：区分光线类型
+                const selects = lightTypeOptions.querySelectorAll('select');
+                let allAnswered = true;
+                let allCorrect = true;
+                let userAnswers = [];
+                
+                // 收集用户答案
+                selects.forEach((select, index) => {
+                    const userAnswer = select.value;
+                    if (!userAnswer) {
+                        allAnswered = false;
+                    }
+                    userAnswers.push(userAnswer);
+                });
+                
+                if (!allAnswered) {
+                    // 未完成所有选择
+                    feedback.className = 'mt-4 p-3 rounded-lg bg-yellow-900/30 border border-yellow-500/30 text-yellow-400';
+                    feedback.textContent = '请完成所有光线类型的选择';
+                    feedback.classList.remove('hidden');
+                    return;
+                }
+                
+                // 检查答案
+                const colors = Object.values(practiceData.lightTypes).map(item => item.color);
+                colors.forEach((color, index) => {
+                    const correctAnswer = practiceData.correctAnswers[color];
+                    if (userAnswers[index] !== correctAnswer) {
+                        allCorrect = false;
+                    }
+                });
+                
+                if (allCorrect) {
+                    // 正确
+                    feedback.className = 'mt-4 p-3 rounded-lg bg-green-900/30 border border-green-500/30 text-green-400';
+                    feedback.innerHTML = `
+                        <div class="font-semibold">回答正确！</div>
+                        <div class="text-sm mt-1">你成功区分了所有光线类型</div>
+                        <button id="nextQuestion" class="mt-3 px-4 py-1 bg-green-600 text-white rounded-lg text-sm hover:opacity-90 transition-opacity">
+                            下一题
+                        </button>
+                    `;
+                    feedback.classList.remove('hidden');
+                    
+                    // 情况1答对后，增加case1Count
+                    case1Count++;
+                    
+                    // 添加下一题按钮事件
+                    document.getElementById('nextQuestion').addEventListener('click', generatePracticeQuestion);
+                } else {
+                    // 错误
+                    feedback.className = 'mt-4 p-3 rounded-lg bg-red-900/30 border border-red-500/30 text-red-400';
+                    feedback.innerHTML = `
+                        <div class="font-semibold">回答错误</div>
+                        <div class="text-sm mt-1">请再仔细观察光线的传播方向</div>
+                        <button id="tryAgain" class="mt-3 px-4 py-1 bg-red-600 text-white rounded-lg text-sm hover:opacity-90 transition-opacity">
+                            再试一次
+                        </button>
+                    `;
+                    feedback.classList.remove('hidden');
+                    
+                    // 添加再试一次按钮事件
+                    document.getElementById('tryAgain').addEventListener('click', () => {
+                        feedback.classList.add('hidden');
+                    });
+                }
+            } else if (practiceData.caseType === 2) {
+                // 情况2：选择缺失光线类型并摆放位置
+                const selectedOption = document.querySelector('input[name="missingLightType"]:checked');
+                
+                if (!selectedOption) {
+                    // 未选择答案
+                    feedback.className = 'mt-4 p-3 rounded-lg bg-yellow-900/30 border border-yellow-500/30 text-yellow-400';
+                    feedback.textContent = '请选择缺失的光线类型';
+                    feedback.classList.remove('hidden');
+                    return;
+                }
+                
+                const userType = selectedOption.value;
+                const correctType = practiceData.correctAnswers.missingType;
+                
+                // 检查类型是否正确
+                if (userType !== correctType) {
+                    // 类型错误
+                    feedback.className = 'mt-4 p-3 rounded-lg bg-red-900/30 border border-red-500/30 text-red-400';
+                    feedback.innerHTML = `
+                        <div class="font-semibold">回答错误</div>
+                        <div class="text-sm mt-1">正确的缺失光线类型是：${correctType}</div>
+                        <button id="tryAgain" class="mt-3 px-4 py-1 bg-red-600 text-white rounded-lg text-sm hover:opacity-90 transition-opacity">
+                            再试一次
+                        </button>
+                    `;
+                    feedback.classList.remove('hidden');
+                    
+                    // 添加再试一次按钮事件
+                    document.getElementById('tryAgain').addEventListener('click', () => {
+                        feedback.classList.add('hidden');
+                    });
+                    return;
+                }
+                
+                // 计算正确角度
+                let correctAngle;
+                if (practiceData.missingLightType === 'incident') {
+                    correctAngle = incidentAngle;
+                } else if (practiceData.missingLightType === 'reflected') {
+                    correctAngle = incidentAngle; // 反射角等于入射角
+                } else if (practiceData.missingLightType === 'refracted') {
+                    const n1 = mediaData[medium1].n;
+                    const n2 = mediaData[medium2].n;
+                    const theta1Rad = incidentAngle * Math.PI / 180;
+                    const sinTheta2 = (n1 / n2) * Math.sin(theta1Rad);
+                    if (Math.abs(sinTheta2) <= 1) {
+                        const theta2Rad = Math.asin(sinTheta2);
+                        correctAngle = theta2Rad * 180 / Math.PI;
+                    }
+                }
+                
+                // 检查角度是否正确
+                let angleCorrect = false;
+                let feedbackMessage = '';
+                
+                if (practiceData.missingLightType === 'incident' || practiceData.missingLightType === 'reflected') {
+                    // 入射光线或反射光线：角度必须完全相等
+                    if (practiceData.userMissingAngle === correctAngle) {
+                        angleCorrect = true;
+                    } else {
+                        feedbackMessage = `正确的角度应该是：${correctAngle}°`;
+                    }
+                } else if (practiceData.missingLightType === 'refracted') {
+                    // 折射光线：只需满足大小关系
+                    const n1 = mediaData[medium1].n;
+                    const n2 = mediaData[medium2].n;
+                    
+                    if (n1 < n2) {
+                        // 从光疏介质到光密介质，折射角应小于入射角
+                        if (practiceData.userMissingAngle < incidentAngle) {
+                            angleCorrect = true;
+                        } else {
+                            feedbackMessage = '从光疏介质到光密介质，折射角应小于入射角';
+                        }
+                    } else if (n1 > n2) {
+                        // 从光密介质到光疏介质，折射角应大于入射角
+                        if (practiceData.userMissingAngle > incidentAngle) {
+                            angleCorrect = true;
+                        } else {
+                            feedbackMessage = '从光密介质到光疏介质，折射角应大于入射角';
+                        }
+                    } else {
+                        // 介质折射率相同，折射角应等于入射角（±5度）
+                        const angleDiff = Math.abs(practiceData.userMissingAngle - incidentAngle);
+                        if (angleDiff <= 5) {
+                            angleCorrect = true;
+                        } else {
+                            feedbackMessage = `正确的角度应该是：${incidentAngle.toFixed(1)}°`;
+                        }
+                    }
+                }
+                
+                if (angleCorrect) {
+                    // 正确
+                    feedback.className = 'mt-4 p-3 rounded-lg bg-green-900/30 border border-green-500/30 text-green-400';
+                    feedback.innerHTML = `
+                        <div class="font-semibold">回答正确！</div>
+                        <div class="text-sm mt-1">你成功选择了正确的光线类型并摆放了正确的位置</div>
+                        <button id="nextQuestion" class="mt-3 px-4 py-1 bg-green-600 text-white rounded-lg text-sm hover:opacity-90 transition-opacity">
+                            下一题
+                        </button>
+                    `;
+                    feedback.classList.remove('hidden');
+                    
+                    // 添加下一题按钮事件
+                    document.getElementById('nextQuestion').addEventListener('click', generatePracticeQuestion);
+                } else {
+                    // 角度错误
+                    feedback.className = 'mt-4 p-3 rounded-lg bg-red-900/30 border border-red-500/30 text-red-400';
+                    feedback.innerHTML = `
+                        <div class="font-semibold">角度不正确</div>
+                        <div class="text-sm mt-1">${feedbackMessage}</div>
+                        <button id="tryAgain" class="mt-3 px-4 py-1 bg-red-600 text-white rounded-lg text-sm hover:opacity-90 transition-opacity">
+                            再试一次
+                        </button>
+                    `;
+                    feedback.classList.remove('hidden');
+                    
+                    // 添加再试一次按钮事件
+                    document.getElementById('tryAgain').addEventListener('click', () => {
+                        feedback.classList.add('hidden');
+                    });
+                }
+            }
+        }
+
+        function updateInfo() {
+            let n1, n2, theta1Rad, sinTheta2, theta2Deg;
+            
+            if (reverseIncident) {
+                // 逆向入射：介质顺序颠倒
+                n1 = mediaData[medium2].n;
+                n2 = mediaData[medium1].n;
+                theta1Rad = incidentAngle * Math.PI / 180;
+                
+                // 计算新的折射角（原来的入射角）
+                sinTheta2 = (n1 / n2) * Math.sin(theta1Rad);
+                
+                incidentAngleDisplay.textContent = incidentAngle.toFixed(1) + '°';
+                ratioValue.textContent = (n1 / n2).toFixed(2);
+                
+                if (Math.abs(sinTheta2) > 1) {
+                    // 全反射
+                    refractedAngleDisplay.textContent = '全反射';
+                    totalReflectionAlert.classList.add('active');
+                } else {
+                    const theta2Rad = Math.asin(sinTheta2);
+                    theta2Deg = theta2Rad * 180 / Math.PI;
+                    refractedAngleDisplay.textContent = theta2Deg.toFixed(1) + '°';
+                    totalReflectionAlert.classList.remove('active');
+                }
+            } else {
+                // 正常入射
+                n1 = mediaData[medium1].n;
+                n2 = mediaData[medium2].n;
+                theta1Rad = incidentAngle * Math.PI / 180;
+                
+                incidentAngleDisplay.textContent = incidentAngle.toFixed(1) + '°';
+                ratioValue.textContent = (n1 / n2).toFixed(2);
+                
+                // 计算折射角
+                sinTheta2 = (n1 / n2) * Math.sin(theta1Rad);
+                
+                if (Math.abs(sinTheta2) > 1) {
+                    // 全反射
+                    refractedAngleDisplay.textContent = '全反射';
+                    totalReflectionAlert.classList.add('active');
+                } else {
+                    const theta2Rad = Math.asin(sinTheta2);
+                    theta2Deg = theta2Rad * 180 / Math.PI;
+                    refractedAngleDisplay.textContent = theta2Deg.toFixed(1) + '°';
+                    totalReflectionAlert.classList.remove('active');
+                }
+            }
+        }
+
+        function animate() {
+            lightProgress += 0.02;
+            if (lightProgress > 1) lightProgress = 0;
+            
+            draw();
+            animationId = requestAnimationFrame(animate);
+        }
+
+        function draw() {
+            const width = canvas.width / (window.devicePixelRatio || 1);
+            const height = canvas.height / (window.devicePixelRatio || 1);
+            
+            // 清空画布
+            ctx.clearRect(0, 0, width, height);
+            
+            const centerX = width / 2;
+            const centerY = height / 2;
+            const rayLength = Math.min(width, height) * 0.38;
+            
+            let n1, n2, theta1Rad, sinTheta2, isTotalReflection = false, theta2Rad = 0, theta2Deg = 0;
+            let incidentStartX, incidentStartY, reflectEndX, reflectEndY, refractEndX, refractEndY;
+            let incidentColor = '#ffd700';
+            let refractColor = '#00ff88';
+            
+            if (reverseIncident) {
+                // 逆向入射模式
+                n1 = mediaData[medium2].n;
+                n2 = mediaData[medium1].n;
+                theta1Rad = incidentAngle * Math.PI / 180;
+                
+                // 计算折射角
+                sinTheta2 = (n1 / n2) * Math.sin(theta1Rad);
+                isTotalReflection = Math.abs(sinTheta2) > 1;
+                
+                if (!isTotalReflection) {
+                    theta2Rad = Math.asin(sinTheta2);
+                    theta2Deg = theta2Rad * 180 / Math.PI;
+                }
+                
+                // 入射光线起点和终点（从下方射入）
+                incidentStartX = centerX + rayLength * Math.sin(theta1Rad);
+                incidentStartY = centerY + rayLength * Math.cos(theta1Rad);
+                
+                // 反射光线终点
+                reflectEndX = centerX - rayLength * Math.sin(theta1Rad);
+                reflectEndY = centerY + rayLength * Math.cos(theta1Rad);
+                
+                // 折射光线终点
+                if (!isTotalReflection) {
+                    refractEndX = centerX - rayLength * Math.sin(theta2Rad);
+                    refractEndY = centerY - rayLength * Math.cos(theta2Rad);
+                }
+                
+                // 交换颜色
+                incidentColor = '#00ff88';
+                refractColor = '#ffd700';
+            } else {
+                // 正常入射模式
+                n1 = mediaData[medium1].n;
+                n2 = mediaData[medium2].n;
+                theta1Rad = incidentAngle * Math.PI / 180;
+                
+                // 计算折射角
+                sinTheta2 = (n1 / n2) * Math.sin(theta1Rad);
+                isTotalReflection = Math.abs(sinTheta2) > 1;
+                
+                if (!isTotalReflection) {
+                    theta2Rad = Math.asin(sinTheta2);
+                    theta2Deg = theta2Rad * 180 / Math.PI;
+                }
+                
+                // 入射光线起点和终点
+                incidentStartX = centerX - rayLength * Math.sin(theta1Rad);
+                incidentStartY = centerY - rayLength * Math.cos(theta1Rad);
+                
+                // 反射光线终点
+                reflectEndX = centerX + rayLength * Math.sin(theta1Rad);
+                reflectEndY = centerY - rayLength * Math.cos(theta1Rad);
+                
+                // 折射光线终点
+                if (!isTotalReflection) {
+                    refractEndX = centerX + rayLength * Math.sin(theta2Rad);
+                    refractEndY = centerY + rayLength * Math.cos(theta2Rad);
+                }
+            }
+            
+            // 绘制上方介质背景
+            ctx.fillStyle = mediaData[medium1].color;
+            ctx.fillRect(0, 0, width, centerY);
+            
+            // 绘制下方介质背景
+            ctx.fillStyle = mediaData[medium2].color;
+            ctx.fillRect(0, centerY, width, height - centerY);
+            
+            // 绘制介质标签
+            ctx.font = 'bold 16px "Noto Sans SC"';
+            ctx.fillStyle = mediaData[medium1].textColor;
+            ctx.textAlign = 'left';
+            ctx.fillText(mediaData[medium1].name + ' (n=' + n1.toFixed(2) + ')', 20, 30);
+            
+            ctx.fillStyle = mediaData[medium2].textColor;
+            ctx.fillText(mediaData[medium2].name + ' (n=' + n2.toFixed(2) + ')', 20, centerY + 30);
+            
+            // 绘制界面线
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(0, centerY);
+            ctx.lineTo(width, centerY);
+            ctx.stroke();
+            
+            // 绘制法线（虚线）
+            ctx.strokeStyle = '#ff6b6b';
+            ctx.lineWidth = 2;
+            ctx.setLineDash([8, 6]);
+            ctx.beginPath();
+            ctx.moveTo(centerX, centerY - rayLength * 0.9);
+            ctx.lineTo(centerX, centerY + rayLength * 0.9);
+            ctx.stroke();
+            ctx.setLineDash([]);
+            
+            // 法线标签
+            ctx.font = '14px "Noto Sans SC"';
+            ctx.fillStyle = '#ff6b6b';
+            ctx.textAlign = 'center';
+            ctx.fillText('法线', centerX, centerY - rayLength * 0.9 - 10);
+            
+            // 练习模式下的光线颜色
+            let practiceIncidentColor = incidentColor;
+            let practiceReflectedColor = incidentColor;
+            let practiceRefractedColor = refractColor;
+            
+            if (practiceMode && practiceData.caseType === 1) {
+                // 情况1：使用随机分配的颜色
+                practiceIncidentColor = practiceData.lightTypes.incident.color;
+                practiceReflectedColor = practiceData.lightTypes.reflected.color;
+                practiceRefractedColor = practiceData.lightTypes.refracted.color;
+            }
+            
+            // 绘制入射光线
+            if (!practiceMode || practiceData.showIncident) {
+                drawLightRay(incidentStartX, incidentStartY, centerX, centerY, practiceIncidentColor, lightProgress);
+                
+                // 绘制入射角弧线和角度标注
+                if (!practiceMode && incidentAngle > 0) {
+                    drawAngleArc(centerX, centerY, theta1Rad, reverseIncident, practiceIncidentColor, incidentAngle.toFixed(0) + '°');
+                }
+            }
+            
+            // 绘制反射光线
+            if (!practiceMode || practiceData.showReflected) {
+                drawLightRay(centerX, centerY, reflectEndX, reflectEndY, practiceReflectedColor, lightProgress, 0.4);
+            }
+            
+            if (!isTotalReflection) {
+                // 绘制折射光线
+                if (!practiceMode || practiceData.showRefracted) {
+                    drawLightRay(centerX, centerY, refractEndX, refractEndY, practiceRefractedColor, lightProgress);
+                    
+                    // 绘制折射角弧线和角度标注
+                    if (!practiceMode && theta2Deg > 0.1) {
+                        drawAngleArc(centerX, centerY, theta2Rad, !reverseIncident, practiceRefractedColor, theta2Deg.toFixed(1) + '°');
+                    }
+                }
+            }
+            
+            // 情况2：绘制用户调整的缺失光线（仅在用户选择类型后显示）
+            if (practiceMode && practiceData.caseType === 2 && !isTotalReflection) {
+                // 检查用户是否已经选择了缺失光线类型
+                const selectedOption = document.querySelector('input[name="missingLightType"]:checked');
+                if (selectedOption) {
+                    const userAngleRad = practiceData.userMissingAngle * Math.PI / 180;
+                    let userStartX, userStartY, userEndX, userEndY;
+                    let userColor = '#ff6b6b'; // 缺失光线的颜色
+                    
+                    if (practiceData.missingLightType === 'incident') {
+                        // 缺失入射光线
+                        userStartX = centerX - rayLength * Math.sin(userAngleRad);
+                        userStartY = centerY - rayLength * Math.cos(userAngleRad);
+                        userEndX = centerX;
+                        userEndY = centerY;
+                    } else if (practiceData.missingLightType === 'reflected') {
+                        // 缺失反射光线
+                        userStartX = centerX;
+                        userStartY = centerY;
+                        userEndX = centerX + rayLength * Math.sin(userAngleRad);
+                        userEndY = centerY - rayLength * Math.cos(userAngleRad);
+                    } else if (practiceData.missingLightType === 'refracted') {
+                        // 缺失折射光线
+                        userStartX = centerX;
+                        userStartY = centerY;
+                        userEndX = centerX + rayLength * Math.sin(userAngleRad);
+                        userEndY = centerY + rayLength * Math.cos(userAngleRad);
+                    }
+                    
+                    if (userStartX && userStartY && userEndX && userEndY) {
+                        drawLightRay(userStartX, userStartY, userEndX, userEndY, userColor, lightProgress);
+                        if (practiceData.showArrows) {
+                            drawArrowHead(userStartX, userStartY, userEndX, userEndY, userColor);
+                        }
+                    }
+                }
+            }
+            
+            // 绘制入射点
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, 5, 0, Math.PI * 2);
+            ctx.fillStyle = '#ffffff';
+            ctx.fill();
+            
+            // 绘制光线方向箭头
+            if (!practiceMode || (practiceMode && practiceData.showArrows)) {
+                if (!practiceMode || practiceData.showIncident) {
+                    drawArrowHead(incidentStartX, incidentStartY, centerX, centerY, practiceIncidentColor);
+                }
+                
+                if (!practiceMode || practiceData.showReflected) {
+                    drawArrowHead(centerX, centerY, reflectEndX, reflectEndY, practiceReflectedColor);
+                }
+                
+                if (!isTotalReflection && (!practiceMode || practiceData.showRefracted)) {
+                    drawArrowHead(centerX, centerY, refractEndX, refractEndY, practiceRefractedColor);
+                }
+            }
+        }
+
+        function drawLightRay(x1, y1, x2, y2, color, progress, alphaMultiplier = 1) {
+            const baseAlpha = 0.9 * alphaMultiplier;
+            
+            // 转换十六进制颜色为rgba
+            const r = parseInt(color.slice(1, 3), 16);
+            const g = parseInt(color.slice(3, 5), 16);
+            const b = parseInt(color.slice(5, 7), 16);
+            
+            const grad = ctx.createLinearGradient(x1, y1, x2, y2);
+            grad.addColorStop(0, `rgba(${r}, ${g}, ${b}, ${baseAlpha * 0.3})`);
+            grad.addColorStop(0.5, `rgba(${r}, ${g}, ${b}, ${baseAlpha})`);
+            grad.addColorStop(1, `rgba(${r}, ${g}, ${b}, ${baseAlpha * 0.3})`);
+            
+            ctx.strokeStyle = grad;
+            ctx.lineWidth = 3;
+            ctx.lineCap = 'round';
+            ctx.beginPath();
+            ctx.moveTo(x1, y1);
+            ctx.lineTo(x2, y2);
+            ctx.stroke();
+            
+            // 光晕效果
+            ctx.strokeStyle = `rgba(${r}, ${g}, ${b}, ${baseAlpha * 0.2})`;
+            ctx.lineWidth = 8;
+            ctx.beginPath();
+            ctx.moveTo(x1, y1);
+            ctx.lineTo(x2, y2);
+            ctx.stroke();
+        }
+
+        function drawAngleArc(cx, cy, angle, isIncident, color, label) {
+            const arcRadius = 40;
+            
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            
+            if (isIncident) {
+                // 入射角：从法线向左绘制
+                ctx.arc(cx, cy, arcRadius, -Math.PI / 2, -Math.PI / 2 - angle, true);
+                // 角度标注位置
+                const labelRadius = arcRadius + 20;
+                const labelAngle = -Math.PI / 2 - angle / 2;
+                const labelX = cx + labelRadius * Math.cos(labelAngle);
+                const labelY = cy + labelRadius * Math.sin(labelAngle);
+                
+                ctx.font = 'bold 14px "Orbitron"';
+                ctx.fillStyle = color;
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(label, labelX, labelY);
+            } else {
+                // 折射角：从法线向右绘制（以法线为对称轴翻折）
+                ctx.arc(cx, cy, arcRadius, Math.PI / 2, Math.PI / 2 - angle, true);
+                // 角度标注位置
+                const labelRadius = arcRadius + 20;
+                const labelAngle = Math.PI / 2 - angle / 2;
+                const labelX = cx + labelRadius * Math.cos(labelAngle);
+                const labelY = cy + labelRadius * Math.sin(labelAngle);
+                
+                ctx.font = 'bold 14px "Orbitron"';
+                ctx.fillStyle = color;
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(label, labelX, labelY);
+            }
+            ctx.stroke();
+        }
+
+        function drawArrowHead(x1, y1, x2, y2, color) {
+            const angle = Math.atan2(y2 - y1, x2 - x1);
+            const arrowLength = 12;
+            const arrowAngle = Math.PI / 6;
+            
+            // 在光线中点绘制箭头
+            const midX = (x1 + x2) / 2;
+            const midY = (y1 + y2) / 2;
+            
+            ctx.fillStyle = color;
+            ctx.beginPath();
+            ctx.moveTo(midX + arrowLength * Math.cos(angle), midY + arrowLength * Math.sin(angle));
+            ctx.lineTo(midX + arrowLength * 0.6 * Math.cos(angle - arrowAngle), midY + arrowLength * 0.6 * Math.sin(angle - arrowAngle));
+            ctx.lineTo(midX + arrowLength * 0.6 * Math.cos(angle + arrowAngle), midY + arrowLength * 0.6 * Math.sin(angle + arrowAngle));
+            ctx.closePath();
+            ctx.fill();
+        }
+
+        // 初始化信息显示
+        updateInfo();
+    </script>
+</body>
+</html>

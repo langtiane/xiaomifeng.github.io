@@ -1,0 +1,1270 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>日食月食交互测试</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700;900&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-deep: #0a0e1a;
+            --bg-card: #141b2d;
+            --fg: #e8eaf6;
+            --muted: #7986cb;
+            --accent: #ff6b35;
+            --accent-glow: #ff8c5a;
+            --sun: #ffb347;
+            --earth: #4fc3f7;
+            --moon: #b0bec5;
+            --shadow: rgba(0,0,0,0.85);
+            --success: #4caf50;
+            --error: #ef5350;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Noto Sans SC', sans-serif;
+            background: var(--bg-deep);
+            color: var(--fg);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        .title-font {
+            font-family: 'Orbitron', sans-serif;
+        }
+
+        /* 星空背景 */
+        .starfield {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .star {
+            position: absolute;
+            background: white;
+            border-radius: 50%;
+            animation: twinkle 3s ease-in-out infinite;
+        }
+
+        @keyframes twinkle {
+            0%, 100% { opacity: 0.3; }
+            50% { opacity: 1; }
+        }
+
+        /* 主容器 */
+        .main-container {
+            position: relative;
+            z-index: 1;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        /* 标题区域 */
+        .header {
+            text-align: center;
+            padding: 30px 0;
+            animation: fadeInDown 0.8s ease-out;
+        }
+
+        @keyframes fadeInDown {
+            from {
+                opacity: 0;
+                transform: translateY(-30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            font-weight: 900;
+            background: linear-gradient(135deg, var(--sun) 0%, var(--accent) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            color: var(--muted);
+            font-size: 1.1rem;
+        }
+
+        /* 模拟区域 */
+        .simulation-area {
+            background: linear-gradient(180deg, #0d1220 0%, #1a1f35 100%);
+            border-radius: 20px;
+            border: 1px solid rgba(255,255,255,0.1);
+            overflow: hidden;
+            margin-bottom: 24px;
+            animation: fadeInUp 0.8s ease-out 0.2s both;
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .canvas-container {
+            position: relative;
+            width: 100%;
+            height: 400px;
+        }
+
+        #simulationCanvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+
+        /* 状态指示 */
+        .eclipse-indicator {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0,0,0,0.7);
+            backdrop-filter: blur(10px);
+            padding: 12px 24px;
+            border-radius: 30px;
+            font-weight: 500;
+            font-size: 1.1rem;
+            border: 1px solid rgba(255,255,255,0.2);
+            transition: all 0.3s ease;
+        }
+
+        .eclipse-indicator.solar {
+            background: linear-gradient(135deg, rgba(255,107,53,0.3), rgba(255,179,71,0.3));
+            border-color: var(--sun);
+            color: var(--sun);
+        }
+
+        .eclipse-indicator.lunar {
+            background: linear-gradient(135deg, rgba(79,195,247,0.3), rgba(176,190,197,0.3));
+            border-color: var(--earth);
+            color: var(--earth);
+        }
+
+        /* 提示区域 */
+        .hint-bar {
+            background: rgba(255,255,255,0.05);
+            padding: 16px 24px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            border-top: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .hint-icon {
+            width: 24px;
+            height: 24px;
+            background: var(--accent);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 14px;
+            flex-shrink: 0;
+        }
+
+        .hint-text {
+            color: var(--muted);
+            font-size: 0.95rem;
+        }
+
+        /* 问题卡片 */
+        .question-panel {
+            background: var(--bg-card);
+            border-radius: 16px;
+            border: 1px solid rgba(255,255,255,0.1);
+            padding: 24px;
+            margin-bottom: 24px;
+            animation: fadeInUp 0.8s ease-out 0.4s both;
+        }
+
+        .question-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 20px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .question-number {
+            background: linear-gradient(135deg, var(--accent), var(--sun));
+            color: white;
+            width: 36px;
+            height: 36px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 1.1rem;
+        }
+
+        .question-type {
+            color: var(--muted);
+            font-size: 0.9rem;
+        }
+
+        .question-content {
+            font-size: 1.1rem;
+            line-height: 1.8;
+            margin-bottom: 20px;
+        }
+
+        /* 操作题区域 */
+        .operation-task {
+            background: rgba(255,107,53,0.1);
+            border: 1px solid rgba(255,107,53,0.3);
+            border-radius: 12px;
+            padding: 16px 20px;
+            margin-bottom: 16px;
+        }
+
+        .operation-task.solar-task {
+            background: rgba(255,179,71,0.1);
+            border-color: rgba(255,179,71,0.3);
+        }
+
+        .operation-task.lunar-task {
+            background: rgba(79,195,247,0.1);
+            border-color: rgba(79,195,247,0.3);
+        }
+
+        .task-title {
+            font-weight: 600;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .task-status {
+            margin-left: auto;
+            font-size: 0.85rem;
+            padding: 4px 12px;
+            border-radius: 20px;
+            background: rgba(255,255,255,0.1);
+        }
+
+        .task-status.completed {
+            background: rgba(76,175,80,0.2);
+            color: var(--success);
+        }
+
+        /* 填空题 */
+        .fill-blank {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 8px;
+            font-size: 1.1rem;
+            line-height: 2;
+        }
+
+        .blank-input {
+            width: 120px;
+            height: 40px;
+            background: rgba(255,255,255,0.1);
+            border: 2px solid rgba(255,255,255,0.2);
+            border-radius: 8px;
+            color: var(--fg);
+            font-size: 1rem;
+            padding: 0 12px;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        .blank-input:focus {
+            outline: none;
+            border-color: var(--accent);
+            background: rgba(255,107,53,0.1);
+        }
+
+        .blank-input.correct {
+            border-color: var(--success);
+            background: rgba(76,175,80,0.2);
+        }
+
+        .blank-input.incorrect {
+            border-color: var(--error);
+            background: rgba(239,83,80,0.2);
+        }
+
+        /* 按钮 */
+        .btn-group {
+            display: flex;
+            gap: 12px;
+            margin-top: 24px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 14px 32px;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: none;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--accent), var(--sun));
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(255,107,53,0.4);
+        }
+
+        .btn-secondary {
+            background: rgba(255,255,255,0.1);
+            color: var(--fg);
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255,255,255,0.15);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+
+        /* 结果面板 */
+        .result-panel {
+            display: none;
+            background: var(--bg-card);
+            border-radius: 16px;
+            border: 1px solid rgba(255,255,255,0.1);
+            padding: 24px;
+            margin-top: 24px;
+            animation: slideIn 0.5s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: scale(0.95);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+
+        .result-header {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 20px;
+        }
+
+        .result-icon {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 28px;
+        }
+
+        .result-icon.excellent {
+            background: linear-gradient(135deg, #4caf50, #8bc34a);
+        }
+
+        .result-icon.good {
+            background: linear-gradient(135deg, #2196f3, #03a9f4);
+        }
+
+        .result-icon.need-improve {
+            background: linear-gradient(135deg, #ff9800, #ffc107);
+        }
+
+        .result-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+        }
+
+        .result-score {
+            font-size: 1.1rem;
+            color: var(--muted);
+        }
+
+        .answer-review {
+            background: rgba(255,255,255,0.03);
+            border-radius: 12px;
+            padding: 20px;
+            margin-top: 16px;
+        }
+
+        .answer-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            padding: 12px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+
+        .answer-item:last-child {
+            border-bottom: none;
+        }
+
+        .answer-label {
+            font-weight: 600;
+            min-width: 80px;
+        }
+
+        .answer-correct {
+            color: var(--success);
+        }
+
+        .answer-wrong {
+            color: var(--error);
+        }
+
+        /* 图例 */
+        .legend {
+            display: flex;
+            justify-content: center;
+            gap: 24px;
+            padding: 16px;
+            background: rgba(255,255,255,0.03);
+            border-radius: 12px;
+            margin-top: 16px;
+            flex-wrap: wrap;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.9rem;
+        }
+
+        .legend-dot {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+        }
+
+        .legend-dot.sun {
+            background: radial-gradient(circle, #fff700, var(--sun));
+            box-shadow: 0 0 10px var(--sun);
+        }
+
+        .legend-dot.earth {
+            background: radial-gradient(circle, #81d4fa, var(--earth));
+        }
+
+        .legend-dot.moon {
+            background: radial-gradient(circle, #eceff1, var(--moon));
+        }
+
+        /* 响应式 */
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 1.8rem;
+            }
+
+            .canvas-container {
+                height: 350px;
+            }
+
+            .btn-group {
+                flex-direction: column;
+            }
+
+            .btn {
+                width: 100%;
+                justify-content: center;
+            }
+
+            .legend {
+                gap: 16px;
+            }
+        }
+
+        /* 减少动画 */
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after {
+                animation-duration: 0.01ms !important;
+                transition-duration: 0.01ms !important;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- 星空背景 -->
+    <div class="starfield" id="starfield"></div>
+
+    <div class="main-container">
+        <!-- 标题 -->
+        <header class="header">
+            <h1 class="title-font">日食月食交互测试</h1>
+            <p>拖动月球位置，探索天文奇观的形成原理</p>
+        </header>
+
+        <!-- 模拟区域 -->
+        <div class="simulation-area">
+            <div class="canvas-container">
+                <canvas id="simulationCanvas"></canvas>
+                <div class="eclipse-indicator" id="eclipseIndicator">拖动月球开始模拟</div>
+            </div>
+            <div class="hint-bar">
+                <div class="hint-icon">!</div>
+                <div class="hint-text">提示：按住鼠标拖动月球，将其移动到太阳和地球之间可模拟日食，移动到地球背光侧可模拟月食</div>
+            </div>
+        </div>
+
+        <!-- 问题面板 -->
+        <div class="question-panel" id="questionPanel">
+            <div class="question-header">
+                <div class="question-number">1</div>
+                <div>
+                    <div class="question-type">操作题 + 填空题</div>
+                </div>
+            </div>
+
+            <div class="question-content">
+                <div class="operation-task solar-task" id="solarTask">
+                    <div class="task-title">
+                        <span>任务一：模拟日食</span>
+                        <span class="task-status" id="solarStatus">未完成</span>
+                    </div>
+                    <div style="color: var(--muted); font-size: 0.95rem;">将月球拖动到太阳与地球之间，使地球进入月球阴影区域</div>
+                </div>
+
+                <div class="operation-task lunar-task" id="lunarTask">
+                    <div class="task-title">
+                        <span>任务二：模拟月食</span>
+                        <span class="task-status" id="lunarStatus">未完成</span>
+                    </div>
+                    <div style="color: var(--muted); font-size: 0.95rem;">将月球拖动到地球背光侧，使月球进入地球阴影区域</div>
+                </div>
+
+                <div class="operation-task" style="background: rgba(156,39,176,0.1); border-color: rgba(156,39,176,0.3);">
+                    <div class="task-title">
+                        <span>任务三：完成填空</span>
+                    </div>
+                    <div class="fill-blank">
+                        <span>日食和月食现象体现出：光在真空中是</span>
+                        <input type="text" class="blank-input" id="blankInput" placeholder="填写答案" maxlength="10">
+                        <span>传播的。</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="btn-group">
+                <button class="btn btn-primary" id="submitBtn" onclick="submitAnswer()">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/>
+                    </svg>
+                    提交答案
+                </button>
+                <button class="btn btn-secondary" onclick="resetSimulation()">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
+                        <path d="M3 3v5h5"/>
+                    </svg>
+                    重置
+                </button>
+            </div>
+
+            <!-- 图例 -->
+            <div class="legend">
+                <div class="legend-item">
+                    <div class="legend-dot sun"></div>
+                    <span>太阳</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-dot earth"></div>
+                    <span>地球</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-dot moon"></div>
+                    <span>月球（可拖动）</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- 结果面板 -->
+        <div class="result-panel" id="resultPanel">
+            <div class="result-header">
+                <div class="result-icon" id="resultIcon"></div>
+                <div>
+                    <div class="result-title" id="resultTitle">测试结果</div>
+                    <div class="result-score" id="resultScore">得分：0/3</div>
+                </div>
+            </div>
+            <div class="answer-review" id="answerReview"></div>
+            <div class="btn-group">
+                <button class="btn btn-secondary" onclick="resetSimulation()">再做一次</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ===== 初始化变量 =====
+        const canvas = document.getElementById('simulationCanvas');
+        const ctx = canvas.getContext('2d');
+        const indicator = document.getElementById('eclipseIndicator');
+        
+        // 状态变量
+        let solarEclipseAchieved = false;
+        let lunarEclipseAchieved = false;
+        let isDragging = false;
+        let submitted = false;
+
+        // 天体参数
+        let sun = { x: 0, y: 0, radius: 50 };
+        let earth = { x: 0, y: 0, radius: 25 };
+        let moon = { x: 0, y: 0, radius: 12, offsetX: 0, offsetY: 0 };
+
+        // 动画参数
+        let animationId = null;
+        let time = 0;
+
+        // ===== 初始化 =====
+        function init() {
+            resizeCanvas();
+            createStars();
+            animate();
+            
+            // 事件监听
+            canvas.addEventListener('mousedown', handleMouseDown);
+            canvas.addEventListener('mousemove', handleMouseMove);
+            canvas.addEventListener('mouseup', handleMouseUp);
+            canvas.addEventListener('mouseleave', handleMouseUp);
+            
+            // 触摸事件
+            canvas.addEventListener('touchstart', handleTouchStart, { passive: false });
+            canvas.addEventListener('touchmove', handleTouchMove, { passive: false });
+            canvas.addEventListener('touchend', handleTouchEnd);
+            
+            window.addEventListener('resize', resizeCanvas);
+        }
+
+        function resizeCanvas() {
+            const container = canvas.parentElement;
+            const rect = container.getBoundingClientRect();
+            canvas.width = rect.width * window.devicePixelRatio;
+            canvas.height = rect.height * window.devicePixelRatio;
+            canvas.style.width = rect.width + 'px';
+            canvas.style.height = rect.height + 'px';
+            ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+
+            // 更新天体位置
+            const w = rect.width;
+            const h = rect.height;
+            
+            sun.x = w * 0.12;
+            sun.y = h * 0.5;
+            sun.radius = Math.min(50, w * 0.08);
+            
+            earth.x = w * 0.75;
+            earth.y = h * 0.5;
+            earth.radius = Math.min(25, w * 0.04);
+            
+            // 月球初始位置 - 地球上侧
+            if (moon.x === 0 && moon.y === 0) {
+                moon.x = w * 0.75;
+                moon.y = h * 0.25;
+            }
+            moon.radius = Math.min(12, w * 0.02);
+        }
+
+        // ===== 星空背景 =====
+        function createStars() {
+            const starfield = document.getElementById('starfield');
+            starfield.innerHTML = '';
+            for (let i = 0; i < 100; i++) {
+                const star = document.createElement('div');
+                star.className = 'star';
+                star.style.left = Math.random() * 100 + '%';
+                star.style.top = Math.random() * 100 + '%';
+                star.style.width = star.style.height = (Math.random() * 2 + 1) + 'px';
+                star.style.animationDelay = Math.random() * 3 + 's';
+                starfield.appendChild(star);
+            }
+        }
+
+        // ===== 绘制函数 =====
+        function draw() {
+            const w = canvas.width / window.devicePixelRatio;
+            const h = canvas.height / window.devicePixelRatio;
+            
+            // 清空画布
+            ctx.clearRect(0, 0, w, h);
+            
+            // 绘制背景渐变
+            const bgGrad = ctx.createLinearGradient(0, 0, w, h);
+            bgGrad.addColorStop(0, '#0a0e1a');
+            bgGrad.addColorStop(1, '#1a1f35');
+            ctx.fillStyle = bgGrad;
+            ctx.fillRect(0, 0, w, h);
+            
+            // 绘制光线
+            drawLightRays();
+            
+            // 绘制阴影
+            drawShadows();
+            
+            // 绘制太阳
+            drawSun();
+            
+            // 绘制地球
+            drawEarth();
+            
+            // 绘制月球
+            drawMoon();
+            
+            // 检测日食/月食
+            checkEclipse();
+        }
+
+        function drawLightRays() {
+            const w = canvas.width / window.devicePixelRatio;
+            
+            // 从太阳发出的光线
+            ctx.save();
+            ctx.globalAlpha = 0.15;
+            
+            for (let i = -5; i <= 5; i++) {
+                const angle = i * 0.08;
+                ctx.beginPath();
+                ctx.moveTo(sun.x + sun.radius, sun.y);
+                ctx.lineTo(w + 100, sun.y + Math.tan(angle) * (w - sun.x));
+                ctx.strokeStyle = '#ffb347';
+                ctx.lineWidth = 3;
+                ctx.stroke();
+            }
+            
+            ctx.restore();
+        }
+
+        function drawShadows() {
+            // 地球阴影锥
+            ctx.save();
+            ctx.globalAlpha = 0.3;
+            
+            const shadowLength = 500;
+            const shadowGrad = ctx.createLinearGradient(
+                earth.x + earth.radius, earth.y,
+                earth.x + earth.radius + shadowLength, earth.y
+            );
+            shadowGrad.addColorStop(0, 'rgba(0,0,0,0.8)');
+            shadowGrad.addColorStop(1, 'rgba(0,0,0,0)');
+            
+            ctx.beginPath();
+            ctx.moveTo(earth.x + earth.radius, earth.y - earth.radius * 0.8);
+            ctx.lineTo(earth.x + earth.radius + shadowLength, earth.y - earth.radius * 0.3);
+            ctx.lineTo(earth.x + earth.radius + shadowLength, earth.y + earth.radius * 0.3);
+            ctx.lineTo(earth.x + earth.radius, earth.y + earth.radius * 0.8);
+            ctx.closePath();
+            ctx.fillStyle = shadowGrad;
+            ctx.fill();
+            
+            ctx.restore();
+            
+            // 月球阴影锥（更小更尖）
+            ctx.save();
+            ctx.globalAlpha = 0.25;
+            
+            const moonShadowLength = 200;
+            const moonShadowGrad = ctx.createLinearGradient(
+                moon.x + moon.radius, moon.y,
+                moon.x + moon.radius + moonShadowLength, moon.y
+            );
+            moonShadowGrad.addColorStop(0, 'rgba(0,0,0,0.9)');
+            moonShadowGrad.addColorStop(1, 'rgba(0,0,0,0)');
+            
+            ctx.beginPath();
+            ctx.moveTo(moon.x + moon.radius, moon.y - moon.radius * 0.6);
+            ctx.lineTo(moon.x + moon.radius + moonShadowLength, moon.y - moon.radius * 0.15);
+            ctx.lineTo(moon.x + moon.radius + moonShadowLength, moon.y + moon.radius * 0.15);
+            ctx.lineTo(moon.x + moon.radius, moon.y + moon.radius * 0.6);
+            ctx.closePath();
+            ctx.fillStyle = moonShadowGrad;
+            ctx.fill();
+            
+            ctx.restore();
+        }
+
+        function drawSun() {
+            // 外发光
+            const glowGrad = ctx.createRadialGradient(
+                sun.x, sun.y, sun.radius * 0.5,
+                sun.x, sun.y, sun.radius * 2.5
+            );
+            glowGrad.addColorStop(0, 'rgba(255,179,71,0.6)');
+            glowGrad.addColorStop(0.5, 'rgba(255,140,0,0.2)');
+            glowGrad.addColorStop(1, 'rgba(255,140,0,0)');
+            
+            ctx.beginPath();
+            ctx.arc(sun.x, sun.y, sun.radius * 2.5, 0, Math.PI * 2);
+            ctx.fillStyle = glowGrad;
+            ctx.fill();
+            
+            // 太阳本体
+            const sunGrad = ctx.createRadialGradient(
+                sun.x - sun.radius * 0.3, sun.y - sun.radius * 0.3, 0,
+                sun.x, sun.y, sun.radius
+            );
+            sunGrad.addColorStop(0, '#fff7e0');
+            sunGrad.addColorStop(0.3, '#ffdd57');
+            sunGrad.addColorStop(0.7, '#ffb347');
+            sunGrad.addColorStop(1, '#ff8c00');
+            
+            ctx.beginPath();
+            ctx.arc(sun.x, sun.y, sun.radius, 0, Math.PI * 2);
+            ctx.fillStyle = sunGrad;
+            ctx.fill();
+            
+            // 日冕效果
+            ctx.save();
+            ctx.globalAlpha = 0.3 + Math.sin(time * 2) * 0.1;
+            for (let i = 0; i < 12; i++) {
+                const angle = (i / 12) * Math.PI * 2 + time * 0.5;
+                const length = sun.radius * (1.3 + Math.sin(time * 3 + i) * 0.2);
+                
+                ctx.beginPath();
+                ctx.moveTo(
+                    sun.x + Math.cos(angle) * sun.radius,
+                    sun.y + Math.sin(angle) * sun.radius
+                );
+                ctx.lineTo(
+                    sun.x + Math.cos(angle) * length,
+                    sun.y + Math.sin(angle) * length
+                );
+                ctx.strokeStyle = '#ffdd57';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+            }
+            ctx.restore();
+        }
+
+        function drawEarth() {
+            // 大气层发光
+            const atmoGrad = ctx.createRadialGradient(
+                earth.x, earth.y, earth.radius * 0.8,
+                earth.x, earth.y, earth.radius * 1.5
+            );
+            atmoGrad.addColorStop(0, 'rgba(79,195,247,0.3)');
+            atmoGrad.addColorStop(1, 'rgba(79,195,247,0)');
+            
+            ctx.beginPath();
+            ctx.arc(earth.x, earth.y, earth.radius * 1.5, 0, Math.PI * 2);
+            ctx.fillStyle = atmoGrad;
+            ctx.fill();
+            
+            // 地球本体
+            const earthGrad = ctx.createRadialGradient(
+                earth.x - earth.radius * 0.3, earth.y - earth.radius * 0.3, 0,
+                earth.x, earth.y, earth.radius
+            );
+            earthGrad.addColorStop(0, '#81d4fa');
+            earthGrad.addColorStop(0.4, '#4fc3f7');
+            earthGrad.addColorStop(0.7, '#29b6f6');
+            earthGrad.addColorStop(1, '#0288d1');
+            
+            ctx.beginPath();
+            ctx.arc(earth.x, earth.y, earth.radius, 0, Math.PI * 2);
+            ctx.fillStyle = earthGrad;
+            ctx.fill();
+            
+            // 简单的陆地纹理
+            ctx.save();
+            ctx.globalAlpha = 0.4;
+            ctx.beginPath();
+            ctx.arc(earth.x - earth.radius * 0.2, earth.y - earth.radius * 0.1, earth.radius * 0.35, 0, Math.PI * 2);
+            ctx.fillStyle = '#66bb6a';
+            ctx.fill();
+            ctx.beginPath();
+            ctx.arc(earth.x + earth.radius * 0.3, earth.y + earth.radius * 0.2, earth.radius * 0.25, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.restore();
+        }
+
+        function drawMoon() {
+            // 月球阴影（3D效果）
+            ctx.save();
+            const moonGrad = ctx.createRadialGradient(
+                moon.x - moon.radius * 0.3, moon.y - moon.radius * 0.3, 0,
+                moon.x, moon.y, moon.radius
+            );
+            moonGrad.addColorStop(0, '#eceff1');
+            moonGrad.addColorStop(0.5, '#b0bec5');
+            moonGrad.addColorStop(1, '#78909c');
+            
+            ctx.beginPath();
+            ctx.arc(moon.x, moon.y, moon.radius, 0, Math.PI * 2);
+            ctx.fillStyle = moonGrad;
+            ctx.fill();
+            
+            // 月球环形山
+            ctx.globalAlpha = 0.3;
+            const craters = [
+                { x: 0.2, y: -0.2, r: 0.15 },
+                { x: -0.3, y: 0.2, r: 0.12 },
+                { x: 0.1, y: 0.3, r: 0.1 }
+            ];
+            craters.forEach(c => {
+                ctx.beginPath();
+                ctx.arc(
+                    moon.x + c.x * moon.radius,
+                    moon.y + c.y * moon.radius,
+                    c.r * moon.radius,
+                    0, Math.PI * 2
+                );
+                ctx.fillStyle = '#90a4ae';
+                ctx.fill();
+            });
+            ctx.restore();
+            
+            // 拖动提示
+            if (!isDragging && !submitted) {
+                ctx.save();
+                ctx.globalAlpha = 0.5 + Math.sin(time * 3) * 0.3;
+                ctx.beginPath();
+                ctx.arc(moon.x, moon.y, moon.radius + 5, 0, Math.PI * 2);
+                ctx.strokeStyle = '#ffffff';
+                ctx.lineWidth = 2;
+                ctx.setLineDash([5, 5]);
+                ctx.stroke();
+                ctx.restore();
+            }
+        }
+
+        function checkEclipse() {
+            const dx = moon.x - earth.x;
+            const dy = moon.y - earth.y;
+            const distToEarth = Math.sqrt(dx * dx + dy * dy);
+            
+            const dxSun = moon.x - sun.x;
+            const dySun = moon.y - sun.y;
+            const distToSun = Math.sqrt(dxSun * dxSun + dySun * dySun);
+            
+            // 日食检测：月球在太阳和地球之间
+            const isBetween = moon.x > sun.x && moon.x < earth.x;
+            const isAligned = Math.abs(moon.y - sun.y) < sun.radius * 0.5 && 
+                              Math.abs(moon.y - earth.y) < earth.radius;
+            
+            if (isBetween && isAligned) {
+                if (!solarEclipseAchieved && !submitted) {
+                    solarEclipseAchieved = true;
+                    document.getElementById('solarStatus').textContent = '已完成';
+                    document.getElementById('solarStatus').classList.add('completed');
+                }
+                indicator.textContent = '日食形成中';
+                indicator.className = 'eclipse-indicator solar';
+                return 'solar';
+            }
+            
+            // 月食检测：月球在地球背光侧
+            const isBehindEarth = moon.x > earth.x + earth.radius;
+            const isInShadow = Math.abs(moon.y - earth.y) < earth.radius * 0.8;
+            
+            if (isBehindEarth && isInShadow) {
+                if (!lunarEclipseAchieved && !submitted) {
+                    lunarEclipseAchieved = true;
+                    document.getElementById('lunarStatus').textContent = '已完成';
+                    document.getElementById('lunarStatus').classList.add('completed');
+                }
+                indicator.textContent = '月食形成中';
+                indicator.className = 'eclipse-indicator lunar';
+                return 'lunar';
+            }
+            
+            indicator.textContent = '拖动月球开始模拟';
+            indicator.className = 'eclipse-indicator';
+            return 'none';
+        }
+
+        // ===== 交互处理 =====
+        function getMousePos(e) {
+            const rect = canvas.getBoundingClientRect();
+            return {
+                x: e.clientX - rect.left,
+                y: e.clientY - rect.top
+            };
+        }
+
+        function isInsideMoon(pos) {
+            const dx = pos.x - moon.x;
+            const dy = pos.y - moon.y;
+            return Math.sqrt(dx * dx + dy * dy) < moon.radius + 15;
+        }
+
+        function handleMouseDown(e) {
+            if (submitted) return;
+            const pos = getMousePos(e);
+            if (isInsideMoon(pos)) {
+                isDragging = true;
+                canvas.style.cursor = 'grabbing';
+            }
+        }
+
+        function handleMouseMove(e) {
+            const pos = getMousePos(e);
+            
+            if (isDragging) {
+                const w = canvas.width / window.devicePixelRatio;
+                const h = canvas.height / window.devicePixelRatio;
+                
+                moon.x = Math.max(sun.x + sun.radius + moon.radius, Math.min(w - moon.radius, pos.x));
+                moon.y = Math.max(moon.radius, Math.min(h - moon.radius, pos.y));
+            } else if (isInsideMoon(pos) && !submitted) {
+                canvas.style.cursor = 'grab';
+            } else {
+                canvas.style.cursor = 'default';
+            }
+        }
+
+        function handleMouseUp() {
+            isDragging = false;
+            canvas.style.cursor = 'default';
+        }
+
+        // 触摸事件
+        function handleTouchStart(e) {
+            e.preventDefault();
+            if (submitted) return;
+            const touch = e.touches[0];
+            const pos = {
+                x: touch.clientX - canvas.getBoundingClientRect().left,
+                y: touch.clientY - canvas.getBoundingClientRect().top
+            };
+            if (isInsideMoon(pos)) {
+                isDragging = true;
+            }
+        }
+
+        function handleTouchMove(e) {
+            e.preventDefault();
+            if (!isDragging || submitted) return;
+            const touch = e.touches[0];
+            const rect = canvas.getBoundingClientRect();
+            const w = rect.width;
+            const h = rect.height;
+            
+            moon.x = Math.max(sun.x + sun.radius + moon.radius, Math.min(w - moon.radius, touch.clientX - rect.left));
+            moon.y = Math.max(moon.radius, Math.min(h - moon.radius, touch.clientY - rect.top));
+        }
+
+        function handleTouchEnd() {
+            isDragging = false;
+        }
+
+        // ===== 动画循环 =====
+        function animate() {
+            time += 0.016;
+            draw();
+            animationId = requestAnimationFrame(animate);
+        }
+
+        // ===== 提交答案 =====
+        function submitAnswer() {
+            if (submitted) return;
+            submitted = true;
+            
+            const blankInput = document.getElementById('blankInput');
+            const userAnswer = blankInput.value.trim();
+            const correctAnswer = '沿直线';
+            
+            // 计算得分
+            let score = 0;
+            const results = [];
+            
+            // 检查日食任务
+            if (solarEclipseAchieved) {
+                score++;
+                results.push({
+                    task: '日食模拟',
+                    correct: true,
+                    userAnswer: '已完成',
+                    correctAnswer: '月球位于太阳与地球之间'
+                });
+            } else {
+                results.push({
+                    task: '日食模拟',
+                    correct: false,
+                    userAnswer: '未完成',
+                    correctAnswer: '月球位于太阳与地球之间'
+                });
+            }
+            
+            // 检查月食任务
+            if (lunarEclipseAchieved) {
+                score++;
+                results.push({
+                    task: '月食模拟',
+                    correct: true,
+                    userAnswer: '已完成',
+                    correctAnswer: '月球位于地球背光侧'
+                });
+            } else {
+                results.push({
+                    task: '月食模拟',
+                    correct: false,
+                    userAnswer: '未完成',
+                    correctAnswer: '月球位于地球背光侧'
+                });
+            }
+            
+            // 检查填空题
+            const isCorrect = userAnswer === correctAnswer || userAnswer === '直线';
+            if (isCorrect) {
+                score++;
+                blankInput.classList.add('correct');
+                results.push({
+                    task: '填空题',
+                    correct: true,
+                    userAnswer: userAnswer || '（未填写）',
+                    correctAnswer: correctAnswer
+                });
+            } else {
+                blankInput.classList.add('incorrect');
+                results.push({
+                    task: '填空题',
+                    correct: false,
+                    userAnswer: userAnswer || '（未填写）',
+                    correctAnswer: correctAnswer
+                });
+            }
+            
+            // 显示结果
+            showResult(score, results);
+        }
+
+        function showResult(score, results) {
+            const resultPanel = document.getElementById('resultPanel');
+            const resultIcon = document.getElementById('resultIcon');
+            const resultTitle = document.getElementById('resultTitle');
+            const resultScore = document.getElementById('resultScore');
+            const answerReview = document.getElementById('answerReview');
+            
+            // 禁用提交按钮
+            document.getElementById('submitBtn').disabled = true;
+            document.getElementById('blankInput').disabled = true;
+            
+            // 设置结果等级
+            let level, icon;
+            if (score === 3) {
+                level = 'excellent';
+                icon = '★';
+                resultTitle.textContent = '太棒了！全部正确';
+            } else if (score === 2) {
+                level = 'good';
+                icon = '◆';
+                resultTitle.textContent = '不错！继续努力';
+            } else {
+                level = 'need-improve';
+                icon = '●';
+                resultTitle.textContent = '还需加油哦';
+            }
+            
+            resultIcon.className = 'result-icon ' + level;
+            resultIcon.textContent = icon;
+            resultScore.textContent = `得分：${score}/3`;
+            
+            // 生成答案回顾
+            let reviewHTML = '<div style="margin-bottom: 16px; font-weight: 600; color: var(--muted);">答案解析</div>';
+            results.forEach((r, i) => {
+                reviewHTML += `
+                    <div class="answer-item">
+                        <span class="answer-label">${r.task}</span>
+                        <span class="${r.correct ? 'answer-correct' : 'answer-wrong'}">
+                            ${r.correct ? '✓ 正确' : '✗ 错误'}
+                        </span>
+                    </div>
+                    <div style="margin-left: 80px; margin-bottom: 12px; font-size: 0.9rem; color: var(--muted);">
+                        你的答案：${r.userAnswer}<br>
+                        ${!r.correct ? '正确答案：' + r.correctAnswer : ''}
+                    </div>
+                `;
+            });
+            
+            // 添加知识点
+            reviewHTML += `
+                <div style="margin-top: 20px; padding: 16px; background: rgba(255,107,53,0.1); border-radius: 8px; border-left: 4px solid var(--accent);">
+                    <div style="font-weight: 600; margin-bottom: 8px;">知识要点</div>
+                    <div style="color: var(--muted); line-height: 1.6;">
+                        日食和月食的形成，证明了光在真空中是沿直线传播的。当月球运行到太阳和地球之间时，月球挡住了太阳光，地球上的人看不到太阳，形成日食；当月球运行到地球的背光面时，地球挡住了太阳光，月球进入地球的阴影区，形成月食。
+                    </div>
+                </div>
+            `;
+            
+            answerReview.innerHTML = reviewHTML;
+            resultPanel.style.display = 'block';
+            resultPanel.scrollIntoView({ behavior: 'smooth' });
+        }
+
+        // ===== 重置 =====
+        function resetSimulation() {
+            submitted = false;
+            solarEclipseAchieved = false;
+            lunarEclipseAchieved = false;
+            
+            // 重置月球位置 - 地球上侧
+            const w = canvas.width / window.devicePixelRatio;
+            const h = canvas.height / window.devicePixelRatio;
+            moon.x = w * 0.75;
+            moon.y = h * 0.25;
+            
+            // 重置UI
+            document.getElementById('solarStatus').textContent = '未完成';
+            document.getElementById('solarStatus').classList.remove('completed');
+            document.getElementById('lunarStatus').textContent = '未完成';
+            document.getElementById('lunarStatus').classList.remove('completed');
+            
+            const blankInput = document.getElementById('blankInput');
+            blankInput.value = '';
+            blankInput.classList.remove('correct', 'incorrect');
+            blankInput.disabled = false;
+            
+            document.getElementById('submitBtn').disabled = false;
+            document.getElementById('resultPanel').style.display = 'none';
+            
+            // 滚动到顶部
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        // ===== 启动 =====
+        init();
+    </script>
+</body>
+</html>

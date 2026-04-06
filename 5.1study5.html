@@ -1,0 +1,1193 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>镜面反射与漫反射模拟</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Microsoft YaHei', sans-serif;
+            background: #0a0e17;
+            color: #e2e8f0;
+            min-height: 100vh;
+            overflow-y: scroll;
+            overflow-x: hidden;
+            padding: 0;
+            margin: 0;
+        }
+
+        #canvas-container {
+            position: relative;
+            width: 100%;
+            min-height: 600px;
+            margin: 0;
+        }
+
+        #mainCanvas {
+            display: block;
+            cursor: default;
+            width: 100%;
+            height: auto;
+            min-height: 600px;
+        }
+
+        .control-panel {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(17, 24, 39, 0.95);
+            border: 1px solid #1e293b;
+            border-radius: 12px;
+            padding: 20px;
+            min-width: 250px;
+            z-index: 10;
+            backdrop-filter: blur(10px);
+        }
+
+        .control-panel h2 {
+            font-size: 14px;
+            color: #64748b;
+            margin-bottom: 15px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .checkbox-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            cursor: pointer;
+            padding: 10px 0;
+            transition: opacity 0.2s;
+        }
+
+        .checkbox-wrapper:hover {
+            opacity: 0.8;
+        }
+
+        .custom-checkbox {
+            width: 18px;
+            height: 18px;
+            border: 2px solid #64748b;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+
+        .custom-checkbox.checked {
+            background: #22d3ee;
+            border-color: #22d3ee;
+        }
+
+        .custom-checkbox svg {
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+
+        .custom-checkbox.checked svg {
+            opacity: 1;
+        }
+
+        .slider-wrapper {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            padding: 10px 0;
+        }
+
+        .slider-label {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 13px;
+        }
+
+        .slider-value {
+            color: #22d3ee;
+            font-weight: bold;
+        }
+
+        input[type="range"] {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 100%;
+            height: 6px;
+            background: #1e293b;
+            border-radius: 3px;
+            outline: none;
+            cursor: pointer;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 16px;
+            height: 16px;
+            background: #22d3ee;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        input[type="range"]::-webkit-slider-thumb:hover {
+            transform: scale(1.2);
+            box-shadow: 0 0 10px rgba(34, 211, 238, 0.5);
+        }
+
+        input[type="range"]::-moz-range-thumb {
+            width: 16px;
+            height: 16px;
+            background: #22d3ee;
+            border-radius: 50%;
+            cursor: pointer;
+            border: none;
+            transition: all 0.2s;
+        }
+
+        input[type="range"]::-moz-range-thumb:hover {
+            transform: scale(1.2);
+            box-shadow: 0 0 10px rgba(34, 211, 238, 0.5);
+        }
+
+        .legend {
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid #1e293b;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 13px;
+            margin: 8px 0;
+        }
+
+        .legend-color {
+            width: 24px;
+            height: 4px;
+            border-radius: 2px;
+        }
+
+        .reset-btn {
+            width: 100%;
+            padding: 10px;
+            margin-top: 15px;
+            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+            border: 1px solid #334155;
+            color: #e2e8f0;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 13px;
+        }
+
+        .reset-btn:hover {
+            border-color: #22d3ee;
+            box-shadow: 0 0 15px rgba(34, 211, 238, 0.3);
+        }
+
+        .tool-hint {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.8);
+            padding: 12px 24px;
+            border-radius: 30px;
+            font-size: 13px;
+            color: #94a3b8;
+            border: 1px solid #1e293b;
+            z-index: 50;
+            white-space: nowrap;
+        }
+
+        .tool-hint span {
+            color: #22d3ee;
+        }
+
+        .exercise-section {
+            background: rgba(17, 24, 39, 0.98);
+            border-top: 2px solid #22d3ee;
+            padding: 60px 20px;
+            margin-top: 0;
+            min-height: 600px;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        .exercise-title {
+            font-size: 28px;
+            font-weight: bold;
+            color: #22d3ee;
+            margin-bottom: 40px;
+            text-align: center;
+        }
+
+        .exercise-content {
+            display: flex;
+            gap: 40px;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-bottom: 40px;
+            max-width: 1200px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .exercise-block {
+            flex: 1;
+            min-width: 300px;
+            max-width: 500px;
+            background: rgba(30, 41, 59, 0.5);
+            border-radius: 12px;
+            padding: 30px;
+            border: 1px solid #1e293b;
+            box-sizing: border-box;
+        }
+
+        .exercise-block h3 {
+            font-size: 20px;
+            color: #60a5fa;
+            margin-bottom: 25px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #1e293b;
+        }
+
+        .exercise-item {
+            margin-bottom: 25px;
+        }
+
+        .exercise-item label {
+            display: block;
+            font-size: 18px;
+            color: #e2e8f0;
+            margin-bottom: 15px;
+            line-height: 1.4;
+        }
+
+        .exercise-item select {
+            width: 100%;
+            padding: 15px;
+            background: #0f172a;
+            border: 1px solid #334155;
+            border-radius: 6px;
+            color: #e2e8f0;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.2s;
+            box-sizing: border-box;
+        }
+
+        .exercise-item select:hover {
+            border-color: #22d3ee;
+        }
+
+        .exercise-item select:focus {
+            outline: none;
+            border-color: #22d3ee;
+            box-shadow: 0 0 10px rgba(34, 211, 238, 0.3);
+        }
+
+        .exercise-buttons {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 1px solid #1e293b;
+            max-width: 1200px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .exercise-buttons button {
+            padding: 15px 40px;
+            background: linear-gradient(135deg, #22d3ee 0%, #0891b2 100%);
+            border: none;
+            border-radius: 8px;
+            color: #0f172a;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .exercise-buttons button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(34, 211, 238, 0.4);
+        }
+
+        .exercise-result {
+            margin-top: 40px;
+            padding: 30px;
+            background: rgba(30, 41, 59, 0.5);
+            border-radius: 8px;
+            display: none;
+            max-width: 1200px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .exercise-result.show {
+            display: block;
+        }
+
+        .exercise-result h4 {
+            font-size: 20px;
+            color: #22d3ee;
+            margin-bottom: 25px;
+        }
+
+        .result-score {
+            font-size: 32px;
+            font-weight: bold;
+            text-align: center;
+            margin-bottom: 25px;
+        }
+
+        .result-score.correct {
+            color: #4ade80;
+        }
+
+        .result-score.partial {
+            color: #fbbf24;
+        }
+
+        .result-score.incorrect {
+            color: #f87171;
+        }
+
+        .result-item {
+            padding: 20px;
+            margin-bottom: 20px;
+            border-radius: 6px;
+            font-size: 16px;
+        }
+
+        .result-item.correct {
+            background: rgba(74, 222, 128, 0.1);
+            border-left: 4px solid #4ade80;
+        }
+
+        .result-item.incorrect {
+            background: rgba(248, 113, 113, 0.1);
+            border-left: 4px solid #f87171;
+        }
+
+        .result-item .question {
+            color: #94a3b8;
+            margin-bottom: 10px;
+        }
+
+        .result-item .answer {
+            color: #e2e8f0;
+        }
+
+        .result-item .correct-answer {
+            color: #4ade80;
+        }
+    </style>
+</head>
+<body>
+    <div id="canvas-container">
+        <canvas id="mainCanvas"></canvas>
+        
+        <div class="control-panel">
+            <h2>显示选项</h2>
+            
+            <div class="checkbox-wrapper" onclick="toggleOption('showNormal')">
+                <div class="custom-checkbox" id="check-showNormal">
+                    <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                        <path d="M2 6L5 9L10 3" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </div>
+                <span>显示法线</span>
+            </div>
+            
+            <div class="checkbox-wrapper" onclick="toggleOption('showIncidentAngle')">
+                <div class="custom-checkbox" id="check-showIncidentAngle">
+                    <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                        <path d="M2 6L5 9L10 3" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </div>
+                <span>显示入射角</span>
+            </div>
+            
+            <div class="checkbox-wrapper" onclick="toggleOption('showReflectAngle')">
+                <div class="custom-checkbox" id="check-showReflectAngle">
+                    <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                        <path d="M2 6L5 9L10 3" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </div>
+                <span>显示反射角</span>
+            </div>
+
+            <div class="slider-wrapper">
+                <div class="slider-label">
+                    <span>入射角度</span>
+                    <span class="slider-value" id="angleValue">30°</span>
+                </div>
+                <input type="range" id="angleSlider" min="0" max="360" value="30" oninput="updateAngle(this.value)">
+            </div>
+
+            <div class="legend">
+                <h2>图例</h2>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #ff3b3b;"></div>
+                    <span>激光光线</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #60a5fa;"></div>
+                    <span>平面镜面</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #fbbf24;"></div>
+                    <span>粗糙表面</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #4ade80;"></div>
+                    <span>法线</span>
+                </div>
+            </div>
+
+            <button class="reset-btn" onclick="resetAll()">重置位置</button>
+        </div>
+
+        </div>
+    </div>
+
+    <div class="exercise-section">
+        <div class="exercise-title">课中练习</div>
+        <div class="exercise-content">
+            <div class="exercise-block">
+                <h3>镜面反射</h3>
+                <div class="exercise-item">
+                    <label>将平行光射向平面镜，反射光线相互____</label>
+                    <select id="mirror1">
+                        <option value="">请选择</option>
+                        <option value="不平行">不平行</option>
+                        <option value="平行">平行</option>
+                    </select>
+                </div>
+                <div class="exercise-item">
+                    <label>显示反射角和入射角，发现镜面反射___光的反射定律</label>
+                    <select id="mirror2">
+                        <option value="">请选择</option>
+                        <option value="符合">符合</option>
+                        <option value="不符合">不符合</option>
+                    </select>
+                </div>
+            </div>
+            <div class="exercise-block">
+                <h3>漫反射</h3>
+                <div class="exercise-item">
+                    <label>将平行光线射向粗糙的表面，反射光线相互____</label>
+                    <select id="rough1">
+                        <option value="">请选择</option>
+                        <option value="不平行">不平行</option>
+                        <option value="平行">平行</option>
+                    </select>
+                </div>
+                <div class="exercise-item">
+                    <label>显示反射角和入射角，发现漫反射___光的反射定律</label>
+                    <select id="rough2">
+                        <option value="">请选择</option>
+                        <option value="符合">符合</option>
+                        <option value="不符合">不符合</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+        <div class="exercise-buttons">
+            <button onclick="submitExercise()">提交答案</button>
+            <button onclick="resetExercise()">重置</button>
+        </div>
+        <div class="exercise-result" id="exerciseResult">
+            <h4>练习结果</h4>
+            <div class="result-score" id="resultScore"></div>
+            <div id="resultItems"></div>
+        </div>
+    </div>
+
+    <script>
+        // 配置
+        const CONFIG = {
+            laserColor: '#ff3b3b',
+            laserGlow: 'rgba(255, 59, 59, 0.4)',
+            mirrorColor: '#60a5fa',
+            roughColor: '#fbbf24',
+            normalColor: '#4ade80',
+            angleColor: '#22d3ee',
+            laserWidth: 3,
+            surfaceWidth: 6,
+            normalWidth: 2,
+            handleRadius: 8,
+            laserSpacing: 35
+        };
+
+        // 显示选项
+        const showOptions = {
+            showNormal: false,
+            showIncidentAngle: false,
+            showReflectAngle: false
+        };
+
+        // Canvas设置
+        const canvas = document.getElementById('mainCanvas');
+        const ctx = canvas.getContext('2d');
+        let width, height;
+
+        // 拖动状态
+        let dragging = null;
+        let dragOffset = { x: 0, y: 0 };
+
+        // 激光器
+        let laserEmitter = {
+            x: 200,
+            y: 250,
+            angle: Math.PI / 6
+        };
+
+        // 平面镜面（线段）
+        let planeMirror = {
+            x1: 450,
+            y1: 400,
+            x2: 750,
+            y2: 400
+        };
+
+        // 粗糙表面（多个折线段）
+        let roughSurface = [];
+
+        // 初始化粗糙表面
+        function initRoughSurface() {
+            roughSurface = [];
+            const startX = 450;
+            const startY = 550;
+            const segmentCount = 10;
+            const segmentLength = 35;
+            
+            let currentX = startX;
+            let currentY = startY;
+            
+            for (let i = 0; i < segmentCount; i++) {
+                const nextX = startX + (i + 1) * segmentLength;
+                const angle = (Math.random() - 0.5) * 1.2;
+                const nextY = startY + Math.sin(angle) * 25 + (Math.random() - 0.5) * 15;
+                
+                roughSurface.push({
+                    x1: currentX,
+                    y1: currentY,
+                    x2: nextX,
+                    y2: nextY
+                });
+                
+                currentX = nextX;
+                currentY = nextY;
+            }
+        }
+
+        // 初始化
+        function init() {
+            resize();
+            initRoughSurface();
+            window.addEventListener('resize', resize);
+            canvas.addEventListener('mousedown', onMouseDown);
+            canvas.addEventListener('mousemove', onMouseMove);
+            canvas.addEventListener('mouseup', onMouseUp);
+            canvas.addEventListener('mouseleave', onMouseUp);
+            render();
+        }
+
+        function resize() {
+            width = window.innerWidth;
+            height = window.innerHeight;
+            canvas.width = width;
+            canvas.height = height;
+            render();
+        }
+
+        // 切换显示选项
+        function toggleOption(key) {
+            showOptions[key] = !showOptions[key];
+            const checkbox = document.getElementById('check-' + key);
+            if (checkbox) {
+                checkbox.classList.toggle('checked', showOptions[key]);
+            }
+            render();
+        }
+
+        function updateAngle(value) {
+            const angle = parseFloat(value);
+            laserEmitter.angle = angle * Math.PI / 180;
+            document.getElementById('angleValue').textContent = angle + '°';
+            render();
+        }
+
+        function submitExercise() {
+            const answers = {
+                mirror1: document.getElementById('mirror1').value,
+                mirror2: document.getElementById('mirror2').value,
+                rough1: document.getElementById('rough1').value,
+                rough2: document.getElementById('rough2').value
+            };
+
+            const correctAnswers = {
+                mirror1: '平行',
+                mirror2: '符合',
+                rough1: '不平行',
+                rough2: '符合'
+            };
+
+            const questions = {
+                mirror1: '将平行光射向平面镜，反射光线相互____',
+                mirror2: '显示反射角和入射角，发现镜面反射___光的反射定律',
+                rough1: '将平行光线射向粗糙的表面，反射光线相互____',
+                rough2: '显示反射角和入射角，发现漫反射___光的反射定律'
+            };
+
+            let correctCount = 0;
+            let resultHTML = '';
+
+            for (const key in answers) {
+                const isCorrect = answers[key] === correctAnswers[key];
+                if (isCorrect) correctCount++;
+
+                resultHTML += `
+                    <div class="result-item ${isCorrect ? 'correct' : 'incorrect'}">
+                        <div class="question">${questions[key]}</div>
+                        <div class="answer">你的答案：${answers[key] || '未填写'}</div>
+                        ${!isCorrect ? `<div class="correct-answer">正确答案：${correctAnswers[key]}</div>` : ''}
+                    </div>
+                `;
+            }
+
+            const score = (correctCount / 4) * 100;
+            const scoreElement = document.getElementById('resultScore');
+            scoreElement.textContent = `得分：${score}%`;
+            scoreElement.className = 'result-score ' + (score === 100 ? 'correct' : score >= 50 ? 'partial' : 'incorrect');
+
+            document.getElementById('resultItems').innerHTML = resultHTML;
+            document.getElementById('exerciseResult').classList.add('show');
+        }
+
+        function resetExercise() {
+            document.getElementById('mirror1').value = '';
+            document.getElementById('mirror2').value = '';
+            document.getElementById('rough1').value = '';
+            document.getElementById('rough2').value = '';
+            document.getElementById('exerciseResult').classList.remove('show');
+        }
+
+        // 重置
+        function resetAll() {
+            laserEmitter = { x: 200, y: 250, angle: Math.PI / 6 };
+            planeMirror = { x1: 450, y1: 400, x2: 750, y2: 400 };
+            initRoughSurface();
+            document.getElementById('angleSlider').value = 30;
+            document.getElementById('angleValue').textContent = '30°';
+            render();
+        }
+
+        // 获取鼠标位置
+        function getMousePos(e) {
+            const rect = canvas.getBoundingClientRect();
+            return {
+                x: e.clientX - rect.left,
+                y: e.clientY - rect.top
+            };
+        }
+
+        // 查找可拖动的目标
+        function findTarget(pos) {
+            // 检查激光器
+            if (Math.hypot(pos.x - laserEmitter.x, pos.y - laserEmitter.y) < CONFIG.handleRadius + 10) {
+                return { type: 'emitter' };
+            }
+
+            // 检查平面镜端点
+            if (Math.hypot(pos.x - planeMirror.x1, pos.y - planeMirror.y1) < CONFIG.handleRadius) {
+                return { type: 'mirror1' };
+            }
+            if (Math.hypot(pos.x - planeMirror.x2, pos.y - planeMirror.y2) < CONFIG.handleRadius) {
+                return { type: 'mirror2' };
+            }
+
+            // 检查粗糙表面端点
+            for (let i = 0; i < roughSurface.length; i++) {
+                const seg = roughSurface[i];
+                if (Math.hypot(pos.x - seg.x1, pos.y - seg.y1) < CONFIG.handleRadius) {
+                    return { type: 'rough', index: i, point: 'start' };
+                }
+                if (Math.hypot(pos.x - seg.x2, pos.y - seg.y2) < CONFIG.handleRadius) {
+                    return { type: 'rough', index: i, point: 'end' };
+                }
+            }
+
+            return null;
+        }
+
+        // 鼠标事件处理
+        function onMouseDown(e) {
+            const pos = getMousePos(e);
+            const target = findTarget(pos);
+            
+            if (target) {
+                dragging = target;
+                
+                if (target.type === 'emitter') {
+                    dragOffset.x = pos.x - laserEmitter.x;
+                    dragOffset.y = pos.y - laserEmitter.y;
+                } else if (target.type === 'mirror1') {
+                    dragOffset.x = pos.x - planeMirror.x1;
+                    dragOffset.y = pos.y - planeMirror.y1;
+                } else if (target.type === 'mirror2') {
+                    dragOffset.x = pos.x - planeMirror.x2;
+                    dragOffset.y = pos.y - planeMirror.y2;
+                } else if (target.type === 'rough') {
+                    const seg = roughSurface[target.index];
+                    if (target.point === 'start') {
+                        dragOffset.x = pos.x - seg.x1;
+                        dragOffset.y = pos.y - seg.y1;
+                    } else {
+                        dragOffset.x = pos.x - seg.x2;
+                        dragOffset.y = pos.y - seg.y2;
+                    }
+                }
+                
+                canvas.style.cursor = 'grabbing';
+            }
+        }
+
+        function onMouseMove(e) {
+            const pos = getMousePos(e);
+
+            if (dragging) {
+                if (dragging.type === 'emitter') {
+                    laserEmitter.x = pos.x - dragOffset.x;
+                    laserEmitter.y = pos.y - dragOffset.y;
+                } else if (dragging.type === 'mirror1') {
+                    planeMirror.x1 = pos.x - dragOffset.x;
+                    planeMirror.y1 = pos.y - dragOffset.y;
+                } else if (dragging.type === 'mirror2') {
+                    planeMirror.x2 = pos.x - dragOffset.x;
+                    planeMirror.y2 = pos.y - dragOffset.y;
+                } else if (dragging.type === 'rough') {
+                    const seg = roughSurface[dragging.index];
+                    if (dragging.point === 'start') {
+                        seg.x1 = pos.x - dragOffset.x;
+                        seg.y1 = pos.y - dragOffset.y;
+                        if (dragging.index > 0) {
+                            roughSurface[dragging.index - 1].x2 = seg.x1;
+                            roughSurface[dragging.index - 1].y2 = seg.y1;
+                        }
+                    } else {
+                        seg.x2 = pos.x - dragOffset.x;
+                        seg.y2 = pos.y - dragOffset.y;
+                        if (dragging.index < roughSurface.length - 1) {
+                            roughSurface[dragging.index + 1].x1 = seg.x2;
+                            roughSurface[dragging.index + 1].y1 = seg.y2;
+                        }
+                    }
+                }
+                render();
+            } else {
+                const target = findTarget(pos);
+                canvas.style.cursor = target ? 'grab' : 'default';
+            }
+        }
+
+        function onMouseUp() {
+            dragging = null;
+            canvas.style.cursor = 'default';
+        }
+
+        // 计算线段交点
+        function lineIntersection(x1, y1, x2, y2, x3, y3, x4, y4) {
+            const denom = (x1 - x2) * (y3 - y4) - (y1 - y2) * (x3 - x4);
+            if (Math.abs(denom) < 0.0001) return null;
+            
+            const t = ((x1 - x3) * (y3 - y4) - (y1 - y3) * (x3 - x4)) / denom;
+            const u = -((x1 - x2) * (y1 - y3) - (y1 - y2) * (x1 - x3)) / denom;
+            
+            if (t > 0.001 && u > 0.001 && u < 0.999) {
+                return {
+                    x: x1 + t * (x2 - x1),
+                    y: y1 + t * (y2 - y1),
+                    t: t,
+                    u: u
+                };
+            }
+            return null;
+        }
+
+        // 计算反射
+        function calculateReflection(startX, startY, dirX, dirY) {
+            let closestHit = null;
+            let closestDist = Infinity;
+            let hitSurface = null;
+            let hitSegment = null;
+
+            // 检测与平面镜的交点
+            const mirrorHit = lineIntersection(
+                startX, startY,
+                startX + dirX * 3000, startY + dirY * 3000,
+                planeMirror.x1, planeMirror.y1, planeMirror.x2, planeMirror.y2
+            );
+            
+            if (mirrorHit) {
+                const dist = Math.hypot(mirrorHit.x - startX, mirrorHit.y - startY);
+                if (dist < closestDist && dist > 1) {
+                    closestDist = dist;
+                    closestHit = mirrorHit;
+                    hitSurface = 'mirror';
+                }
+            }
+
+            // 检测与粗糙表面的交点
+            for (const seg of roughSurface) {
+                const hit = lineIntersection(
+                    startX, startY,
+                    startX + dirX * 3000, startY + dirY * 3000,
+                    seg.x1, seg.y1, seg.x2, seg.y2
+                );
+                if (hit) {
+                    const dist = Math.hypot(hit.x - startX, hit.y - startY);
+                    if (dist < closestDist && dist > 1) {
+                        closestDist = dist;
+                        closestHit = hit;
+                        hitSurface = 'rough';
+                        hitSegment = seg;
+                    }
+                }
+            }
+
+            if (!closestHit) {
+                return {
+                    incident: { startX, startY, endX: startX + dirX * 1000, endY: startY + dirY * 1000 },
+                    reflected: null,
+                    normal: null,
+                    angle: null,
+                    surface: null
+                };
+            }
+
+            // 计算法线
+            let normalX, normalY;
+            if (hitSurface === 'mirror') {
+                const segX = planeMirror.x2 - planeMirror.x1;
+                const segY = planeMirror.y2 - planeMirror.y1;
+                const segLen = Math.hypot(segX, segY);
+                normalX = -segY / segLen;
+                normalY = segX / segLen;
+                if (normalX * dirX + normalY * dirY > 0) {
+                    normalX = -normalX;
+                    normalY = -normalY;
+                }
+            } else {
+                const segX = hitSegment.x2 - hitSegment.x1;
+                const segY = hitSegment.y2 - hitSegment.y1;
+                const segLen = Math.hypot(segX, segY);
+                normalX = -segY / segLen;
+                normalY = segX / segLen;
+                if (normalX * dirX + normalY * dirY > 0) {
+                    normalX = -normalX;
+                    normalY = -normalY;
+                }
+            }
+
+            // 计算反射方向
+            const dot = 2 * (dirX * normalX + dirY * normalY);
+            const reflectX = dirX - dot * normalX;
+            const reflectY = dirY - dot * normalY;
+
+            // 计算入射角（度数）
+            const incidentAngle = Math.acos(Math.abs(-(dirX * normalX + dirY * normalY))) * 180 / Math.PI;
+
+            return {
+                incident: { startX, startY, endX: closestHit.x, endY: closestHit.y },
+                reflected: { 
+                    startX: closestHit.x, 
+                    startY: closestHit.y, 
+                    endX: closestHit.x + reflectX * 600, 
+                    endY: closestHit.y + reflectY * 600 
+                },
+                normal: { 
+                    startX: closestHit.x, 
+                    startY: closestHit.y, 
+                    endX: closestHit.x + normalX * 60, 
+                    endY: closestHit.y + normalY * 60 
+                },
+                hitPoint: closestHit,
+                angle: incidentAngle,
+                surface: hitSurface,
+                normalDir: { x: normalX, y: normalY },
+                incidentDir: { x: dirX, y: dirY }
+            };
+        }
+
+        // 绘制激光
+        function drawLaser(startX, startY, endX, endY, isReflected = false) {
+            ctx.save();
+            ctx.shadowColor = CONFIG.laserGlow;
+            ctx.shadowBlur = 12;
+            ctx.strokeStyle = CONFIG.laserColor;
+            ctx.lineWidth = CONFIG.laserWidth;
+            ctx.lineCap = 'round';
+            
+            if (isReflected) {
+                ctx.globalAlpha = 0.85;
+            }
+            
+            ctx.beginPath();
+            ctx.moveTo(startX, startY);
+            ctx.lineTo(endX, endY);
+            ctx.stroke();
+            ctx.restore();
+        }
+
+        // 绘制法线
+        function drawNormal(normal) {
+            if (!normal || !showOptions.showNormal) return;
+            
+            ctx.save();
+            ctx.strokeStyle = CONFIG.normalColor;
+            ctx.lineWidth = CONFIG.normalWidth;
+            ctx.setLineDash([5, 5]);
+            ctx.beginPath();
+            ctx.moveTo(normal.startX, normal.startY);
+            ctx.lineTo(normal.endX, normal.endY);
+            ctx.stroke();
+            ctx.restore();
+        }
+
+        // 绘制角度
+        function drawAngle(hitPoint, normalDir, lightDir, angle, isIncident) {
+            if (!showOptions.showIncidentAngle && isIncident) return;
+            if (!showOptions.showReflectAngle && !isIncident) return;
+            if (!angle) return;
+
+            ctx.save();
+            ctx.strokeStyle = CONFIG.angleColor;
+            ctx.fillStyle = CONFIG.angleColor;
+            ctx.lineWidth = 1;
+            ctx.font = '12px Microsoft YaHei';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+
+            const radius = 40;
+            
+            const normalAngle = Math.atan2(normalDir.y, normalDir.x);
+            const lightAngle = Math.atan2(lightDir.y, lightDir.x);
+            
+            let diff = lightAngle - normalAngle;
+            while (diff <= -Math.PI) diff += 2 * Math.PI;
+            while (diff > Math.PI) diff -= 2 * Math.PI;
+            
+            const arcAngle = Math.abs(diff);
+            const segments = 32;
+            
+            ctx.beginPath();
+            for (let i = 0; i <= segments; i++) {
+                const t = i / segments;
+                const currentAngle = normalAngle + diff * t;
+                const x = hitPoint.x + Math.cos(currentAngle) * radius;
+                const y = hitPoint.y + Math.sin(currentAngle) * radius;
+                if (i === 0) {
+                    ctx.moveTo(x, y);
+                } else {
+                    ctx.lineTo(x, y);
+                }
+            }
+            ctx.stroke();
+
+            const textAngle = normalAngle + diff / 2;
+            const textX = hitPoint.x + Math.cos(textAngle) * (radius + 15);
+            const textY = hitPoint.y + Math.sin(textAngle) * (radius + 15);
+            ctx.fillText(angle.toFixed(1) + '°', textX, textY);
+
+            ctx.restore();
+        }
+
+        // 绘制表面
+        function drawSurfaces() {
+            // 绘制平面镜
+            ctx.save();
+            ctx.strokeStyle = CONFIG.mirrorColor;
+            ctx.lineWidth = CONFIG.surfaceWidth;
+            ctx.lineCap = 'round';
+            ctx.beginPath();
+            ctx.moveTo(planeMirror.x1, planeMirror.y1);
+            ctx.lineTo(planeMirror.x2, planeMirror.y2);
+            ctx.stroke();
+            
+            // 镜面端点手柄
+            ctx.fillStyle = CONFIG.mirrorColor;
+            ctx.beginPath();
+            ctx.arc(planeMirror.x1, planeMirror.y1, CONFIG.handleRadius, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.beginPath();
+            ctx.arc(planeMirror.x2, planeMirror.y2, CONFIG.handleRadius, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.restore();
+
+            // 绘制粗糙表面
+            ctx.save();
+            ctx.strokeStyle = CONFIG.roughColor;
+            ctx.lineWidth = CONFIG.surfaceWidth;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+            ctx.beginPath();
+            if (roughSurface.length > 0) {
+                ctx.moveTo(roughSurface[0].x1, roughSurface[0].y1);
+                for (const seg of roughSurface) {
+                    ctx.lineTo(seg.x2, seg.y2);
+                }
+            }
+            ctx.stroke();
+
+            // 粗糙表面端点手柄
+            ctx.fillStyle = CONFIG.roughColor;
+            for (const seg of roughSurface) {
+                ctx.beginPath();
+                ctx.arc(seg.x1, seg.y1, CONFIG.handleRadius - 2, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            const lastSeg = roughSurface[roughSurface.length - 1];
+            if (lastSeg) {
+                ctx.beginPath();
+                ctx.arc(lastSeg.x2, lastSeg.y2, CONFIG.handleRadius - 2, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            ctx.restore();
+        }
+
+        // 绘制激光器
+        function drawEmitter() {
+            ctx.save();
+            
+            // 绘制激光源点
+            ctx.fillStyle = CONFIG.laserColor;
+            ctx.shadowColor = CONFIG.laserGlow;
+            ctx.shadowBlur = 20;
+            ctx.beginPath();
+            ctx.arc(laserEmitter.x, laserEmitter.y, 10, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // 绘制方向指示
+            ctx.shadowBlur = 0;
+            ctx.strokeStyle = CONFIG.laserColor;
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(laserEmitter.x, laserEmitter.y);
+            ctx.lineTo(
+                laserEmitter.x + Math.cos(laserEmitter.angle) * 25,
+                laserEmitter.y + Math.sin(laserEmitter.angle) * 25
+            );
+            ctx.stroke();
+            
+            // 绘制手柄
+            ctx.strokeStyle = '#fff';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.arc(laserEmitter.x, laserEmitter.y, CONFIG.handleRadius + 5, 0, Math.PI * 2);
+            ctx.stroke();
+            
+            ctx.restore();
+        }
+
+        // 主渲染函数
+        function render() {
+            // 清空画布
+            ctx.fillStyle = '#0a0e17';
+            ctx.fillRect(0, 0, width, height);
+
+            // 绘制网格背景
+            ctx.save();
+            ctx.strokeStyle = '#1e293b';
+            ctx.lineWidth = 1;
+            for (let x = 0; x < width; x += 50) {
+                ctx.beginPath();
+                ctx.moveTo(x, 0);
+                ctx.lineTo(x, height);
+                ctx.stroke();
+            }
+            for (let y = 0; y < height; y += 50) {
+                ctx.beginPath();
+                ctx.moveTo(0, y);
+                ctx.lineTo(width, y);
+                ctx.stroke();
+            }
+            ctx.restore();
+
+            // 绘制表面
+            drawSurfaces();
+
+            // 计算并绘制激光
+            const dirX = Math.cos(laserEmitter.angle);
+            const dirY = Math.sin(laserEmitter.angle);
+            const perpX = -dirY;
+            const perpY = dirX;
+
+            // 三条平行激光
+            for (let i = -1; i <= 1; i++) {
+                const offsetX = perpX * CONFIG.laserSpacing * i;
+                const offsetY = perpY * CONFIG.laserSpacing * i;
+                const startX = laserEmitter.x + offsetX;
+                const startY = laserEmitter.y + offsetY;
+
+                const result = calculateReflection(startX, startY, dirX, dirY);
+
+                // 绘制入射光
+                drawLaser(result.incident.startX, result.incident.startY, 
+                         result.incident.endX, result.incident.endY, false);
+
+                // 绘制反射光
+                if (result.reflected) {
+                    drawLaser(result.reflected.startX, result.reflected.startY,
+                             result.reflected.endX, result.reflected.endY, true);
+                }
+
+                // 绘制法线
+                drawNormal(result.normal);
+
+                // 绘制入射角
+                if (result.hitPoint && result.normalDir && result.incidentDir) {
+                    drawAngle(result.hitPoint, result.normalDir, 
+                             { x: -result.incidentDir.x, y: -result.incidentDir.y },
+                             result.angle, true);
+                }
+
+                // 绘制反射角
+                if (result.reflected && result.hitPoint && result.normalDir) {
+                    const reflectDir = {
+                        x: result.reflected.endX - result.reflected.startX,
+                        y: result.reflected.endY - result.reflected.startY
+                    };
+                    const reflectLen = Math.hypot(reflectDir.x, reflectDir.y);
+                    reflectDir.x /= reflectLen;
+                    reflectDir.y /= reflectLen;
+                    
+                    drawAngle(result.hitPoint, result.normalDir, reflectDir,
+                             result.angle, false);
+                }
+            }
+
+            // 绘制激光器
+            drawEmitter();
+        }
+
+        // 启动
+        init();
+    </script>
+</body>
+</html>

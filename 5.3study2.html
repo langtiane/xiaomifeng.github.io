@@ -1,0 +1,728 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>三棱镜色散演示 | 光的折射与色散现象</title>
+    <style>
+        * {
+            user-select: none;
+        }
+
+        body {
+            background: linear-gradient(145deg, #0a0f1e 0%, #0c1222 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            font-family: 'Segoe UI', 'Poppins', 'Roboto', system-ui, -apple-system, sans-serif;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .card {
+            background: rgba(18, 25, 45, 0.65);
+            backdrop-filter: blur(2px);
+            border-radius: 2.5rem;
+            padding: 1.5rem 2rem 2rem 2rem;
+            box-shadow: 0 25px 45px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+        }
+
+        .container {
+            text-align: center;
+        }
+
+        h1 {
+            font-size: 1.7rem;
+            font-weight: 500;
+            margin: 0 0 0.3rem 0;
+            letter-spacing: -0.3px;
+            background: linear-gradient(135deg, #F9F9FB, #C0C9E8);
+            background-clip: text;
+            -webkit-background-clip: text;
+            color: transparent;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.1);
+        }
+
+        .sub {
+            color: #8f9bb3;
+            font-size: 0.85rem;
+            margin-bottom: 1.2rem;
+            border-bottom: 1px dashed #2a3450;
+            display: inline-block;
+            padding-bottom: 5px;
+        }
+
+        canvas {
+            display: block;
+            margin: 0 auto;
+            border-radius: 28px;
+            box-shadow: 0 12px 28px rgba(0, 0, 0, 0.5), inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+            background: #010514;
+            cursor: pointer;
+        }
+
+        .control-panel {
+            margin-top: 1.5rem;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            align-items: center;
+            gap: 1.2rem;
+            background: rgba(10, 15, 30, 0.6);
+            padding: 0.8rem 1.5rem;
+            border-radius: 60px;
+            backdrop-filter: blur(4px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .label {
+            color: #ccd6f0;
+            font-weight: 500;
+            font-size: 0.9rem;
+            letter-spacing: 0.5px;
+            background: #1e2a3e;
+            padding: 5px 14px;
+            border-radius: 30px;
+        }
+
+        select {
+            background: #0f172ad9;
+            border: 1px solid #3b4b6e;
+            color: #f0f3fa;
+            padding: 8px 20px;
+            border-radius: 40px;
+            font-size: 0.95rem;
+            font-weight: 500;
+            cursor: pointer;
+            outline: none;
+            transition: all 0.2s ease;
+            font-family: monospace;
+            letter-spacing: 0.5px;
+        }
+
+        select:hover {
+            background: #1e2a44;
+            border-color: #6c86b0;
+        }
+
+        .color-badge {
+            display: inline-block;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            vertical-align: middle;
+            margin-right: 6px;
+            box-shadow: 0 0 4px currentColor;
+        }
+
+        .info-text {
+            font-size: 0.75rem;
+            color: #7e8aa8;
+            margin-top: 1rem;
+            text-align: center;
+            background: #0b1020aa;
+            padding: 6px 16px;
+            border-radius: 60px;
+            width: fit-content;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        button {
+            background: none;
+            border: none;
+        }
+
+        footer {
+            font-size: 0.7rem;
+            text-align: center;
+            margin-top: 1rem;
+            color: #4a556c;
+        }
+
+        @media (max-width: 860px) {
+            .card {
+                padding: 1rem;
+            }
+            .control-panel {
+                padding: 0.5rem 1rem;
+                gap: 0.8rem;
+            }
+        }
+    </style>
+</head>
+<body>
+<div>
+    <div class="card">
+        <div class="container">
+            <h1>✨ 棱镜色散 · 光的分解 ✨</h1>
+            <div class="sub">白光色散 | 单色光偏折</div>
+
+            <canvas id="prismCanvas" width="800" height="450" style="width:800px;height:450px"></canvas>
+
+            <div class="control-panel">
+                <span class="label">🌈 入射光线颜色</span>
+                <select id="lightColorSelect">
+                    <option value="white" selected>⚪ 白光 (可色散)</option>
+                    <option value="red">🔴 红光</option>
+                    <option value="orange">🟠 橙光</option>
+                    <option value="yellow">🟡 黄光</option>
+                    <option value="green">🟢 绿光</option>
+                    <option value="blue">🔵 蓝光</option>
+                    <option value="indigo">🟣 靛光</option>
+                    <option value="violet">🟣 紫光</option>
+                </select>
+                <div class="info-text">
+                    💡 只有白光会分解为 <strong style="color:#FFD966">红 · 橙 · 黄 · 绿 · 蓝 · 靛 · 紫</strong> 七色光谱
+                </div>
+            </div>
+            <footer>◆ 光线透过三棱镜发生偏折 | 不同波长折射率不同 → 色散现象</footer>
+        </div>
+    </div>
+
+    <!-- 课中练习区域 -->
+    <div class="card" style="margin-top: 20px;">
+        <div class="container">
+            <h1>📝 课中练习</h1>
+            <div class="sub">光的色散现象练习</div>
+
+            <div class="exercise-section" style="text-align: left; max-width: 700px; margin: 0 auto;">
+                <!-- 问题1：色光填空 -->
+                <div class="question" style="margin-bottom: 20px; padding: 15px; background: rgba(10, 15, 30, 0.4); border-radius: 15px;">
+                    <p style="color: #ccd6f0; font-weight: 500; margin-bottom: 10px;">1. 白光经过三棱镜，由上至下依次被分解为___、___、___、___、___、___、___(自己填空)七种色光，这样的现象被称为光的_____（反射/折射/直线传播/色散）现象。</p>
+                    <div style="display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 10px;">
+                        <input type="text" class="color-input" style="width: 60px; padding: 8px; border: 1px solid #3b4b6e; border-radius: 8px; background: #0f172ad9; color: #f0f3fa; text-align: center;">
+                        <input type="text" class="color-input" style="width: 60px; padding: 8px; border: 1px solid #3b4b6e; border-radius: 8px; background: #0f172ad9; color: #f0f3fa; text-align: center;">
+                        <input type="text" class="color-input" style="width: 60px; padding: 8px; border: 1px solid #3b4b6e; border-radius: 8px; background: #0f172ad9; color: #f0f3fa; text-align: center;">
+                        <input type="text" class="color-input" style="width: 60px; padding: 8px; border: 1px solid #3b4b6e; border-radius: 8px; background: #0f172ad9; color: #f0f3fa; text-align: center;">
+                        <input type="text" class="color-input" style="width: 60px; padding: 8px; border: 1px solid #3b4b6e; border-radius: 8px; background: #0f172ad9; color: #f0f3fa; text-align: center;">
+                        <input type="text" class="color-input" style="width: 60px; padding: 8px; border: 1px solid #3b4b6e; border-radius: 8px; background: #0f172ad9; color: #f0f3fa; text-align: center;">
+                        <input type="text" class="color-input" style="width: 60px; padding: 8px; border: 1px solid #3b4b6e; border-radius: 8px; background: #0f172ad9; color: #f0f3fa; text-align: center;">
+                    </div>
+                    <div style="margin-top: 10px;">
+                        <span style="color: #ccd6f0; margin-right: 10px;">现象：</span>
+                        <select id="phenomenonSelect" style="background: #0f172ad9; border: 1px solid #3b4b6e; color: #f0f3fa; padding: 6px 12px; border-radius: 8px; font-size: 0.9rem;">
+                            <option value="">请选择</option>
+                            <option value="反射">反射</option>
+                            <option value="折射">折射</option>
+                            <option value="直线传播">直线传播</option>
+                            <option value="色散">色散</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- 问题2：偏折能力 -->
+                <div class="question" style="margin-bottom: 20px; padding: 15px; background: rgba(10, 15, 30, 0.4); border-radius: 15px;">
+                    <p style="color: #ccd6f0; font-weight: 500; margin-bottom: 10px;">2. 观察三棱镜对不同颜色光的偏折能力，其中对__（选择红/橙/黄/绿/蓝/靛/紫）色光的偏折能力最强，对__（选择红/橙/黄/绿/蓝/靛/紫）色光的偏折能力最弱。</p>
+                    <div style="display: flex; flex-wrap: wrap; gap: 20px; margin-bottom: 10px;">
+                        <div>
+                            <span style="color: #ccd6f0; margin-right: 10px;">最强：</span>
+                            <select id="strongestDeflection" style="background: #0f172ad9; border: 1px solid #3b4b6e; color: #f0f3fa; padding: 6px 12px; border-radius: 8px; font-size: 0.9rem;">
+                                <option value="">请选择</option>
+                                <option value="红">红</option>
+                                <option value="橙">橙</option>
+                                <option value="黄">黄</option>
+                                <option value="绿">绿</option>
+                                <option value="蓝">蓝</option>
+                                <option value="靛">靛</option>
+                                <option value="紫">紫</option>
+                            </select>
+                        </div>
+                        <div>
+                            <span style="color: #ccd6f0; margin-right: 10px;">最弱：</span>
+                            <select id="weakestDeflection" style="background: #0f172ad9; border: 1px solid #3b4b6e; color: #f0f3fa; padding: 6px 12px; border-radius: 8px; font-size: 0.9rem;">
+                                <option value="">请选择</option>
+                                <option value="红">红</option>
+                                <option value="橙">橙</option>
+                                <option value="黄">黄</option>
+                                <option value="绿">绿</option>
+                                <option value="蓝">蓝</option>
+                                <option value="靛">靛</option>
+                                <option value="紫">紫</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 问题3：单色光/复色光 -->
+                <div class="question" style="margin-bottom: 20px; padding: 15px; background: rgba(10, 15, 30, 0.4); border-radius: 15px;">
+                    <p style="color: #ccd6f0; font-weight: 500; margin-bottom: 10px;">3. 白光是____（单色光/复色光）。红橙黄绿蓝靛紫色光都是____（单色光/复色光）。</p>
+                    <div style="display: flex; flex-wrap: wrap; gap: 20px; margin-bottom: 10px;">
+                        <div>
+                            <span style="color: #ccd6f0; margin-right: 10px;">白光：</span>
+                            <select id="whiteLightType" style="background: #0f172ad9; border: 1px solid #3b4b6e; color: #f0f3fa; padding: 6px 12px; border-radius: 8px; font-size: 0.9rem;">
+                                <option value="">请选择</option>
+                                <option value="单色光">单色光</option>
+                                <option value="复色光">复色光</option>
+                            </select>
+                        </div>
+                        <div>
+                            <span style="color: #ccd6f0; margin-right: 10px;">色光：</span>
+                            <select id="coloredLightType" style="background: #0f172ad9; border: 1px solid #3b4b6e; color: #f0f3fa; padding: 6px 12px; border-radius: 8px; font-size: 0.9rem;">
+                                <option value="">请选择</option>
+                                <option value="单色光">单色光</option>
+                                <option value="复色光">复色光</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 提交按钮 -->
+                <div style="text-align: center; margin-top: 20px;">
+                    <button id="submitButton" style="background: linear-gradient(135deg, #4f46e5, #6366f1); color: white; border: none; padding: 12px 30px; border-radius: 40px; font-size: 1rem; font-weight: 500; cursor: pointer; transition: all 0.3s ease;">
+                        📤 提交答案
+                    </button>
+                </div>
+
+                <!-- 结果显示区域 -->
+                <div id="resultArea" style="margin-top: 20px; padding: 15px; background: rgba(10, 15, 30, 0.4); border-radius: 15px; display: none;">
+                    <h3 style="color: #f0f3fa; margin-bottom: 15px; text-align: center;">📊 答题结果</h3>
+                    <div id="scoreDisplay" style="font-size: 1.2rem; font-weight: bold; color: #4ade80; text-align: center; margin-bottom: 15px;"></div>
+                    <div id="correctAnswers" style="color: #ccd6f0; line-height: 1.5;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // 练习区域的JavaScript逻辑
+    document.getElementById('submitButton').addEventListener('click', function() {
+        // 正确答案
+        const correctColors = ['红', '橙', '黄', '绿', '蓝', '靛', '紫'];
+        const correctPhenomenon = '色散';
+        const correctStrongest = '紫';
+        const correctWeakest = '红';
+        const correctWhiteLight = '复色光';
+        const correctColoredLight = '单色光';
+
+        // 获取用户答案
+        const userColors = Array.from(document.querySelectorAll('.color-input')).map(input => input.value.trim());
+        const userPhenomenon = document.getElementById('phenomenonSelect').value;
+        const userStrongest = document.getElementById('strongestDeflection').value;
+        const userWeakest = document.getElementById('weakestDeflection').value;
+        const userWhiteLight = document.getElementById('whiteLightType').value;
+        const userColoredLight = document.getElementById('coloredLightType').value;
+
+        // 计算得分
+        let score = 0;
+        
+        // 检查颜色填空
+        let colorCorrect = true;
+        for (let i = 0; i < correctColors.length; i++) {
+            if (userColors[i] === correctColors[i]) {
+                score += 1;
+            } else {
+                colorCorrect = false;
+            }
+        }
+
+        // 检查现象
+        if (userPhenomenon === correctPhenomenon) {
+            score += 1;
+        }
+
+        // 检查偏折能力
+        if (userStrongest === correctStrongest) {
+            score += 1;
+        }
+        if (userWeakest === correctWeakest) {
+            score += 1;
+        }
+
+        // 检查单色光/复色光
+        if (userWhiteLight === correctWhiteLight) {
+            score += 1;
+        }
+        if (userColoredLight === correctColoredLight) {
+            score += 1;
+        }
+
+        // 计算总分和正确率
+        const totalQuestions = 12; // 7个颜色填空 + 1个现象 + 2个偏折 + 2个光类型
+        const accuracy = Math.round((score / totalQuestions) * 100);
+
+        // 显示结果
+        const resultArea = document.getElementById('resultArea');
+        const scoreDisplay = document.getElementById('scoreDisplay');
+        const correctAnswers = document.getElementById('correctAnswers');
+
+        scoreDisplay.textContent = `得分：${score}/${totalQuestions}，正确率：${accuracy}%`;
+        
+        correctAnswers.innerHTML = `
+            <p><strong>正确答案：</strong></p>
+            <p>1. 白光经过三棱镜，由上至下依次被分解为：${correctColors.join('、')}七种色光，这样的现象被称为光的${correctPhenomenon}现象。</p>
+            <p>2. 三棱镜对${correctStrongest}色光的偏折能力最强，对${correctWeakest}色光的偏折能力最弱。</p>
+            <p>3. 白光是${correctWhiteLight}。红橙黄绿蓝靛紫色光都是${correctColoredLight}。</p>
+        `;
+
+        resultArea.style.display = 'block';
+    });
+
+    // 原有的实验模拟脚本
+    (function() {
+        // ----- 画布元素 -----
+        const canvas = document.getElementById('prismCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // ----- 几何定义 (三棱镜 顶点向右的等腰三角形)-----
+        // 棱镜三角形三个顶点 (为了更好的视觉: 底边竖直在左，顶点在右)
+        const prismPoints = {
+            A: { x: 280, y: 130 },   // 上顶点 (左上)
+            B: { x: 280, y: 320 },   // 下顶点 (左下)
+            C: { x: 480, y: 225 }    // 右顶点 (棱镜尖端)
+        };
+        
+        // 入射点 (光线从左水平入射到棱镜左侧面 AB 上)
+        // AB 线段 x = 280, y 从130~320, 水平光线从左侧来 y=200 处入射
+        const entryPoint = { x: 280, y: 200 };   // 入射点位于棱镜左侧面中心偏下美观
+        
+        // 出射点: 位于棱镜右侧面 (AC 或 BC 之间，选择在 AC 上，使色散光线向右下扇形展开)
+        // 参数计算: AC 从 A(280,130) 到 C(480,225) 参数 t ≈ 0.72 时 x ≈ 424 , y ≈ 198
+        // 调整到更自然的出射位置，让扇形光线完整展示: 取 (410, 188) 在AC附近，视觉效果优秀
+        const exitPoint = { x: 408, y: 188 };    // 光线从棱镜内部射出点
+        
+        // 确保出射点在三角形内部边界附近 (用于视觉) , 验证大致在 AC 线段附近: AC直线方程
+        // 保证绘制时看起来是从棱镜右侧面射出即可
+        
+        // 光线参数
+        const rayStart = { x: 60, y: 200 };      // 入射光线起点 (左侧)
+        const rayLenOut = 150;                   // 出射光线绘制长度
+        
+        // ----- 色散角度映射 (角度单位: 度, 相对于水平向右方向, 向下偏转为正) -----
+        // 根据折射率: 红光偏折最小, 紫光偏折最大 (向下角度逐渐增大)
+        const dispersionAngles = {
+            red: 6.2,       // 偏折角度较小  (°)
+            orange: 8.5,
+            yellow: 10.8,
+            green: 13.2,
+            blue: 15.6,
+            indigo: 17.9,
+            violet: 20.5
+        };
+        
+        // 颜色值映射 (用于绘制光谱与单色光)
+        const colorMap = {
+            white:   '#FFFFFF',
+            red:     '#FF3B3F',
+            orange:  '#FF9E3D',
+            yellow:  '#FFE55C',
+            green:   '#4CD964',
+            blue:    '#5D9BFF',
+            indigo:  '#4B0082',
+            violet:  '#BF5FFF'
+        };
+        
+        // 七色光谱顺序 (用于白光色散)
+        const spectralOrder = ['red', 'orange', 'yellow', 'green', 'blue', 'indigo', 'violet'];
+        
+        // 获取单色光对应的偏折角度 (非白光)
+        function getAngleForColor(colorKey) {
+            switch(colorKey) {
+                case 'red': return dispersionAngles.red;
+                case 'orange': return dispersionAngles.orange;
+                case 'yellow': return dispersionAngles.yellow;
+                case 'green': return dispersionAngles.green;
+                case 'blue': return dispersionAngles.blue;
+                case 'indigo': return dispersionAngles.indigo;
+                case 'violet': return dispersionAngles.violet;
+                default: return 13; // fallback
+            }
+        }
+        
+        // 辅助函数: 根据角度(deg)和起点计算终点坐标
+        function getRayEndPoint(startX, startY, angleDeg, length) {
+            const rad = angleDeg * Math.PI / 180;
+            const dx = Math.cos(rad);
+            const dy = Math.sin(rad);
+            return {
+                x: startX + dx * length,
+                y: startY + dy * length
+            };
+        }
+        
+        // 绘制带有光晕效果的光线 (线条+发光)
+        function drawGlowLine(x1, y1, x2, y2, color, lineWidth = 2.8, shadow = true) {
+            ctx.save();
+            if (shadow) {
+                ctx.shadowColor = color;
+                ctx.shadowBlur = 8;
+                ctx.shadowOffsetX = 0;
+                ctx.shadowOffsetY = 0;
+            }
+            ctx.beginPath();
+            ctx.moveTo(x1, y1);
+            ctx.lineTo(x2, y2);
+            ctx.strokeStyle = color;
+            ctx.lineWidth = lineWidth;
+            ctx.lineCap = 'round';
+            ctx.stroke();
+            // 增加内层高亮细线
+            if (lineWidth > 2) {
+                ctx.beginPath();
+                ctx.moveTo(x1, y1);
+                ctx.lineTo(x2, y2);
+                ctx.strokeStyle = color;
+                ctx.lineWidth = lineWidth * 0.5;
+                ctx.globalAlpha = 0.7;
+                ctx.stroke();
+                ctx.globalAlpha = 1.0;
+            }
+            ctx.restore();
+            // 额外增加一点光晕外发光辅助 (二次简单绘制)
+            ctx.beginPath();
+            ctx.moveTo(x1, y1);
+            ctx.lineTo(x2, y2);
+            ctx.strokeStyle = color;
+            ctx.lineWidth = lineWidth + 1.2;
+            ctx.globalAlpha = 0.2;
+            ctx.stroke();
+            ctx.globalAlpha = 1.0;
+        }
+        
+        // 绘制棱镜 (三角形，半透明玻璃质感)
+        function drawPrism() {
+            ctx.save();
+            // 棱镜填充半透明白色+淡蓝 玻璃质感
+            ctx.beginPath();
+            ctx.moveTo(prismPoints.A.x, prismPoints.A.y);
+            ctx.lineTo(prismPoints.B.x, prismPoints.B.y);
+            ctx.lineTo(prismPoints.C.x, prismPoints.C.y);
+            ctx.closePath();
+            ctx.fillStyle = 'rgba(210, 230, 255, 0.22)';
+            ctx.fill();
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.75)';
+            ctx.lineWidth = 2.2;
+            ctx.shadowBlur = 0;
+            ctx.stroke();
+            // 加强棱镜边缘高亮
+            ctx.beginPath();
+            ctx.moveTo(prismPoints.A.x, prismPoints.A.y);
+            ctx.lineTo(prismPoints.C.x, prismPoints.C.y);
+            ctx.lineTo(prismPoints.B.x, prismPoints.B.y);
+            ctx.strokeStyle = 'rgba(255, 245, 200, 0.5)';
+            ctx.lineWidth = 1.5;
+            ctx.stroke();
+            
+            // 增加棱镜内部微光
+            ctx.beginPath();
+            ctx.moveTo(prismPoints.A.x, prismPoints.A.y);
+            ctx.lineTo(prismPoints.B.x, prismPoints.B.y);
+            ctx.lineTo(prismPoints.C.x, prismPoints.C.y);
+            ctx.fillStyle = 'rgba(160, 200, 255, 0.08)';
+            ctx.fill();
+            
+            // 标注"棱镜"文字
+            ctx.font = "500 14px 'Segoe UI', system-ui";
+            ctx.fillStyle = "#b9ceffcc";
+            ctx.shadowBlur = 0;
+            ctx.fillText("▲ 三棱镜", prismPoints.C.x - 68, prismPoints.C.y - 10);
+            ctx.restore();
+        }
+        
+        // 绘制背景辅助线 (极简网格线/光路氛围)
+        function drawBackground() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            // 深邃星空感
+            const grad = ctx.createLinearGradient(0, 0, 0, canvas.height);
+            grad.addColorStop(0, '#020617');
+            grad.addColorStop(1, '#0a0f24');
+            ctx.fillStyle = grad;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // 微光辅助线 (光路参考)
+            ctx.beginPath();
+            ctx.strokeStyle = '#2a345a';
+            ctx.lineWidth = 0.6;
+            ctx.setLineDash([6, 12]);
+            // 水平基准虚线
+            ctx.beginPath();
+            ctx.moveTo(20, entryPoint.y);
+            ctx.lineTo(canvas.width-20, entryPoint.y);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(entryPoint.x, 40);
+            ctx.lineTo(entryPoint.x, canvas.height-40);
+            ctx.stroke();
+            ctx.setLineDash([]);
+        }
+        
+        // 绘制入射光线 (从起点到入射点)
+        function drawIncidentRay(color) {
+            const rayColor = colorMap[color] || '#FFFFFF';
+            drawGlowLine(rayStart.x, rayStart.y, entryPoint.x, entryPoint.y, rayColor, 3.2, true);
+            // 绘制光箭头 (小装饰)
+            ctx.beginPath();
+            const midX = (rayStart.x + entryPoint.x) / 2 + 8;
+            const midY = (rayStart.y + entryPoint.y) / 2;
+            ctx.moveTo(midX, midY);
+            ctx.lineTo(midX - 6, midY - 4);
+            ctx.lineTo(midX - 6, midY + 4);
+            ctx.fillStyle = rayColor;
+            ctx.shadowBlur = 3;
+            ctx.fill();
+            ctx.shadowBlur = 0;
+        }
+        
+        // 绘制棱镜内部光线 (入射点→出射点)
+        function drawInternalRay(color) {
+            const internalColor = colorMap[color] || '#CCCCCC';
+            drawGlowLine(entryPoint.x, entryPoint.y, exitPoint.x, exitPoint.y, internalColor, 2.6, true);
+        }
+        
+        // 绘制白光色散 (七色光谱)
+        function drawWhiteDispersion() {
+            // 从出射点绘制7条不同颜色不同角度的光线
+            for (let i = 0; i < spectralOrder.length; i++) {
+                const colorKey = spectralOrder[i];
+                const angleDeg = dispersionAngles[colorKey];
+                const endPt = getRayEndPoint(exitPoint.x, exitPoint.y, angleDeg, rayLenOut);
+                const rayColor = colorMap[colorKey];
+                // 每条光谱线单独绘制，加粗一点突出色散
+                drawGlowLine(exitPoint.x, exitPoint.y, endPt.x, endPt.y, rayColor, 2.5, true);
+                
+                // 添加微光粒子效果 (增加视觉绚丽感)
+                ctx.beginPath();
+                ctx.arc(endPt.x, endPt.y, 2, 0, Math.PI*2);
+                ctx.fillStyle = rayColor;
+                ctx.shadowBlur = 6;
+                ctx.fill();
+                ctx.shadowBlur = 0;
+            }
+            // 额外增加一个半透明光晕扇形区域 (装饰)
+            ctx.save();
+            ctx.globalAlpha = 0.1;
+            for (let i = 0; i < spectralOrder.length; i++) {
+                const angleDeg = dispersionAngles[spectralOrder[i]];
+                const rad = angleDeg * Math.PI/180;
+                const endX = exitPoint.x + Math.cos(rad) * rayLenOut;
+                const endY = exitPoint.y + Math.sin(rad) * rayLenOut;
+                ctx.beginPath();
+                ctx.moveTo(exitPoint.x, exitPoint.y);
+                ctx.lineTo(endX, endY);
+                ctx.strokeStyle = colorMap[spectralOrder[i]];
+                ctx.lineWidth = 5;
+                ctx.stroke();
+            }
+            ctx.restore();
+        }
+        
+        // 绘制单色光出射 (单一颜色, 根据颜色不同偏折角不同)
+        function drawMonochromaticRay(colorKey) {
+            const angleDeg = getAngleForColor(colorKey);
+            const endPt = getRayEndPoint(exitPoint.x, exitPoint.y, angleDeg, rayLenOut);
+            const rayColor = colorMap[colorKey];
+            drawGlowLine(exitPoint.x, exitPoint.y, endPt.x, endPt.y, rayColor, 3.0, true);
+            // 绘制光斑
+            ctx.beginPath();
+            ctx.arc(endPt.x, endPt.y, 3, 0, Math.PI*2);
+            ctx.fillStyle = rayColor;
+            ctx.shadowBlur = 8;
+            ctx.fill();
+            ctx.shadowBlur = 0;
+        }
+        
+        // ----- 核心绘制函数: 根据当前选择的入射光颜色渲染整个场景 -----
+        function renderScene(selectedColor) {
+            drawBackground();       // 深色背景 + 辅助线
+            drawPrism();            // 绘制玻璃棱镜
+            
+            // 1. 入射光线 (根据颜色)
+            drawIncidentRay(selectedColor);
+            
+            // 2. 棱镜内部光线 (一律使用入射光的颜色)
+            drawInternalRay(selectedColor);
+            
+            // 3. 出射光线处理 (关键: 白光色散 vs 单色偏折)
+            if (selectedColor === 'white') {
+                // 白光: 色散成七种颜色
+                drawWhiteDispersion();
+            } else {
+                // 其他单色光: 只会透过三棱镜发生偏折，显示单一光线，角度对应波长特性
+                drawMonochromaticRay(selectedColor);
+            }
+            
+            // 增加额外动态光晕提示 (标注偏折效果文字)
+            ctx.font = "500 11px 'JetBrains Mono', monospace";
+            ctx.fillStyle = "#b9c7e6aa";
+            ctx.shadowBlur = 0;
+            if (selectedColor === 'white') {
+                ctx.fillText("✨ 色散 → 红橙黄绿蓝靛紫", exitPoint.x + 15, exitPoint.y - 18);
+            } else {
+                const colName = selectedColor.charAt(0).toUpperCase() + selectedColor.slice(1);
+                ctx.fillText(`${colName}光 偏折`, exitPoint.x + 12, exitPoint.y - 12);
+            }
+            
+            // 标注入射光颜色标签
+            ctx.font = "bold 12px 'Segoe UI'";
+            ctx.fillStyle = "#f0f3fc";
+            ctx.shadowBlur = 0;
+            let incidentLabel = selectedColor === 'white' ? "⚪ 白光入射" : `${selectedColor.toUpperCase()}光入射`;
+            ctx.fillText(incidentLabel, rayStart.x - 10, rayStart.y - 12);
+            
+            // 在入射点与出射点增加微小光晕
+            ctx.beginPath();
+            ctx.arc(entryPoint.x, entryPoint.y, 4, 0, Math.PI*2);
+            ctx.fillStyle = "#ffffff88";
+            ctx.shadowBlur = 10;
+            ctx.fill();
+            ctx.beginPath();
+            ctx.arc(exitPoint.x, exitPoint.y, 3.5, 0, Math.PI*2);
+            ctx.fillStyle = "#ffffccaa";
+            ctx.fill();
+            ctx.shadowBlur = 0;
+        }
+        
+        // ----- 处理交互逻辑 -----
+        const selectEl = document.getElementById('lightColorSelect');
+        let currentColor = 'white';
+        
+        function updateAndRender() {
+            currentColor = selectEl.value;
+            renderScene(currentColor);
+        }
+        
+        // 监听颜色切换
+        selectEl.addEventListener('change', () => {
+            updateAndRender();
+        });
+        
+        // 初始渲染: 白光色散效果
+        renderScene('white');
+        
+        // 可选: 窗口适配保留原始尺寸 (无缩放模糊)
+        window.addEventListener('resize', () => {
+            // 保持画布尺寸不变，无需额外操作，但确保重绘
+            renderScene(currentColor);
+        });
+        
+        // 添加一个小彩蛋: 点击canvas显示当前光线模式提示
+        canvas.addEventListener('click', () => {
+            const mode = currentColor === 'white' ? '白光色散模式 | 七色光谱' : '单色光偏折模式';
+            const tempMsg = document.createElement('div');
+            tempMsg.innerText = `✨ ${mode} ✨`;
+            tempMsg.style.position = 'fixed';
+            tempMsg.style.bottom = '30px';
+            tempMsg.style.left = '50%';
+            tempMsg.style.transform = 'translateX(-50%)';
+            tempMsg.style.backgroundColor = '#1e293bbb';
+            tempMsg.style.backdropFilter = 'blur(8px)';
+            tempMsg.style.color = '#f5f9ff';
+            tempMsg.style.padding = '6px 18px';
+            tempMsg.style.borderRadius = '40px';
+            tempMsg.style.fontSize = '0.8rem';
+            tempMsg.style.zIndex = '999';
+            tempMsg.style.fontFamily = 'monospace';
+            tempMsg.style.border = '1px solid #92a5dd';
+            document.body.appendChild(tempMsg);
+            setTimeout(() => {
+                tempMsg.style.opacity = '0';
+                setTimeout(() => tempMsg.remove(), 500);
+            }, 1200);
+        });
+    })();
+</script>
+</body>
+</html>

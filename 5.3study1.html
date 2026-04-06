@@ -1,0 +1,1280 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>光的折射3D仿真</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700&family=Space+Grotesk:wght@400;600;700&display=swap" rel="stylesheet">
+    
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+            "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+        }
+    }
+    </script>
+    
+    <style>
+        :root {
+            --bg: #0c1222;
+            --fg: #e4f0fb;
+            --muted: #5a6a8a;
+            --accent: #00e5b0;
+            --accent-warm: #ffb347;
+            --card: rgba(15, 25, 45, 0.9);
+            --border: rgba(0, 229, 176, 0.25);
+            --incident: #ffd93d;
+            --refracted: #00e5b0;
+            --reflected: #ff7b7b;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Noto Sans SC', sans-serif;
+            background: var(--bg);
+            color: var(--fg);
+            overflow: hidden;
+            min-height: 100vh;
+        }
+        
+        .title-font {
+            font-family: 'Space Grotesk', sans-serif;
+            letter-spacing: 0.02em;
+        }
+        
+        #canvas-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+        }
+        
+        .control-panel {
+            position: fixed;
+            top: 24px;
+            left: 24px;
+            background: var(--card);
+            backdrop-filter: blur(24px);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 28px;
+            z-index: 100;
+            min-width: 340px;
+            box-shadow: 
+                0 20px 60px rgba(0, 0, 0, 0.5),
+                inset 0 1px 0 rgba(255, 255, 255, 0.05);
+        }
+        
+        .info-panel {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            background: var(--card);
+            backdrop-filter: blur(24px);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 28px;
+            z-index: 100;
+            min-width: 320px;
+            box-shadow: 
+                0 20px 60px rgba(0, 0, 0, 0.5),
+                inset 0 1px 0 rgba(255, 255, 255, 0.05);
+        }
+        
+        .panel-title {
+            font-size: 1.25rem;
+            font-weight: 700;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .panel-title::before {
+            content: '';
+            width: 4px;
+            height: 20px;
+            background: linear-gradient(180deg, var(--accent), var(--accent-warm));
+            border-radius: 2px;
+        }
+        
+        .slider-container {
+            margin: 20px 0;
+        }
+        
+        .slider-label {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+            font-size: 14px;
+        }
+        
+        .slider-value {
+            background: rgba(0, 229, 176, 0.15);
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-weight: 600;
+            color: var(--accent);
+            font-family: 'Space Grotesk', sans-serif;
+        }
+        
+        input[type="range"] {
+            width: 100%;
+            height: 8px;
+            border-radius: 4px;
+            background: linear-gradient(90deg, 
+                rgba(0, 229, 176, 0.3) 0%,
+                rgba(255, 179, 71, 0.3) 100%
+            );
+            outline: none;
+            -webkit-appearance: none;
+            cursor: pointer;
+        }
+        
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--accent), #00b894);
+            cursor: pointer;
+            box-shadow: 
+                0 4px 15px rgba(0, 229, 176, 0.4),
+                0 0 0 4px rgba(0, 229, 176, 0.1);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        
+        input[type="range"]::-webkit-slider-thumb:hover {
+            transform: scale(1.15);
+            box-shadow: 
+                0 6px 20px rgba(0, 229, 176, 0.5),
+                0 0 0 6px rgba(0, 229, 176, 0.15);
+        }
+        
+        select {
+            width: 100%;
+            padding: 14px 18px;
+            border-radius: 12px;
+            background: rgba(0, 0, 0, 0.4);
+            border: 1px solid var(--border);
+            color: var(--fg);
+            font-size: 14px;
+            cursor: pointer;
+            outline: none;
+            transition: all 0.3s ease;
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%2300e5b0' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 16px center;
+        }
+        
+        select:hover, select:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 20px rgba(0, 229, 176, 0.15);
+        }
+        
+        .checkbox-group {
+            margin-top: 20px;
+        }
+        
+        .checkbox-container {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            margin: 14px 0;
+            cursor: pointer;
+            padding: 10px 14px;
+            border-radius: 10px;
+            transition: background 0.2s;
+        }
+        
+        .checkbox-container:hover {
+            background: rgba(255, 255, 255, 0.03);
+        }
+        
+        .custom-checkbox {
+            width: 22px;
+            height: 22px;
+            border: 2px solid var(--muted);
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+            flex-shrink: 0;
+        }
+        
+        .checkbox-container input:checked + .custom-checkbox {
+            background: var(--accent);
+            border-color: var(--accent);
+        }
+        
+        .checkbox-container input:checked + .custom-checkbox svg {
+            opacity: 1;
+        }
+        
+        .custom-checkbox svg {
+            width: 14px;
+            height: 14px;
+            stroke: var(--bg);
+            stroke-width: 3;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+        
+        .checkbox-container input {
+            display: none;
+        }
+        
+        .formula-box {
+            background: linear-gradient(135deg, rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.2));
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            padding: 18px;
+            margin-top: 20px;
+            text-align: center;
+        }
+        
+        .formula-label {
+            font-size: 12px;
+            color: var(--muted);
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+        }
+        
+        .formula-text {
+            font-family: 'Times New Roman', serif;
+            font-size: 22px;
+            font-style: italic;
+        }
+        
+        .formula-text sub {
+            font-size: 14px;
+        }
+        
+        .angle-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 14px;
+            margin-top: 20px;
+        }
+        
+        .angle-card {
+            background: linear-gradient(135deg, rgba(0, 0, 0, 0.3), rgba(0, 0, 0, 0.1));
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 14px;
+            padding: 18px;
+            text-align: center;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        
+        .angle-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+        }
+        
+        .angle-card.incident {
+            border-color: rgba(255, 217, 61, 0.3);
+        }
+        
+        .angle-card.refracted {
+            border-color: rgba(0, 229, 176, 0.3);
+        }
+        
+        .angle-label {
+            font-size: 12px;
+            color: var(--muted);
+            margin-bottom: 8px;
+        }
+        
+        .angle-value {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 32px;
+            font-weight: 700;
+        }
+        
+        .angle-card.incident .angle-value {
+            color: var(--incident);
+        }
+        
+        .angle-card.refracted .angle-value {
+            color: var(--refracted);
+        }
+        
+        .status-box {
+            margin-top: 20px;
+            padding: 14px;
+            border-radius: 10px;
+            text-align: center;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+        
+        .status-normal {
+            background: rgba(0, 229, 176, 0.1);
+            border: 1px solid rgba(0, 229, 176, 0.3);
+            color: var(--accent);
+        }
+        
+        .status-warning {
+            background: rgba(255, 123, 123, 0.15);
+            border: 1px solid rgba(255, 123, 123, 0.4);
+            color: var(--reflected);
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }
+        
+        .legend {
+            display: flex;
+            gap: 16px;
+            margin-top: 16px;
+            flex-wrap: wrap;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 12px;
+            color: var(--muted);
+        }
+        
+        .legend-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+        }
+        
+        .legend-dot.incident { background: var(--incident); }
+        .legend-dot.refracted { background: var(--refracted); }
+        .legend-dot.reflected { background: var(--reflected); }
+        
+        @media (max-width: 768px) {
+            .control-panel, .info-panel {
+                left: 12px;
+                right: 12px;
+                min-width: auto;
+                padding: 20px;
+            }
+            
+            .control-panel {
+                top: 12px;
+            }
+            
+            .info-panel {
+                bottom: 12px;
+            }
+            
+            .angle-value {
+                font-size: 24px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="canvas-container"></div>
+    
+    <div class="control-panel">
+        <h1 class="panel-title title-font">光的折射仿真</h1>
+        
+        <div class="slider-container">
+            <div class="slider-label">
+                <span>入射角度</span>
+                <span class="slider-value" id="angle-value">45°</span>
+            </div>
+            <input type="range" id="incident-angle" min="0" max="89" value="45">
+        </div>
+        
+        <div>
+            <label class="text-sm" style="color: var(--muted);">介质组合</label>
+            <select id="medium-select" style="margin-top: 10px;">
+                <option value="air-water">空气 → 水 (n = 1.33)</option>
+                <option value="air-glass">空气 → 玻璃 (n = 1.50)</option>
+                <option value="air-diamond">空气 → 钻石 (n = 2.42)</option>
+                <option value="water-air">水 → 空气</option>
+                <option value="glass-air">玻璃 → 空气</option>
+                <option value="glass-water">玻璃 → 水</option>
+            </select>
+        </div>
+        
+        <div class="checkbox-group">
+            <label class="checkbox-container">
+                <input type="checkbox" id="show-normal" checked>
+                <span class="custom-checkbox">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <polyline points="20 6 9 17 4 12"></polyline>
+                    </svg>
+                </span>
+                <span>显示法线</span>
+            </label>
+            <label class="checkbox-container">
+                <input type="checkbox" id="show-angles" checked>
+                <span class="custom-checkbox">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <polyline points="20 6 9 17 4 12"></polyline>
+                    </svg>
+                </span>
+                <span>显示角度标注</span>
+            </label>
+            <label class="checkbox-container">
+                <input type="checkbox" id="show-reflected" checked>
+                <span class="custom-checkbox">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <polyline points="20 6 9 17 4 12"></polyline>
+                    </svg>
+                </span>
+                <span>显示反射光线</span>
+            </label>
+        </div>
+        
+        <div class="legend">
+            <div class="legend-item">
+                <div class="legend-dot incident"></div>
+                <span>入射光</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-dot refracted"></div>
+                <span>折射光</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-dot reflected"></div>
+                <span>反射光</span>
+            </div>
+        </div>
+        
+        <button id="reverse-btn" style="
+            width: 100%;
+            padding: 14px;
+            margin-top: 20px;
+            border-radius: 12px;
+            background: linear-gradient(135deg, var(--accent), #00b894);
+            border: none;
+            color: var(--bg);
+            font-weight: 600;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-family: 'Noto Sans SC', sans-serif;
+        ">
+            ↕ 逆向入射
+        </button>
+    </div>
+    
+    <div class="info-panel">
+        <h2 class="panel-title title-font">折射数据</h2>
+        
+        <div class="angle-grid">
+            <div class="angle-card incident">
+                <div class="angle-label">入射角 θ₁</div>
+                <div class="angle-value" id="display-incident">45°</div>
+            </div>
+            <div class="angle-card refracted">
+                <div class="angle-label">折射角 θ₂</div>
+                <div class="angle-value" id="display-refracted">32.1°</div>
+            </div>
+        </div>
+        
+        <div class="formula-box">
+            <div class="formula-label">斯涅尔定律</div>
+            <div class="formula-text">n<sub>1</sub> sin θ<sub>1</sub> = n<sub>2</sub> sin θ<sub>2</sub></div>
+        </div>
+        
+        <div class="status-box status-normal" id="status-message">
+            折射率比 n₁/n₂ = 0.752
+        </div>
+    </div>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+        
+        // 初始化变量
+        const container = document.getElementById('canvas-container');
+        const scene = new THREE.Scene();
+        
+        const camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.set(0, 4, 10);
+        
+        const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        renderer.setClearColor(0x0c1222, 1);
+        container.appendChild(renderer.domElement);
+        
+        const controls = new OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.05;
+        controls.minDistance = 6;
+        controls.maxDistance = 25;
+        controls.maxPolarAngle = Math.PI * 0.85;
+        
+        // 折射率数据
+        const refractiveIndices = {
+            air: 1.0,
+            water: 1.33,
+            glass: 1.50,
+            diamond: 2.42
+        };
+        
+        const mediumColors = {
+            air: 0x1a2a4a,
+            water: 0x0055aa,
+            glass: 0x77aacc,
+            diamond: 0xaaddff
+        };
+        
+        // 状态
+        const state = {
+            incidentAngle: 45,
+            n1: 1.0,
+            n2: 1.33,
+            medium1: 'air',
+            medium2: 'water',
+            showNormal: true,
+            showAngles: true,
+            showReflected: true,
+            reverseIncident: false
+        };
+        
+        // 创建介质层
+        function createMediumLayers() {
+            const group = new THREE.Group();
+            
+            // 上层介质
+            const upperGeo = new THREE.BoxGeometry(14, 4, 14);
+            const upperMat = new THREE.MeshPhysicalMaterial({
+                color: mediumColors[state.medium1],
+                transparent: true,
+                opacity: 0.2,
+                roughness: 0.1,
+                metalness: 0,
+                side: THREE.DoubleSide
+            });
+            const upperMesh = new THREE.Mesh(upperGeo, upperMat);
+            upperMesh.position.y = 2;
+            upperMesh.name = 'upperMedium';
+            group.add(upperMesh);
+            
+            // 下层介质
+            const lowerGeo = new THREE.BoxGeometry(14, 4, 14);
+            const lowerMat = new THREE.MeshPhysicalMaterial({
+                color: mediumColors[state.medium2],
+                transparent: true,
+                opacity: 0.45,
+                roughness: 0.05,
+                metalness: 0,
+                side: THREE.DoubleSide
+            });
+            const lowerMesh = new THREE.Mesh(lowerGeo, lowerMat);
+            lowerMesh.position.y = -2;
+            lowerMesh.name = 'lowerMedium';
+            group.add(lowerMesh);
+            
+            // 分界面
+            const interfaceGeo = new THREE.PlaneGeometry(14, 14);
+            const interfaceMat = new THREE.MeshBasicMaterial({
+                color: 0x00e5b0,
+                transparent: true,
+                opacity: 0.08,
+                side: THREE.DoubleSide
+            });
+            const interfaceMesh = new THREE.Mesh(interfaceGeo, interfaceMat);
+            interfaceMesh.rotation.x = -Math.PI / 2;
+            group.add(interfaceMesh);
+            
+            // 边框
+            const borderGeo = new THREE.EdgesGeometry(new THREE.PlaneGeometry(14, 14));
+            const borderMat = new THREE.LineBasicMaterial({ color: 0x00e5b0, transparent: true, opacity: 0.5 });
+            const border = new THREE.LineSegments(borderGeo, borderMat);
+            border.rotation.x = -Math.PI / 2;
+            border.position.y = 0.02;
+            group.add(border);
+            
+            return group;
+        }
+        
+        const mediumLayers = createMediumLayers();
+        scene.add(mediumLayers);
+        
+        // 光线组
+        const lightGroup = new THREE.Group();
+        scene.add(lightGroup);
+        
+        // 创建光线
+        function updateLightRays() {
+            while (lightGroup.children.length > 0) {
+                const child = lightGroup.children[0];
+                if (child.geometry) child.geometry.dispose();
+                if (child.material) child.material.dispose();
+                lightGroup.remove(child);
+            }
+            
+            let angleRad, sinTheta1, sinTheta2, totalReflection = false, refractAngleRad = 0;
+            
+            if (state.reverseIncident) {
+                // 逆向入射：使用斯涅尔定律计算
+                // 正常入射时：n1 * sin(θ1) = n2 * sin(θ2)
+                // 逆向入射时：n2 * sin(θ2) = n1 * sin(θ1)
+                // 所以逆向入射时，θ2变成新的入射角，θ1变成新的折射角
+                
+                // 首先计算正常入射时的折射角
+                const originalAngleRad = state.incidentAngle * Math.PI / 180;
+                const originalSinTheta1 = Math.sin(originalAngleRad);
+                const originalSinTheta2 = (state.n1 / state.n2) * originalSinTheta1;
+                
+                if (Math.abs(originalSinTheta2) <= 1) {
+                    // 当折射角存在时，逆向入射的入射角就是原来的折射角
+                    angleRad = Math.asin(originalSinTheta2);
+                    
+                    // 计算逆向入射时的折射角（原来的入射角）
+                    sinTheta1 = Math.sin(angleRad);
+                    sinTheta2 = (state.n2 / state.n1) * sinTheta1;
+                    
+                    if (Math.abs(sinTheta2) > 1) {
+                        totalReflection = true;
+                        refractAngleRad = 0;
+                    } else {
+                        refractAngleRad = Math.asin(sinTheta2);
+                    }
+                } else {
+                    // 全反射时，逆向入射也会全反射
+                    angleRad = originalAngleRad;
+                    totalReflection = true;
+                    refractAngleRad = 0;
+                }
+            } else {
+                // 正常入射
+                angleRad = state.incidentAngle * Math.PI / 180;
+                sinTheta1 = Math.sin(angleRad);
+                sinTheta2 = (state.n1 / state.n2) * sinTheta1;
+                
+                totalReflection = false;
+                refractAngleRad = 0;
+                
+                if (Math.abs(sinTheta2) > 1) {
+                    totalReflection = true;
+                } else {
+                    refractAngleRad = Math.asin(sinTheta2);
+                }
+            }
+            
+            const rayLength = 8;
+            
+            // 创建箭头的函数
+            const createArrow = (start, end, color, renderOrder) => {
+                const direction = new THREE.Vector3().subVectors(end, start).normalize();
+                const midPoint = new THREE.Vector3().addVectors(start, end).multiplyScalar(0.5);
+                
+                // 箭头大小
+                const arrowSize = 0.25;
+                const arrowAngle = Math.PI / 6; // 30度
+                
+                // 计算垂直方向
+                const perpendicular = new THREE.Vector3(-direction.y, direction.x, 0).normalize();
+                
+                // 箭头两翼
+                const arrowLeft = new THREE.Vector3()
+                    .copy(direction)
+                    .multiplyScalar(-arrowSize)
+                    .applyAxisAngle(new THREE.Vector3(0, 0, 1), arrowAngle)
+                    .add(midPoint);
+                
+                const arrowRight = new THREE.Vector3()
+                    .copy(direction)
+                    .multiplyScalar(-arrowSize)
+                    .applyAxisAngle(new THREE.Vector3(0, 0, 1), -arrowAngle)
+                    .add(midPoint);
+                
+                const arrowMat = new THREE.LineBasicMaterial({
+                    color: color,
+                    depthTest: false,
+                    depthWrite: false
+                });
+                
+                // 箭头两条线
+                const arrowGeo1 = new THREE.BufferGeometry().setFromPoints([midPoint, arrowLeft]);
+                const arrowGeo2 = new THREE.BufferGeometry().setFromPoints([midPoint, arrowRight]);
+                
+                const arrowLine1 = new THREE.Line(arrowGeo1, arrowMat);
+                const arrowLine2 = new THREE.Line(arrowGeo2, arrowMat);
+                arrowLine1.renderOrder = renderOrder;
+                arrowLine2.renderOrder = renderOrder;
+                
+                return [arrowLine1, arrowLine2];
+            };
+            
+            // 使用精灵显示角度
+            const createTextSprite = (text, position, color) => {
+                const canvas = document.createElement('canvas');
+                canvas.width = 128;
+                canvas.height = 64;
+                const ctx = canvas.getContext('2d');
+                ctx.font = 'bold 32px Space Grotesk';
+                ctx.fillStyle = color;
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(text, 64, 32);
+                
+                const texture = new THREE.Texture(canvas);
+                texture.needsUpdate = true;
+                const spriteMat = new THREE.SpriteMaterial({ 
+                    map: texture, 
+                    transparent: true,
+                    depthTest: false,
+                    depthWrite: false
+                });
+                const sprite = new THREE.Sprite(spriteMat);
+                sprite.position.copy(position);
+                sprite.scale.set(1.2, 0.6, 1);
+                sprite.renderOrder = 96;
+                return sprite;
+            };
+            
+            if (state.reverseIncident) {
+                // 逆向入射模式
+                // 原来的折射光线变成入射光线（从下方射入）
+                const incidentStart = new THREE.Vector3(
+                    rayLength * Math.sin(angleRad),
+                    -rayLength * Math.cos(angleRad),
+                    0
+                );
+                const incidentEnd = new THREE.Vector3(0, 0, 0);
+                
+                // 入射光线
+                const incidentMat = new THREE.LineBasicMaterial({ 
+                    color: 0x00e5b0, 
+                    linewidth: 3,
+                    depthTest: false,
+                    depthWrite: false
+                });
+                const incidentGeo = new THREE.BufferGeometry().setFromPoints([incidentStart, incidentEnd]);
+                const incidentLine = new THREE.Line(incidentGeo, incidentMat);
+                incidentLine.renderOrder = 100;
+                lightGroup.add(incidentLine);
+                
+                // 入射光线箭头
+                const incidentArrows = createArrow(incidentStart, incidentEnd, 0x00e5b0, 101);
+                incidentArrows.forEach(arrow => lightGroup.add(arrow));
+                
+                // 入射光光晕
+                for (let i = 1; i <= 4; i++) {
+                    const glowMat = new THREE.LineBasicMaterial({
+                        color: 0x00e5b0,
+                        transparent: true,
+                        opacity: 0.15 - i * 0.03,
+                        depthTest: false,
+                        depthWrite: false
+                    });
+                    const offset = i * 0.03;
+                    const glowGeo = new THREE.BufferGeometry().setFromPoints([
+                        incidentStart.clone().add(new THREE.Vector3(0, 0, offset)),
+                        incidentEnd.clone().add(new THREE.Vector3(0, 0, offset))
+                    ]);
+                    const glowLine = new THREE.Line(glowGeo, glowMat);
+                    glowLine.renderOrder = 99;
+                    lightGroup.add(glowLine);
+                }
+                
+                // 原来的入射光线变成折射光线（向上折射）
+                if (!totalReflection) {
+                    const refractEnd = new THREE.Vector3(
+                        -rayLength * Math.sin(refractAngleRad),
+                        rayLength * Math.cos(refractAngleRad),
+                        0
+                    );
+                    
+                    const refractMat = new THREE.LineBasicMaterial({ 
+                        color: 0xffd93d, 
+                        linewidth: 3,
+                        depthTest: false,
+                        depthWrite: false
+                    });
+                    const refractGeo = new THREE.BufferGeometry().setFromPoints([incidentEnd, refractEnd]);
+                    const refractLine = new THREE.Line(refractGeo, refractMat);
+                    refractLine.renderOrder = 100;
+                    lightGroup.add(refractLine);
+                    
+                    // 折射光线箭头
+                    const refractArrows = createArrow(incidentEnd, refractEnd, 0xffd93d, 101);
+                    refractArrows.forEach(arrow => lightGroup.add(arrow));
+                    
+                    // 折射光光晕
+                    for (let i = 1; i <= 4; i++) {
+                        const glowMat = new THREE.LineBasicMaterial({
+                            color: 0xffd93d,
+                            transparent: true,
+                            opacity: 0.15 - i * 0.03,
+                            depthTest: false,
+                            depthWrite: false
+                        });
+                        const offset = i * 0.03;
+                        const glowGeo = new THREE.BufferGeometry().setFromPoints([
+                            incidentEnd.clone().add(new THREE.Vector3(0, 0, offset)),
+                            refractEnd.clone().add(new THREE.Vector3(0, 0, offset))
+                        ]);
+                        const glowLine = new THREE.Line(glowGeo, glowMat);
+                        glowLine.renderOrder = 99;
+                        lightGroup.add(glowLine);
+                    }
+                }
+                
+                // 新的反射光线（从下方入射的反射）
+                if (state.showReflected || totalReflection) {
+                    const reflectEnd = new THREE.Vector3(
+                        -rayLength * Math.sin(angleRad),
+                        -rayLength * Math.cos(angleRad),
+                        0
+                    );
+                    
+                    const reflectMat = new THREE.LineBasicMaterial({
+                        color: 0xff7b7b,
+                        transparent: true,
+                        opacity: totalReflection ? 1 : 0.5,
+                        linewidth: 3,
+                        depthTest: false,
+                        depthWrite: false
+                    });
+                    const reflectGeo = new THREE.BufferGeometry().setFromPoints([incidentEnd, reflectEnd]);
+                    const reflectLine = new THREE.Line(reflectGeo, reflectMat);
+                    reflectLine.renderOrder = 100;
+                    lightGroup.add(reflectLine);
+                    
+                    // 反射光线箭头
+                    const reflectArrows = createArrow(incidentEnd, reflectEnd, 0xff7b7b, 101);
+                    reflectArrows.forEach(arrow => lightGroup.add(arrow));
+                }
+                
+                // 角度标注
+                if (state.showAngles) {
+                    // 入射角弧（下方，蓝色线和法线的夹角）
+                    const arcRadius = 1.2;
+                    const incidentArcPoints = [];
+                    // 逆向入射时，入射光线从下方右侧射入，与法线（负Y轴）形成夹角
+                    // 弧线从负Y轴（-PI/2）向入射光线方向（右侧）画弧
+                    const startAngle = -Math.PI / 2;
+                    for (let i = 0; i <= 32; i++) {
+                        const a = startAngle + angleRad * (i / 32);
+                        incidentArcPoints.push(new THREE.Vector3(
+                            arcRadius * Math.cos(a),
+                            arcRadius * Math.sin(a),
+                            0
+                        ));
+                    }
+                    const incidentArcGeo = new THREE.BufferGeometry().setFromPoints(incidentArcPoints);
+                    const incidentArcMat = new THREE.LineBasicMaterial({ 
+                        color: 0x00e5b0, 
+                        transparent: true, 
+                        opacity: 0.8,
+                        depthTest: false,
+                        depthWrite: false
+                    });
+                    const incidentArcLine = new THREE.Line(incidentArcGeo, incidentArcMat);
+                    incidentArcLine.renderOrder = 97;
+                    lightGroup.add(incidentArcLine);
+                    
+                    // 折射角弧（上方，黄色线和法线的夹角）
+                    if (!totalReflection) {
+                        const refractArcPoints = [];
+                        // 折射光线从上方左侧射出，与法线（正Y轴）形成夹角
+                        // 弧线从正Y轴（PI/2）向折射光线方向（左侧）画弧
+                        const refractStartAngle = Math.PI / 2;
+                        for (let i = 0; i <= 32; i++) {
+                            const a = refractStartAngle + refractAngleRad * (i / 32);
+                            refractArcPoints.push(new THREE.Vector3(
+                                arcRadius * Math.cos(a),
+                                arcRadius * Math.sin(a),
+                                0
+                            ));
+                        }
+                        const refractArcGeo = new THREE.BufferGeometry().setFromPoints(refractArcPoints);
+                        const refractArcMat = new THREE.LineBasicMaterial({ 
+                            color: 0xffd93d, 
+                            transparent: true, 
+                            opacity: 0.8,
+                            depthTest: false,
+                            depthWrite: false
+                        });
+                        const refractArcLine = new THREE.Line(refractArcGeo, refractArcMat);
+                        refractArcLine.renderOrder = 97;
+                        lightGroup.add(refractArcLine);
+                    }
+                    
+                    // 角度标签
+                    const labelRadius = 1.8;
+                    // 入射角标签位置（下方，蓝色线和法线的夹角处）
+                    const incidentLabelAngle = -Math.PI / 2 + angleRad / 2;
+                    const incidentLabelPos = new THREE.Vector3(
+                        labelRadius * Math.cos(incidentLabelAngle),
+                        labelRadius * Math.sin(incidentLabelAngle),
+                        0.05
+                    );
+                    
+                    const incidentAngleDeg = Math.round(angleRad * 180 / Math.PI * 100) / 100;
+                    lightGroup.add(createTextSprite(`θ₁=${incidentAngleDeg}°`, incidentLabelPos, '#00e5b0'));
+                    
+                    if (!totalReflection) {
+                        // 折射角标签位置（上方，黄色线和法线的夹角处）
+                        const refractLabelAngle = Math.PI / 2 + refractAngleRad / 2;
+                        const refractLabelPos = new THREE.Vector3(
+                            labelRadius * Math.cos(refractLabelAngle),
+                            labelRadius * Math.sin(refractLabelAngle),
+                            0.05
+                        );
+                        const refractAngleDeg = Math.round(refractAngleRad * 180 / Math.PI * 100) / 100;
+                        lightGroup.add(createTextSprite(`θ₂=${refractAngleDeg}°`, refractLabelPos, '#ffd93d'));
+                    }
+                }
+            } else {
+                // 正常入射模式
+                // 入射光线起点
+                const incidentStart = new THREE.Vector3(
+                    -rayLength * Math.sin(angleRad),
+                    rayLength * Math.cos(angleRad),
+                    0
+                );
+                const incidentEnd = new THREE.Vector3(0, 0, 0);
+                
+                // 入射光线
+                const incidentMat = new THREE.LineBasicMaterial({ 
+                    color: 0xffd93d, 
+                    linewidth: 3,
+                    depthTest: false,
+                    depthWrite: false
+                });
+                const incidentGeo = new THREE.BufferGeometry().setFromPoints([incidentStart, incidentEnd]);
+                const incidentLine = new THREE.Line(incidentGeo, incidentMat);
+                incidentLine.renderOrder = 100;
+                lightGroup.add(incidentLine);
+                
+                // 入射光线箭头
+                const incidentArrows = createArrow(incidentStart, incidentEnd, 0xffd93d, 101);
+                incidentArrows.forEach(arrow => lightGroup.add(arrow));
+                
+                // 入射光光晕
+                for (let i = 1; i <= 4; i++) {
+                    const glowMat = new THREE.LineBasicMaterial({
+                        color: 0xffd93d,
+                        transparent: true,
+                        opacity: 0.15 - i * 0.03,
+                        depthTest: false,
+                        depthWrite: false
+                    });
+                    const offset = i * 0.03;
+                    const glowGeo = new THREE.BufferGeometry().setFromPoints([
+                        incidentStart.clone().add(new THREE.Vector3(0, 0, offset)),
+                        incidentEnd.clone().add(new THREE.Vector3(0, 0, offset))
+                    ]);
+                    const glowLine = new THREE.Line(glowGeo, glowMat);
+                    glowLine.renderOrder = 99;
+                    lightGroup.add(glowLine);
+                }
+                
+                // 折射光线
+                if (!totalReflection) {
+                    const refractEnd = new THREE.Vector3(
+                        rayLength * Math.sin(refractAngleRad),
+                        -rayLength * Math.cos(refractAngleRad),
+                        0
+                    );
+                    
+                    const refractMat = new THREE.LineBasicMaterial({ 
+                        color: 0x00e5b0, 
+                        linewidth: 3,
+                        depthTest: false,
+                        depthWrite: false
+                    });
+                    const refractGeo = new THREE.BufferGeometry().setFromPoints([incidentEnd, refractEnd]);
+                    const refractLine = new THREE.Line(refractGeo, refractMat);
+                    refractLine.renderOrder = 100;
+                    lightGroup.add(refractLine);
+                    
+                    // 折射光线箭头
+                    const refractArrows = createArrow(incidentEnd, refractEnd, 0x00e5b0, 101);
+                    refractArrows.forEach(arrow => lightGroup.add(arrow));
+                    
+                    // 折射光光晕
+                    for (let i = 1; i <= 4; i++) {
+                        const glowMat = new THREE.LineBasicMaterial({
+                            color: 0x00e5b0,
+                            transparent: true,
+                            opacity: 0.15 - i * 0.03,
+                            depthTest: false,
+                            depthWrite: false
+                        });
+                        const offset = i * 0.03;
+                        const glowGeo = new THREE.BufferGeometry().setFromPoints([
+                            incidentEnd.clone().add(new THREE.Vector3(0, 0, offset)),
+                            refractEnd.clone().add(new THREE.Vector3(0, 0, offset))
+                        ]);
+                        const glowLine = new THREE.Line(glowGeo, glowMat);
+                        glowLine.renderOrder = 99;
+                        lightGroup.add(glowLine);
+                    }
+                }
+                
+                // 反射光线
+                if (state.showReflected || totalReflection) {
+                    const reflectEnd = new THREE.Vector3(
+                        rayLength * Math.sin(angleRad),
+                        rayLength * Math.cos(angleRad),
+                        0
+                    );
+                    
+                    const reflectMat = new THREE.LineBasicMaterial({
+                        color: 0xff7b7b,
+                        transparent: true,
+                        opacity: totalReflection ? 1 : 0.5,
+                        linewidth: 3,
+                        depthTest: false,
+                        depthWrite: false
+                    });
+                    const reflectGeo = new THREE.BufferGeometry().setFromPoints([incidentEnd, reflectEnd]);
+                    const reflectLine = new THREE.Line(reflectGeo, reflectMat);
+                    reflectLine.renderOrder = 100;
+                    lightGroup.add(reflectLine);
+                    
+                    // 反射光线箭头
+                    const reflectArrows = createArrow(incidentEnd, reflectEnd, 0xff7b7b, 101);
+                    reflectArrows.forEach(arrow => lightGroup.add(arrow));
+                }
+                
+                // 角度标注
+                if (state.showAngles) {
+                    // 入射角弧
+                    const arcRadius = 1.2;
+                    const incidentArcPoints = [];
+                    // 入射光线从左侧射入，与法线（正Y轴）形成入射角
+                    // 入射光线方向角度为 Math.PI/2 + angleRad（第二象限）
+                    // 弧线从法线（正Y轴，Math.PI/2）向入射光线方向（左侧）画
+                    const startAngle = Math.PI / 2;
+                    for (let i = 0; i <= 32; i++) {
+                        const a = startAngle + angleRad * (i / 32);
+                        incidentArcPoints.push(new THREE.Vector3(
+                            arcRadius * Math.cos(a),
+                            arcRadius * Math.sin(a),
+                            0
+                        ));
+                    }
+                    const incidentArcGeo = new THREE.BufferGeometry().setFromPoints(incidentArcPoints);
+                    const incidentArcMat = new THREE.LineBasicMaterial({ 
+                        color: 0xffd93d, 
+                        transparent: true, 
+                        opacity: 0.8,
+                        depthTest: false,
+                        depthWrite: false
+                    });
+                    const incidentArcLine = new THREE.Line(incidentArcGeo, incidentArcMat);
+                    incidentArcLine.renderOrder = 97;
+                    lightGroup.add(incidentArcLine);
+                    
+                    // 折射角弧
+                    if (!totalReflection) {
+                        const refractArcPoints = [];
+                        // 折射角弧线：从负Y轴（-PI/2）向折射光线方向画弧
+                        // 折射光线在第四象限，角度为 -PI/2 + refractAngleRad
+                        const refractStartAngle = -Math.PI / 2;
+                        for (let i = 0; i <= 32; i++) {
+                            const a = refractStartAngle + refractAngleRad * (i / 32);
+                            refractArcPoints.push(new THREE.Vector3(
+                                arcRadius * Math.cos(a),
+                                arcRadius * Math.sin(a),
+                                0
+                            ));
+                        }
+                        const refractArcGeo = new THREE.BufferGeometry().setFromPoints(refractArcPoints);
+                        const refractArcMat = new THREE.LineBasicMaterial({ 
+                            color: 0x00e5b0, 
+                            transparent: true, 
+                            opacity: 0.8,
+                            depthTest: false,
+                            depthWrite: false
+                        });
+                        const refractArcLine = new THREE.Line(refractArcGeo, refractArcMat);
+                        refractArcLine.renderOrder = 97;
+                        lightGroup.add(refractArcLine);
+                    }
+                    
+                    // 角度标签
+                    const labelRadius = 1.8;
+                    // 入射角标签位置：放在法线（正Y轴）和入射光线之间的角平分线上
+                    // 法线方向是 PI/2（正Y轴），入射光线方向是 PI/2 + angleRad（第二象限，左侧）
+                    // 角平分线方向是 PI/2 + angleRad / 2
+                    const incidentLabelAngle = Math.PI / 2 + angleRad / 2;
+                    const incidentLabelPos = new THREE.Vector3(
+                        labelRadius * Math.cos(incidentLabelAngle),
+                        labelRadius * Math.sin(incidentLabelAngle),
+                        0.05
+                    );
+                    
+                    lightGroup.add(createTextSprite(`θ₁=${state.incidentAngle}°`, incidentLabelPos, '#ffd93d'));
+                    
+                    if (!totalReflection) {
+                        // 折射角标签位置：放在法线（负Y轴）和折射光线之间的角平分线上
+                        // 法线方向是 -PI/2，折射光线方向是 -PI/2 + refractAngleRad
+                        // 角平分线方向是 -PI/2 + refractAngleRad / 2
+                        const refractLabelAngle = -Math.PI / 2 + refractAngleRad / 2;
+                        const refractLabelPos = new THREE.Vector3(
+                            labelRadius * Math.cos(refractLabelAngle),
+                            labelRadius * Math.sin(refractLabelAngle),
+                            0.05
+                        );
+                        const refractAngleDeg = Math.round(refractAngleRad * 180 / Math.PI * 100) / 100;
+                        lightGroup.add(createTextSprite(`θ₂=${refractAngleDeg}°`, refractLabelPos, '#00e5b0'));
+                    }
+                }
+            }
+            
+            // 法线
+            if (state.showNormal) {
+                const normalMat = new THREE.LineDashedMaterial({
+                    color: 0xffffff,
+                    dashSize: 0.15,
+                    gapSize: 0.08,
+                    transparent: true,
+                    opacity: 0.7,
+                    depthTest: false,
+                    depthWrite: false
+                });
+                const normalGeo = new THREE.BufferGeometry().setFromPoints([
+                    new THREE.Vector3(0, 6, 0),
+                    new THREE.Vector3(0, -6, 0)
+                ]);
+                const normalLine = new THREE.Line(normalGeo, normalMat);
+                normalLine.computeLineDistances();
+                normalLine.renderOrder = 98;
+                lightGroup.add(normalLine);
+            }
+            
+            // 更新UI
+            updateUI(totalReflection, refractAngleRad);
+        }
+        
+        // 更新UI显示
+        function updateUI(totalReflection, refractAngleRad) {
+            document.getElementById('display-incident').textContent = state.incidentAngle + '°';
+            
+            const refractedDisplay = document.getElementById('display-refracted');
+            const statusBox = document.getElementById('status-message');
+            
+            if (totalReflection) {
+                refractedDisplay.textContent = '全反射';
+                refractedDisplay.style.color = '#ff7b7b';
+                statusBox.className = 'status-box status-warning';
+                statusBox.textContent = '发生全反射现象';
+            } else {
+                const refractAngleDeg = Math.round(refractAngleRad * 180 / Math.PI * 10) / 10;
+                refractedDisplay.textContent = refractAngleDeg + '°';
+                refractedDisplay.style.color = '#00e5b0';
+                
+                statusBox.className = 'status-box status-normal';
+                const ratio = (state.n1 / state.n2).toFixed(3);
+                
+                if (state.n1 > state.n2) {
+                    const criticalAngle = Math.round(Math.asin(state.n2 / state.n1) * 180 / Math.PI * 10) / 10;
+                    statusBox.innerHTML = `临界角: ${criticalAngle}° | n₁/n₂ = ${ratio}`;
+                } else {
+                    statusBox.innerHTML = `折射率比 n₁/n₂ = ${ratio}`;
+                }
+            }
+        }
+        
+        // 更新介质颜色
+        function updateMediumColors() {
+            const upper = mediumLayers.getObjectByName('upperMedium');
+            const lower = mediumLayers.getObjectByName('lowerMedium');
+            
+            if (upper) {
+                upper.material.color.setHex(mediumColors[state.medium1]);
+            }
+            if (lower) {
+                lower.material.color.setHex(mediumColors[state.medium2]);
+            }
+        }
+        
+        // 光照
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+        scene.add(ambientLight);
+        
+        const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+        directionalLight.position.set(5, 10, 5);
+        scene.add(directionalLight);
+        
+        // 事件监听
+        document.getElementById('incident-angle').addEventListener('input', (e) => {
+            state.incidentAngle = parseInt(e.target.value);
+            document.getElementById('angle-value').textContent = state.incidentAngle + '°';
+            updateLightRays();
+        });
+        
+        document.getElementById('medium-select').addEventListener('change', (e) => {
+            const [m1, m2] = e.target.value.split('-');
+            state.medium1 = m1;
+            state.medium2 = m2;
+            state.n1 = refractiveIndices[m1];
+            state.n2 = refractiveIndices[m2];
+            updateMediumColors();
+            updateLightRays();
+        });
+        
+        document.getElementById('show-normal').addEventListener('change', (e) => {
+            state.showNormal = e.target.checked;
+            updateLightRays();
+        });
+        
+        document.getElementById('show-angles').addEventListener('change', (e) => {
+            state.showAngles = e.target.checked;
+            updateLightRays();
+        });
+        
+        document.getElementById('show-reflected').addEventListener('change', (e) => {
+            state.showReflected = e.target.checked;
+            updateLightRays();
+        });
+        
+        // 逆向入射按钮
+        document.getElementById('reverse-btn').addEventListener('click', () => {
+            // 切换逆向入射状态
+            state.reverseIncident = !state.reverseIncident;
+            
+            // 更新光线
+            updateLightRays();
+        });
+        
+        // 窗口调整
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+        
+        // 动画
+        function animate() {
+            requestAnimationFrame(animate);
+            
+            controls.update();
+            renderer.render(scene, camera);
+        }
+        
+        // 初始化
+        updateLightRays();
+        animate();
+    </script>
+</body>
+</html>

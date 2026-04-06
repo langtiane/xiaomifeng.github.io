@@ -1,0 +1,1764 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>凸透镜成像实验记录系统</title>
+<!-- 引入SheetJS库以实现Excel导入导出 -->
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<style>
+  /* 样式保持不变，与之前相同 */
+  body {
+    font-family: 'Segoe UI', Arial, sans-serif;
+    margin: 20px;
+    background: #f0f7ff;
+    color: #333;
+  }
+  h2 {
+    text-align: center;
+    color: #2c3e50;
+    margin-bottom: 20px;
+  }
+  .container {
+    display: flex;
+    flex-direction: column;
+    gap: 30px;
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+  .panel {
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    padding: 20px;
+    width: 100%;
+  }
+  .global-settings {
+    background: #e8f4fc;
+    padding: 15px;
+    border-radius: 4px;
+    margin-bottom: 20px;
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap;
+  }
+  .global-settings .control-item {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+  .global-settings label {
+    font-weight: bold;
+  }
+  .global-settings input {
+    width: 80px;
+    padding: 5px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    text-align: center;
+  }
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    background: #fff;
+    margin-bottom: 15px;
+    font-size: 14px;
+  }
+  th, td {
+    border: 1px solid #ddd;
+    padding: 8px;
+    text-align: center;
+  }
+  th {
+    background: #3498db;
+    color: white;
+    font-weight: 600;
+  }
+  input[type=number] {
+    width: 60px;
+    padding: 5px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    text-align: center;
+  }
+  select {
+    padding: 5px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    background: white;
+    width: 100px;
+  }
+  .button-group {
+    display: flex;
+    gap: 10px;
+    margin-top: 15px;
+    flex-wrap: wrap;
+  }
+  button {
+    padding: 10px 15px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: background 0.3s;
+  }
+  .drawBtn {
+    background: #2ecc71;
+    color: white;
+  }
+  .drawBtn:hover {
+    background: #27ae60;
+  }
+  #addTable {
+    background: #9b59b6;
+    color: white;
+  }
+  #addTable:hover {
+    background: #8e44ad;
+  }
+  .addRow {
+    background: #3498db;
+    color: white;
+  }
+  .addRow:hover {
+    background: #2980b9;
+  }
+  #combineBtn {
+    background: #e67e22;
+    color: white;
+  }
+  #combineBtn:hover {
+    background: #d35400;
+  }
+  #exportBtn {
+    background: #16a085;
+    color: white;
+  }
+  #exportBtn:hover {
+    background: #1abc9c;
+  }
+  #importBtn {
+    background: #8e44ad;
+    color: white;
+  }
+  #importBtn:hover {
+    background: #9b59b6;
+  }
+  .clearBtn {
+    background: #e74c3c;
+    color: white;
+  }
+  .clearBtn:hover {
+    background: #c0392b;
+  }
+  svg {
+    border: 1px solid #bdc3c7;
+    background: white;
+    border-radius: 4px;
+    overflow: visible;
+    width: 100%;
+  }
+  .obj {
+    stroke-width: 2;
+    fill: currentColor;
+    cursor: pointer;
+  }
+  .img-real {
+    stroke-width: 2;
+    cursor: pointer;
+  }
+  .img-vir {
+    stroke-width: 2;
+    stroke-dasharray: 4,4;
+    cursor: pointer;
+  }
+  .info-panel {
+    margin-top: 20px;
+    padding: 15px;
+    background: #e8f4fc;
+    border-radius: 4px;
+    font-size: 14px;
+  }
+  .info-panel h3 {
+    margin-top: 0;
+    color: #2c3e50;
+  }
+  .instruction {
+    margin-bottom: 20px;
+    background: #e8f4fc;
+    padding: 15px;
+    border-radius: 4px;
+  }
+  .control-group {
+    margin: 10px 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15px;
+  }
+  .control-item {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+  .control-item label {
+    font-weight: bold;
+  }
+  .focal-points {
+    stroke: #e74c3c;
+    fill: #e74c3c;
+  }
+  .zoom-controls {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    margin: 10px 0;
+  }
+  .zoom-controls button {
+    padding: 5px 10px;
+    background: #3498db;
+    color: white;
+  }
+  .zoom-controls span {
+    font-weight: bold;
+  }
+  .zero-tick {
+    stroke: #333;
+    stroke-width: 2;
+  }
+  .table-container {
+    margin-bottom: 30px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 15px;
+    background: #f9f9f9;
+  }
+  .table-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #ddd;
+  }
+  .table-title {
+    font-weight: bold;
+    font-size: 18px;
+    color: #2c3e50;
+  }
+  .table-controls {
+    display: flex;
+    gap: 10px;
+  }
+  .table-controls button {
+    padding: 6px 12px;
+    font-size: 12px;
+  }
+  .combined-table {
+    background: #fffacd;
+    border: 2px solid #f39c12;
+  }
+  .combined-table .table-title {
+    color: #e67e22;
+  }
+  .file-input {
+    display: none;
+  }
+</style>
+</head>
+<body>
+
+<h2>凸透镜成像实验记录系统</h2>
+
+<div class="instruction">
+  <p><strong>使用说明：</strong>可以创建多个表格进行分组实验，每个表格都可以独立绘图。点击"整合表格"按钮，会把所有表格里面的数据整合到一个表格里面（焦距和物高相同时），整合的时候对数据进行重新排序，按照物距从大到小排列。</p>
+  <p><strong>新增功能：</strong>可以导出Excel数据表格，或从Excel导入数据。</p>
+</div>
+
+<div class="container">
+  <div class="panel"> <!-- 上方数据面板 -->
+    <div class="global-settings">
+      <div class="control-item">
+        <label for="globalF">默认焦距 f (cm):</label>
+        <input type="number" id="globalF" min="1" placeholder="输入焦距">
+      </div>
+      <div class="control-item">
+        <label for="globalHo">默认物高 hₒ (cm):</label>
+        <input type="number" id="globalHo" min="1" placeholder="输入物高">
+      </div>
+    </div>
+    
+    <div class="button-group">
+      <button id="addTable">新建表格</button>
+      <button id="combineBtn">整合表格</button>
+      <button id="exportBtn">导出Excel</button>
+      <button id="importBtn">导入Excel</button>
+      <input type="file" id="fileInput" class="file-input" accept=".xlsx, .xls">
+    </div>
+    
+    <!-- 表格容器 -->
+    <div id="tablesContainer">
+      <!-- 第一个表格 -->
+      <div class="table-container" data-table-id="1">
+        <div class="table-header">
+          <div class="table-title">实验数据表 1</div>
+          <div class="table-controls">
+            <button class="drawBtn">绘制当前表格</button>
+            <button class="clearBtn">清空当前表格</button>
+            <button class="delete-table" style="background:#e74c3c;color:white;">删除表格</button>
+          </div>
+        </div>
+        
+        <div class="global-settings">
+          <div class="control-item">
+            <label for="f1">焦距 f (cm):</label>
+            <input type="number" class="table-f" id="f1" min="1" placeholder="输入焦距">
+          </div>
+          <div class="control-item">
+            <label for="ho1">物高 hₒ (cm):</label>
+            <input type="number" class="table-ho" id="ho1" min="1" placeholder="输入物高">
+          </div>
+        </div>
+        
+        <table class="dataTable">
+          <thead>
+            <tr>
+              <th>序号</th>
+              <th>物距 u<br>(cm，>0)</th>
+              <th>光屏上是否成像</th>
+              <th>像距 v<br>(cm)</th>
+              <th>像高 hᵢ<br>(cm)</th>
+              <th>虚实</th>
+              <th>正倒</th>
+              <th>像的大小</th>
+              <th>操作</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>1</td>
+              <td><input type="number" class="u-input" placeholder="物距"></td>
+              <td>
+                <select class="image-status">
+                  <option value="normal" selected>正常成像</option>
+                  <option value="no-image">光屏上不成像</option>
+                </select>
+              </td>
+              <td><input type="number" class="v-input" placeholder="像距"></td>
+              <td><input type="number" class="hi-input" placeholder="像高"></td>
+              <td>
+                <select class="real-input">
+                  <option value="real" selected>实像</option>
+                  <option value="virtual">虚像</option>
+                  <option value="no-image">光屏上不成像</option>
+                </select>
+              </td>
+              <td>
+                <select class="orientation-input">
+                  <option value="upright">正立</option>
+                  <option value="inverted" selected>倒立</option>
+                  <option value="no-image">光屏上不成像</option>
+                </select>
+              </td>
+              <td>
+                <select class="size-input">
+                  <option value="reduced" selected>缩小</option>
+                  <option value="same">等大</option>
+                  <option value="enlarged">放大</option>
+                  <option value="no-image">光屏上不成像</option>
+                </select>
+              </td>
+              <td><button class="delete-btn" style="background:#e74c3c;color:white;padding:4px 8px;">删除</button></td>
+            </tr>
+          </tbody>
+        </table>
+        
+        <div class="button-group">
+          <button class="addRow">添加数据行</button>
+        </div>
+      </div>
+    </div>
+    
+    <!-- 整合后的表格 -->
+    <div id="combinedTableContainer" class="table-container combined-table" style="display:none;">
+      <div class="table-header">
+        <div class="table-title">整合表格</div>
+        <div class="table-controls">
+          <button id="drawCombinedBtn" class="drawBtn">绘制整合表格</button>
+          <button id="closeCombinedBtn" class="clearBtn">关闭整合表格</button>
+        </div>
+      </div>
+      
+      <div class="global-settings">
+        <div class="control-item">
+          <label>焦距 f (cm):</label>
+          <span id="combinedF"></span>
+        </div>
+        <div class="control-item">
+          <label>物高 hₒ (cm):</label>
+          <span id="combinedHo"></span>
+        </div>
+      </div>
+      
+      <table id="combinedTable" class="dataTable">
+        <thead>
+          <tr>
+            <th>序号</th>
+            <th>物距 u<br>(cm，>0)</th>
+            <th>光屏上是否成像</th>
+            <th>像距 v<br>(cm)</th>
+            <th>像高 hᵢ<br>(cm)</th>
+            <th>虚实</th>
+            <th>正倒</th>
+            <th>像的大小</th>
+            <th>来源表格</th>
+          </tr>
+        </thead>
+        <tbody>
+        </tbody>
+      </table>
+    </div>
+    
+    <div class="control-group">
+      <div class="control-item">
+        <label for="xScale">横轴比例 (像素/cm):</label>
+        <input type="number" id="xScale" value="5" min="1" max="20">
+      </div>
+      <div class="control-item">
+        <label for="yScale">纵轴比例 (像素/cm):</label>
+        <input type="number" id="yScale" value="20" min="1" max="50">
+      </div>
+      <div class="control-item">
+        <label for="tickInterval">刻度间隔 (cm):</label>
+        <input type="number" id="tickInterval" value="5" min="1" max="20">
+      </div>
+    </div>
+    
+    <div class="control-group">
+      <div class="control-item">
+        <input type="checkbox" id="showFocalPoints">
+        <label for="showFocalPoints">显示焦距点</label>
+      </div>
+      <div class="control-item">
+        <input type="checkbox" id="showDoubleFocalPoints">
+        <label for="showDoubleFocalPoints">显示2倍焦距点</label>
+      </div>
+      <div class="control-item">
+        <input type="checkbox" id="showYAxisTicks">
+        <label for="showYAxisTicks">显示纵坐标刻度</label>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel"> <!-- 下方绘图面板 -->
+    <div class="zoom-controls">
+      <button id="zoomIn">放大</button>
+      <button id="zoomOut">缩小</button>
+      <span id="zoomLevel">100%</span>
+      <button id="resetZoom">重置缩放</button>
+    </div>
+    <svg id="svg" width="100%" height="600"></svg>
+    <div class="info-panel">
+      <h3>图例说明</h3>
+      <p><span style="color:#3498db;">● 蓝色箭头</span>：大于2倍焦距的物体</p>
+      <p><span style="color:#000000;">● 黑色箭头</span>：等于1倍或2倍焦距的物体</p>
+      <p><span style="color:#2ecc71;">● 绿色箭头</span>：大于1倍小于2倍焦距的物体</p>
+      <p><span style="color:#9b59b6;">● 紫色箭头</span>：小于1倍焦距的物体</p>
+      <p><span style="color:#2ecc71;">● 绿色箭头</span>：放大的像</p>
+      <p><span style="color:#000000;">● 黑色箭头</span>：等大的像</p>
+      <p><span style="color:#3498db;">● 蓝色箭头</span>：缩小的像</p>
+      <p><span style="color:#e74c3c;">● 红色圆点</span>：焦距点 (F)</p>
+      <p><span style="color:#e74c3c;">● 红色方点</span>：2倍焦距点 (2F)</p>
+      <p>凸透镜位于中心位置，左侧为物体，右侧为实像，左侧为虚像</p>
+      <p>倒立的像箭头朝下，正立的像箭头朝上</p>
+      <p><strong>点击箭头可以改变颜色</strong></p>
+    </div>
+  </div>
+</div>
+
+<script>
+// 初始化表格计数器
+let tableCount = 1;
+let rowCount = 1;
+
+// 为默认焦距和物高添加事件，当值改变时更新所有表格的对应值
+document.getElementById('globalF').addEventListener('change', function() {
+  const value = this.value;
+  document.querySelectorAll('.table-f').forEach(input => {
+    if (!input.value) {
+      input.value = value;
+    }
+  });
+});
+
+document.getElementById('globalHo').addEventListener('change', function() {
+  const value = this.value;
+  document.querySelectorAll('.table-ho').forEach(input => {
+    if (!input.value) {
+      input.value = value;
+    }
+  });
+});
+
+// 添加表格
+document.getElementById('addTable').addEventListener('click', function() {
+  const tablesContainer = document.getElementById('tablesContainer');
+  tableCount++;
+  
+  const newTableContainer = document.createElement('div');
+  newTableContainer.className = 'table-container';
+  newTableContainer.setAttribute('data-table-id', tableCount);
+  
+  newTableContainer.innerHTML = `
+    <div class="table-header">
+      <div class="table-title">实验数据表 ${tableCount}</div>
+      <div class="table-controls">
+        <button class="drawBtn">绘制当前表格</button>
+        <button class="clearBtn">清空当前表格</button>
+        <button class="delete-table" style="background:#e74c3c;color:white;">删除表格</button>
+      </div>
+    </div>
+    
+    <div class="global-settings">
+      <div class="control-item">
+        <label for="f${tableCount}">焦距 f (cm):</label>
+        <input type="number" class="table-f" id="f${tableCount}" min="1" placeholder="输入焦距" value="${document.getElementById('globalF').value || ''}">
+      </div>
+      <div class="control-item">
+        <label for="ho${tableCount}">物高 hₒ (cm):</label>
+        <input type="number" class="table-ho" id="ho${tableCount}" min="1" placeholder="输入物高" value="${document.getElementById('globalHo').value || ''}">
+      </div>
+    </div>
+    
+    <table class="dataTable">
+      <thead>
+        <tr>
+          <th>序号</th>
+          <th>物距 u<br>(cm，>0)</th>
+          <th>光屏上是否成像</th>
+          <th>像距 v<br>(cm)</th>
+          <th>像高 hᵢ<br>(cm)</th>
+          <th>虚实</th>
+          <th>正倒</th>
+          <th>像的大小</th>
+          <th>操作</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>1</td>
+          <td><input type="number" class="u-input" placeholder="物距"></td>
+          <td>
+            <select class="image-status">
+              <option value="normal" selected>正常成像</option>
+              <option value="no-image">光屏上不成像</option>
+            </select>
+          </td>
+          <td><input type="number" class="v-input" placeholder="像距"></td>
+          <td><input type="number" class="hi-input" placeholder="像高"></td>
+          <td>
+            <select class="real-input">
+              <option value="real" selected>实像</option>
+              <option value="virtual">虚像</option>
+              <option value="no-image">光屏上不成像</option>
+            </select>
+          </td>
+          <td>
+            <select class="orientation-input">
+              <option value="upright">正立</option>
+              <option value="inverted" selected>倒立</option>
+              <option value="no-image">光屏上不成像</option>
+            </select>
+          </td>
+          <td>
+            <select class="size-input">
+              <option value="reduced" selected>缩小</option>
+              <option value="same">等大</option>
+              <option value="enlarged">放大</option>
+              <option value="no-image">光屏上不成像</option>
+            </select>
+          </td>
+          <td><button class="delete-btn" style="background:#e74c3c;color:white;padding:4px 8px;">删除</button></td>
+        </tr>
+      </tbody>
+    </table>
+    
+    <div class="button-group">
+      <button class="addRow">添加数据行</button>
+    </div>
+  `;
+  
+  tablesContainer.appendChild(newTableContainer);
+  
+  // 为新表格添加事件
+  setupTableEvents(newTableContainer);
+});
+
+// 为表格设置事件监听
+function setupTableEvents(tableContainer) {
+  // 添加数据行
+  const addRowBtn = tableContainer.querySelector('.addRow');
+  addRowBtn.addEventListener('click', function() {
+    const tbody = tableContainer.querySelector('.dataTable tbody');
+    const rows = tbody.querySelectorAll('tr');
+    const newRowCount = rows.length + 1;
+    
+    const newRow = document.createElement('tr');
+    newRow.innerHTML = `
+      <td>${newRowCount}</td>
+      <td><input type="number" class="u-input" placeholder="物距"></td>
+      <td>
+        <select class="image-status">
+          <option value="normal" selected>正常成像</option>
+          <option value="no-image">光屏上不成像</option>
+        </select>
+      </td>
+      <td><input type="number" class="v-input" placeholder="像距"></td>
+      <td><input type="number" class="hi-input" placeholder="像高"></td>
+      <td>
+        <select class="real-input">
+          <option value="real" selected>实像</option>
+          <option value="virtual">虚像</option>
+          <option value="no-image">光屏上不成像</option>
+        </select>
+      </td>
+      <td>
+        <select class="orientation-input">
+          <option value="upright">正立</option>
+          <option value="inverted" selected>倒立</option>
+          <option value="no-image">光屏上不成像</option>
+        </select>
+      </td>
+      <td>
+        <select class="size-input">
+          <option value="reduced">缩小</option>
+          <option value="same">等大</option>
+          <option value="enlarged">放大</option>
+          <option value="no-image">光屏上不成像</option>
+        </select>
+      </td>
+      <td><button class="delete-btn" style="background:#e74c3c;color:white;padding:4px 8px;">删除</button></td>
+    `;
+    
+    tbody.appendChild(newRow);
+    
+    // 为新行的删除按钮添加事件
+    newRow.querySelector('.delete-btn').addEventListener('click', function() {
+      if (tbody.children.length > 1) {
+        newRow.remove();
+        updateTableRowNumbers(tableContainer);
+      } else {
+        alert("至少需要保留一行数据");
+      }
+    });
+    
+    // 为新行的成像情况选择框添加联动事件
+    setupImageStatusListener(newRow.querySelector('.image-status'));
+  });
+  
+  // 设置成像情况选择框的联动事件
+  function setupImageStatusListener(selectElement) {
+    selectElement.addEventListener('change', function() {
+      const row = this.closest('tr');
+      const isNoImage = this.value === 'no-image';
+      
+      // 获取相关输入框
+      const vInput = row.querySelector('.v-input');
+      const hiInput = row.querySelector('.hi-input');
+      const realInput = row.querySelector('.real-input');
+      const orientationInput = row.querySelector('.orientation-input');
+      const sizeInput = row.querySelector('.size-input');
+      
+      // 当选择"光屏上不成像"时，自动设置其他选项
+      if (isNoImage) {
+        vInput.disabled = true;
+        hiInput.disabled = true;
+        realInput.value = 'no-image';
+        orientationInput.value = 'no-image';
+        sizeInput.value = 'no-image';
+      } else {
+        vInput.disabled = false;
+        hiInput.disabled = false;
+        // 恢复默认值
+        if (realInput.value === 'no-image') realInput.value = 'real';
+        if (orientationInput.value === 'no-image') orientationInput.value = 'inverted';
+        if (sizeInput.value === 'no-image') sizeInput.value = 'reduced';
+      }
+    });
+  }
+  
+  // 为表格中初始行的删除按钮添加事件
+  tableContainer.querySelectorAll('.delete-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+      const row = this.closest('tr');
+      const tbody = tableContainer.querySelector('.dataTable tbody');
+      if (tbody.children.length > 1) {
+        row.remove();
+        updateTableRowNumbers(tableContainer);
+      } else {
+        alert("至少需要保留一行数据");
+      }
+    });
+  });
+  
+  // 为表格中初始行的成像情况选择框添加联动事件
+  tableContainer.querySelectorAll('.image-status').forEach(setupImageStatusListener);
+  
+  // 绘制当前表格
+  const drawBtn = tableContainer.querySelector('.drawBtn');
+  drawBtn.addEventListener('click', function() {
+    const tableId = tableContainer.getAttribute('data-table-id');
+    drawTable(tableId);
+  });
+  
+  // 清空当前表格
+  const clearBtn = tableContainer.querySelector('.clearBtn');
+  clearBtn.addEventListener('click', function() {
+    if (confirm("确定要清空此表格的所有数据吗？")) {
+      const inputs = tableContainer.querySelectorAll('.dataTable input');
+      inputs.forEach(input => {
+        input.value = '';
+        input.disabled = false;
+      });
+      
+      // 重置下拉框
+      tableContainer.querySelectorAll('.dataTable select').forEach(select => {
+        if (select.classList.contains('image-status')) {
+          select.value = 'normal';
+        } else if (select.classList.contains('real-input')) {
+          select.value = 'real';
+        } else if (select.classList.contains('orientation-input')) {
+          select.value = 'inverted';
+        } else if (select.classList.contains('size-input')) {
+          select.value = 'reduced';
+        }
+      });
+    }
+  });
+  
+  // 删除表格
+  const deleteBtn = tableContainer.querySelector('.delete-table');
+  deleteBtn.addEventListener('click', function() {
+    const tables = document.querySelectorAll('.table-container:not(.combined-table)');
+    if (tables.length > 1) {
+      tableContainer.remove();
+    } else {
+      alert("至少需要保留一个表格");
+    }
+  });
+}
+
+// 更新表格行号
+function updateTableRowNumbers(tableContainer) {
+  const rows = tableContainer.querySelectorAll('.dataTable tbody tr');
+  rows.forEach((row, index) => {
+    row.cells[0].textContent = index + 1;
+  });
+}
+
+// 整合表格
+document.getElementById('combineBtn').addEventListener('click', function() {
+  const tables = document.querySelectorAll('.table-container:not(.combined-table)');
+  const combinedTableContainer = document.getElementById('combinedTableContainer');
+  const combinedTableBody = document.getElementById('combinedTable').querySelector('tbody');
+  
+  // 清空整合表格
+  combinedTableBody.innerHTML = '';
+  
+  // 收集所有表格的数据
+  const allData = [];
+  let commonF = null;
+  let commonHo = null;
+  
+  tables.forEach(table => {
+    const tableId = table.getAttribute('data-table-id');
+    const f = parseFloat(table.querySelector('.table-f').value);
+    const ho = parseFloat(table.querySelector('.table-ho').value);
+    
+    // 检查焦距和物高是否一致
+    if (commonF === null) commonF = f;
+    if (commonHo === null) commonHo = ho;
+    
+    if (isNaN(f) || isNaN(ho) || f !== commonF || ho !== commonHo) {
+      alert("无法整合表格：焦距或物高不一致或未填写");
+      return;
+    }
+    
+    const rows = table.querySelectorAll('.dataTable tbody tr');
+    
+    rows.forEach(row => {
+      const u = parseFloat(row.querySelector('.u-input').value);
+      const v = parseFloat(row.querySelector('.v-input').value);
+      const hi = parseFloat(row.querySelector('.hi-input').value);
+      const imageStatus = row.querySelector('.image-status').value;
+      const real = row.querySelector('.real-input').value;
+      const orientation = row.querySelector('.orientation-input').value;
+      const size = row.querySelector('.size-input').value;
+      
+      // 只添加有物距数据的行
+      if (!isNaN(u) && u > 0) {
+        allData.push({
+          u: u,
+          v: v,
+          hi: hi,
+          imageStatus: imageStatus,
+          real: real,
+          orientation: orientation,
+          size: size,
+          tableId: tableId
+        });
+      }
+    });
+  });
+  
+  // 按物距从大到小排序
+  allData.sort((a, b) => b.u - a.u);
+  
+  // 填充整合表格
+  allData.forEach((data, index) => {
+    const newRow = document.createElement('tr');
+    newRow.innerHTML = `
+      <td>${index + 1}</td>
+      <td>${data.u}</td>
+      <td>${data.imageStatus === 'normal' ? '正常成像' : '光屏上不成像'}</td>
+      <td>${isNaN(data.v) ? '' : data.v}</td>
+      <td>${isNaN(data.hi) ? '' : data.hi}</td>
+      <td>${data.real === 'real' ? '实像' : (data.real === 'virtual' ? '虚像' : '光屏上不成像')}</td>
+      <td>${data.orientation === 'upright' ? '正立' : (data.orientation === 'inverted' ? '倒立' : '光屏上不成像')}</td>
+      <td>${data.size === 'reduced' ? '缩小' : (data.size === 'same' ? '等大' : (data.size === 'enlarged' ? '放大' : '光屏上不成像'))}</td>
+      <td>表格 ${data.tableId}</td>
+    `;
+    combinedTableBody.appendChild(newRow);
+  });
+  
+  // 显示整合表格
+  document.getElementById('combinedF').textContent = commonF;
+  document.getElementById('combinedHo').textContent = commonHo;
+  combinedTableContainer.style.display = 'block';
+  
+  // 滚动到整合表格
+  combinedTableContainer.scrollIntoView({ behavior: 'smooth' });
+});
+
+// 绘制整合表格
+document.getElementById('drawCombinedBtn').addEventListener('click', function() {
+  drawCombinedTable();
+});
+
+// 关闭整合表格
+document.getElementById('closeCombinedBtn').addEventListener('click', function() {
+  document.getElementById('combinedTableContainer').style.display = 'none';
+});
+
+// 绘制指定表格
+function drawTable(tableId) {
+  const tableContainer = document.querySelector(`.table-container[data-table-id="${tableId}"]`);
+  const tbody = tableContainer.querySelectorAll(".dataTable tbody tr");
+  const f = parseFloat(tableContainer.querySelector('.table-f').value);
+  const ho = parseFloat(tableContainer.querySelector('.table-ho').value);
+  
+  // 验证必填数据
+  if (isNaN(f) || isNaN(ho)) {
+    alert("请先填写焦距和物高");
+    return;
+  }
+  
+  const uList = [], vList = [], hiList = [], realList = [], orientationList = [], sizeList = [], imageStatusList = [];
+  
+  // 读取数据并验证
+  let hasValidData = false;
+  tbody.forEach(row => {
+    const u = parseFloat(row.querySelector('.u-input').value);
+    const v = parseFloat(row.querySelector('.v-input').value);
+    const hi = parseFloat(row.querySelector('.hi-input').value);
+    const imageStatus = row.querySelector('.image-status').value;
+    const real = row.querySelector('.real-input').value;
+    const orientation = row.querySelector('.orientation-input').value;
+    const size = row.querySelector('.size-input').value;
+    
+    // 对于不成像的情况，放宽验证条件
+    if (imageStatus === 'no-image') {
+      if (!isNaN(u) && u > 0) {
+        uList.push(u);
+        vList.push(v);
+        hiList.push(hi);
+        realList.push(real);
+        orientationList.push(orientation);
+        sizeList.push(size);
+        imageStatusList.push(imageStatus);
+        hasValidData = true;
+      }
+    } else if (!isNaN(u) && !isNaN(v) && !isNaN(hi) && u > 0) {
+      uList.push(u);
+      vList.push(v);
+      hiList.push(hi);
+      realList.push(real);
+      orientationList.push(orientation);
+      sizeList.push(size);
+      imageStatusList.push(imageStatus);
+      hasValidData = true;
+    }
+  });
+  
+  if (!hasValidData) {
+    alert("请填写有效的物距数据（物距需大于0）");
+    return;
+  }
+  
+  // 绘图
+  drawSVG(uList, ho, vList, hiList, realList, orientationList, sizeList, imageStatusList, f, `表格 ${tableId}`);
+}
+
+// 绘制整合表格
+function drawCombinedTable() {
+  const combinedTableBody = document.getElementById('combinedTable').querySelector('tbody');
+  const rows = combinedTableBody.querySelectorAll('tr');
+  const f = parseFloat(document.getElementById('combinedF').textContent);
+  const ho = parseFloat(document.getElementById('combinedHo').textContent);
+  
+  // 验证必填数据
+  if (isNaN(f) || isNaN(ho)) {
+    alert("整合表格缺少焦距或物高数据");
+    return;
+  }
+  
+  const uList = [], vList = [], hiList = [], realList = [], orientationList = [], sizeList = [], imageStatusList = [];
+  
+  // 读取数据
+  rows.forEach(row => {
+    const cells = row.cells;
+    const u = parseFloat(cells[1].textContent);
+    const imageStatus = cells[2].textContent === '正常成像' ? 'normal' : 'no-image';
+    const v = cells[3].textContent ? parseFloat(cells[3].textContent) : NaN;
+    const hi = cells[4].textContent ? parseFloat(cells[4].textContent) : NaN;
+    
+    let real, orientation, size;
+    
+    // 解析虚实
+    if (cells[5].textContent === '实像') real = 'real';
+    else if (cells[5].textContent === '虚像') real = 'virtual';
+    else real = 'no-image';
+    
+    // 解析正倒
+    if (cells[6].textContent === '正立') orientation = 'upright';
+    else if (cells[6].textContent === '倒立') orientation = 'inverted';
+    else orientation = 'no-image';
+    
+    // 解析大小
+    if (cells[7].textContent === '缩小') size = 'reduced';
+    else if (cells[7].textContent === '等大') size = 'same';
+    else if (cells[7].textContent === '放大') size = 'enlarged';
+    else size = 'no-image';
+    
+    uList.push(u);
+    vList.push(v);
+    hiList.push(hi);
+    realList.push(real);
+    orientationList.push(orientation);
+    sizeList.push(size);
+    imageStatusList.push(imageStatus);
+  });
+  
+  // 绘图
+  drawSVG(uList, ho, vList, hiList, realList, orientationList, sizeList, imageStatusList, f, "整合表格");
+}
+
+// 缩放功能
+let zoomLevel = 1;
+const svgElement = document.getElementById('svg');
+
+document.getElementById('zoomIn').addEventListener('click', function() {
+  if (zoomLevel < 3) {
+    zoomLevel += 0.1;
+    updateZoom();
+  }
+});
+
+document.getElementById('zoomOut').addEventListener('click', function() {
+  if (zoomLevel > 0.5) {
+    zoomLevel -= 0.1;
+    updateZoom();
+  }
+});
+
+document.getElementById('resetZoom').addEventListener('click', function() {
+  zoomLevel = 1;
+  updateZoom();
+});
+
+function updateZoom() {
+  svgElement.style.transform = `scale(${zoomLevel})`;
+  svgElement.style.transformOrigin = 'center top';
+  document.getElementById('zoomLevel').textContent = `${Math.round(zoomLevel * 100)}%`;
+}
+
+// 颜色循环数组
+const colorCycle = ['#e74c3c', '#2ecc71', '#3498db', '#000000', '#e67e22', '#9b59b6'];
+
+// 绘图函数
+function drawSVG(uList, ho, vList, hiList, realList, orientationList, sizeList, imageStatusList, f, title) {
+  const svg = document.getElementById("svg");
+  svg.innerHTML = ""; // 清空
+  
+  // 添加标题
+  const titleText = document.createElementNS("http://www.w3.org/2000/svg", "text");
+  titleText.setAttribute("x", 20);
+  titleText.setAttribute("y", 30);
+  titleText.setAttribute("font-size", "20");
+  titleText.setAttribute("font-weight", "bold");
+  titleText.setAttribute("fill", "#2c3e50");
+  titleText.textContent = title;
+  svg.appendChild(titleText);
+  
+  // 获取SVG的实际宽度（基于父容器）
+  const svgWidth = svg.clientWidth;
+  const W = svgWidth;
+  const H = 600, pad = 80, midY = H/2;
+  const xScale = parseInt(document.getElementById('xScale').value) || 5;
+  const yScale = parseInt(document.getElementById('yScale').value) || 20;
+  const tickInterval = parseInt(document.getElementById('tickInterval').value) || 5;
+  const showFocalPoints = document.getElementById('showFocalPoints').checked;
+  const showDoubleFocalPoints = document.getElementById('showDoubleFocalPoints').checked;
+  const showYAxisTicks = document.getElementById('showYAxisTicks').checked;
+  
+  // 画光轴
+  const axis = document.createElementNS("http://www.w3.org/2000/svg", "line");
+  axis.setAttribute("x1", pad);
+  axis.setAttribute("y1", midY);
+  axis.setAttribute("x2", W-pad);
+  axis.setAttribute("y2", midY);
+  axis.setAttribute("stroke", "#333");
+  axis.setAttribute("stroke-width", 1);
+  svg.appendChild(axis);
+  
+  // 添加零刻度线（凸透镜中心位置）
+  const zeroTick = document.createElementNS("http://www.w3.org/2000/svg", "line");
+  zeroTick.setAttribute("x1", W/2);
+  zeroTick.setAttribute("y1", midY - 10);
+  zeroTick.setAttribute("x2", W/2);
+  zeroTick.setAttribute("y2", midY + 10);
+  zeroTick.setAttribute("class", "zero-tick");
+  svg.appendChild(zeroTick);
+  
+  // 零刻度标签
+  const zeroLabel = document.createElementNS("http://www.w3.org/2000/svg", "text");
+  zeroLabel.setAttribute("x", W/2);
+  zeroLabel.setAttribute("y", midY + 25);
+  zeroLabel.setAttribute("font-size", "12");
+  zeroLabel.setAttribute("font-weight", "bold");
+  zeroLabel.setAttribute("fill", "#333");
+  zeroLabel.setAttribute("text-anchor", "middle");
+  zeroLabel.textContent = "0";
+  svg.appendChild(zeroLabel);
+  
+  // 椭圆凸透镜
+  const lens = document.createElementNS("http://www.w3.org/2000/svg", "ellipse");
+  lens.setAttribute("cx", W/2);
+  lens.setAttribute("cy", midY);
+  lens.setAttribute("rx", 7.5);
+  lens.setAttribute("ry", 90);
+  lens.setAttribute("stroke", "#000");
+  lens.setAttribute("stroke-width", 2);
+  lens.setAttribute("fill", "none");
+  svg.appendChild(lens);
+  
+  // 添加透镜标签
+  const lensLabel = document.createElementNS("http://www.w3.org/2000/svg", "text");
+  lensLabel.setAttribute("x", W/2 - 25);
+  lensLabel.setAttribute("y", midY - 100);
+  lensLabel.setAttribute("font-size", "14");
+  lensLabel.setAttribute("fill", "#2c3e50");
+  lensLabel.textContent = "凸透镜";
+  svg.appendChild(lensLabel);
+  
+  // 画焦点标记 (如果勾选了显示焦距点)
+  if (showFocalPoints) {
+    // 左侧焦点
+    const foc1 = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+    const x1 = W/2 - f * xScale;
+    foc1.setAttribute("cx", x1);
+    foc1.setAttribute("cy", midY);
+    foc1.setAttribute("r", 4);
+    foc1.setAttribute("class", "focal-points");
+    svg.appendChild(foc1);
+    
+    // 右侧焦点
+    const foc2 = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+    const x2 = W/2 + f * xScale;
+    foc2.setAttribute("cx", x2);
+    foc2.setAttribute("cy", midY);
+    foc2.setAttribute("r", 4);
+    foc2.setAttribute("class", "focal-points");
+    svg.appendChild(foc2);
+    
+    // 焦点标签
+    const fLabel1 = document.createElementNS("http://www.w3.org/2000/svg", "text");
+    fLabel1.setAttribute("x", x1 - 10);
+    fLabel1.setAttribute("y", midY - 10);
+    fLabel1.setAttribute("font-size", "12");
+    fLabel1.setAttribute("fill", "#e74c3c");
+    fLabel1.textContent = "F";
+    svg.appendChild(fLabel1);
+    
+    const fLabel2 = document.createElementNS("http://www.w3.org/2000/svg", "text");
+    fLabel2.setAttribute("x", x2 + 5);
+    fLabel2.setAttribute("y", midY - 10);
+    fLabel2.setAttribute("font-size", "12");
+    fLabel2.setAttribute("fill", "#e74c3c");
+    fLabel2.textContent = "F";
+    svg.appendChild(fLabel2);
+  }
+  
+  // 画2倍焦距点 (如果勾选了显示2倍焦距点)
+  if (showDoubleFocalPoints) {
+    // 左侧2倍焦距点
+    const doubleFoc1 = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+    const x1 = W/2 - 2 * f * xScale;
+    doubleFoc1.setAttribute("x", x1 - 4);
+    doubleFoc1.setAttribute("y", midY - 4);
+    doubleFoc1.setAttribute("width", 8);
+    doubleFoc1.setAttribute("height", 8);
+    doubleFoc1.setAttribute("class", "focal-points");
+    svg.appendChild(doubleFoc1);
+    
+    // 右侧2倍焦距点
+    const doubleFoc2 = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+    const x2 = W/2 + 2 * f * xScale;
+    doubleFoc2.setAttribute("x", x2 - 4);
+    doubleFoc2.setAttribute("y", midY - 4);
+    doubleFoc2.setAttribute("width", 8);
+    doubleFoc2.setAttribute("height", 8);
+    doubleFoc2.setAttribute("class", "focal-points");
+    svg.appendChild(doubleFoc2);
+    
+    // 2倍焦距点标签
+    const dfLabel1 = document.createElementNS("http://www.w3.org/2000/svg", "text");
+    dfLabel1.setAttribute("x", x1 - 15);
+    dfLabel1.setAttribute("y", midY - 10);
+    dfLabel1.setAttribute("font-size", "12");
+    dfLabel1.setAttribute("fill", "#e74c3c");
+    dfLabel1.textContent = "2F";
+    svg.appendChild(dfLabel1);
+    
+    const dfLabel2 = document.createElementNS("http://www.w3.org/2000/svg", "text");
+    dfLabel2.setAttribute("x", x2 + 5);
+    dfLabel2.setAttribute("y", midY - 10);
+    dfLabel2.setAttribute("font-size", "12");
+    dfLabel2.setAttribute("fill", "#e74c3c");
+    dfLabel2.textContent = "2F";
+    svg.appendChild(dfLabel2);
+  }
+  
+  // 存储物体和像的位置，用于标签布局
+  const objectPositions = [];
+  const imagePositions = [];
+  
+  // 画物体 & 像
+  uList.forEach((u, i) => {
+    const v = vList[i], hi = hiList[i], real = realList[i] === "real", 
+          orientation = orientationList[i], size = sizeList[i],
+          imageStatus = imageStatusList[i];
+    
+    // 确定物体颜色（根据物距与焦距的关系）
+    let objectColor;
+    if (u === f) {
+      objectColor = "#000000"; // 黑色：等于1倍焦距
+    } else if (u < f) {
+      objectColor = "#9b59b6"; // 紫色：小于1倍焦距
+    } else if (u < 2 * f) {
+      objectColor = "#2ecc71"; // 绿色：大于1倍小于2倍焦距
+    } else if (u === 2 * f) {
+      objectColor = "#000000"; // 黑色：等于2倍焦距
+    } else {
+      objectColor = "#3498db"; // 蓝色：大于2倍焦距
+    }
+    
+    // 物体箭头 (始终朝上)
+    const xObj = W/2 - u * xScale;
+    const yObj = midY;
+    
+    const arrO = document.createElementNS("http://www.w3.org/2000/svg", "line");
+    arrO.setAttribute("x1", xObj);
+    arrO.setAttribute("y1", yObj);
+    arrO.setAttribute("x2", xObj);
+    arrO.setAttribute("y2", yObj - ho * yScale);
+    arrO.setAttribute("class", "obj");
+    arrO.setAttribute("data-type", "object");
+    arrO.setAttribute("data-index", i);
+    arrO.setAttribute("data-color-index", colorCycle.indexOf(objectColor));
+    arrO.setAttribute("style", `stroke:${objectColor}; fill:${objectColor}`);
+    svg.appendChild(arrO);
+    
+    // 物体箭头头部
+    const arrowHeadO = document.createElementNS("http://www.w3.org/2000/svg", "polygon");
+    arrowHeadO.setAttribute("points", 
+      `${xObj-4},${yObj - ho * yScale + 8} ${xObj},${yObj - ho * yScale} ${xObj+4},${yObj - ho * yScale + 8}`);
+    arrowHeadO.setAttribute("class", "obj");
+    arrowHeadO.setAttribute("data-type", "object");
+    arrowHeadO.setAttribute("data-index", i);
+    arrowHeadO.setAttribute("data-color-index", colorCycle.indexOf(objectColor));
+    arrowHeadO.setAttribute("style", `stroke:${objectColor}; fill:${objectColor}`);
+    svg.appendChild(arrowHeadO);
+    
+    // 存储物体位置
+    objectPositions.push({
+      x: xObj,
+      y: yObj,
+      height: ho * yScale,
+      index: i,
+      color: objectColor
+    });
+    
+    // 如果是光屏上不成像，则不绘制像
+    if (imageStatus === "no-image") {
+      // 添加不成像标记
+      const noImageLabel = document.createElementNS("http://www.w3.org/2000/svg", "text");
+      noImageLabel.setAttribute("x", W/2 + 50);
+      noImageLabel.setAttribute("y", midY - 50 - i * 30);
+      noImageLabel.setAttribute("font-size", "14");
+      noImageLabel.setAttribute("fill", "#e74c3c");
+      noImageLabel.textContent = `物体 ${i+1} 光屏上不成像`;
+      svg.appendChild(noImageLabel);
+      return;
+    }
+    
+    // 像箭头 (根据正倒决定方向)
+    const xImg = real ? (W/2 + v * xScale) : (W/2 - v * xScale);
+    const yImg = midY;
+    
+    // 计算像的箭头方向
+    const imageHeight = Math.abs(hi) * yScale;
+    const imageDirection = orientation === "inverted" ? 1 : -1; // 倒立朝下，正立朝上
+    
+    // 根据像的大小设置颜色
+    let imageColor;
+    switch(size) {
+      case "enlarged":
+        imageColor = "#2ecc71"; // 绿色
+        break;
+      case "same":
+        imageColor = "#000000"; // 黑色
+        break;
+      case "reduced":
+        imageColor = "#3498db"; // 蓝色
+        break;
+      default:
+        imageColor = "#2980b9"; // 默认蓝色
+    }
+    
+    const arrI = document.createElementNS("http://www.w3.org/2000/svg", "line");
+    arrI.setAttribute("x1", xImg);
+    arrI.setAttribute("y1", yImg);
+    arrI.setAttribute("x2", xImg);
+    arrI.setAttribute("y2", yImg + imageDirection * imageHeight);
+    arrI.setAttribute("class", real ? "img-real" : "img-vir");
+    arrI.setAttribute("data-type", "image");
+    arrI.setAttribute("data-index", i);
+    arrI.setAttribute("data-color-index", colorCycle.indexOf(imageColor));
+    arrI.setAttribute("style", `stroke:${imageColor}; fill:${imageColor}`);
+    svg.appendChild(arrI);
+    
+    // 像箭头头部
+    const arrowHeadI = document.createElementNS("http://www.w3.org/2000/svg", "polygon");
+    if (orientation === "inverted") {
+      // 倒立：箭头朝下
+      arrowHeadI.setAttribute("points", 
+        `${xImg-4},${yImg + imageDirection * imageHeight - 8} ${xImg},${yImg + imageDirection * imageHeight} ${xImg+4},${yImg + imageDirection * imageHeight - 8}`);
+    } else {
+      // 正立：箭头朝上
+      arrowHeadI.setAttribute("points", 
+        `${xImg-4},${yImg + imageDirection * imageHeight + 8} ${xImg},${yImg + imageDirection * imageHeight} ${xImg+4},${yImg + imageDirection * imageHeight + 8}`);
+    }
+    arrowHeadI.setAttribute("class", real ? "img-real" : "img-vir");
+    arrowHeadI.setAttribute("data-type", "image");
+    arrowHeadI.setAttribute("data-index", i);
+    arrowHeadI.setAttribute("data-color-index", colorCycle.indexOf(imageColor));
+    arrowHeadI.setAttribute("style", `stroke:${imageColor}; fill:${imageColor}`);
+    svg.appendChild(arrowHeadI);
+    
+    // 存储像位置
+    imagePositions.push({
+      x: xImg,
+      y: yImg,
+      height: imageHeight,
+      direction: imageDirection,
+      index: i,
+      color: imageColor
+    });
+  });
+  
+  // 添加物体标签
+  objectPositions.forEach((obj, i) => {
+    let labelX = obj.x;
+    let labelY = obj.y - obj.height - 15;
+    
+    const objLabel = document.createElementNS("http://www.w3.org/2000/svg", "text");
+    objLabel.setAttribute("x", labelX);
+    objLabel.setAttribute("y", labelY);
+    objLabel.setAttribute("font-size", "14");
+    objLabel.setAttribute("text-anchor", "middle");
+    objLabel.setAttribute("fill", obj.color);
+    objLabel.textContent = `${i+1}`;
+    svg.appendChild(objLabel);
+  });
+  
+  // 添加像标签
+  imagePositions.forEach((img, i) => {
+    let labelX = img.x;
+    let labelY = img.y + img.direction * img.height + 20;
+    
+    const imgLabel = document.createElementNS("http://www.w3.org/2000/svg", "text");
+    imgLabel.setAttribute("x", labelX);
+    imgLabel.setAttribute("y", labelY);
+    imgLabel.setAttribute("font-size", "14");
+    imgLabel.setAttribute("text-anchor", "middle");
+    imgLabel.setAttribute("fill", img.color);
+    imgLabel.textContent = `${i+1}'`;
+    svg.appendChild(imgLabel);
+  });
+  
+  // 添加坐标轴标签
+  const xAxisLabel = document.createElementNS("http://www.w3.org/2000/svg", "text");
+  xAxisLabel.setAttribute("x", W - 90);
+  xAxisLabel.setAttribute("y", midY + 30);
+  xAxisLabel.setAttribute("font-size", "14");
+  xAxisLabel.setAttribute("fill", "#333");
+  xAxisLabel.textContent = "位置 (cm)";
+  svg.appendChild(xAxisLabel);
+  
+  // 标记坐标轴刻度
+  const maxTick = Math.floor((W/2 - pad) / (xScale * tickInterval));
+  for (let i = 1; i <= maxTick; i++) {
+    const tickValue = i * tickInterval;
+    
+    // 左侧刻度
+    const leftX = W/2 - tickValue * xScale;
+    const leftTick = document.createElementNS("http://www.w3.org/2000/svg", "line");
+    leftTick.setAttribute("x1", leftX);
+    leftTick.setAttribute("y1", midY - 5);
+    leftTick.setAttribute("x2", leftX);
+    leftTick.setAttribute("y2", midY + 5);
+    leftTick.setAttribute("stroke", "#666");
+    leftTick.setAttribute("stroke-width", 1);
+    svg.appendChild(leftTick);
+    
+    const leftLabel = document.createElementNS("http://www.w3.org/2000/svg", "text");
+    leftLabel.setAttribute("x", leftX - 5);
+    leftLabel.setAttribute("y", midY + 20);
+    leftLabel.setAttribute("font-size", "10");
+    leftLabel.setAttribute("fill", "#666");
+    leftLabel.textContent = tickValue;
+    svg.appendChild(leftLabel);
+    
+    // 右侧刻度
+    const rightX = W/2 + tickValue * xScale;
+    const rightTick = document.createElementNS("http://www.w3.org/2000/svg", "line");
+    rightTick.setAttribute("x1", rightX);
+    rightTick.setAttribute("y1", midY - 5);
+    rightTick.setAttribute("x2", rightX);
+    rightTick.setAttribute("y2", midY + 5);
+    rightTick.setAttribute("stroke", "#666");
+    rightTick.setAttribute("stroke-width", 1);
+    svg.appendChild(rightTick);
+    
+    const rightLabel = document.createElementNS("http://www.w3.org/2000/svg", "text");
+    rightLabel.setAttribute("x", rightX - 5);
+    rightLabel.setAttribute("y", midY + 20);
+    rightLabel.setAttribute("font-size", "10");
+    rightLabel.setAttribute("fill", "#666");
+    rightLabel.textContent = tickValue;
+    svg.appendChild(rightLabel);
+  }
+  
+  // 纵轴刻度 (如果勾选了显示纵坐标刻度)
+  if (showYAxisTicks) {
+    const maxYTick = Math.floor((midY - 20) / (yScale * tickInterval));
+    for (let i = 1; i <= maxYTick; i++) {
+      const tickValue = i * tickInterval;
+      
+      // 上方刻度
+      const topY = midY - tickValue * yScale;
+      const topTick = document.createElementNS("http://www.w3.org/2000/svg", "line");
+      topTick.setAttribute("x1", W/2 - 5);
+      topTick.setAttribute("y1", topY);
+      topTick.setAttribute("x2", W/2 + 5);
+      topTick.setAttribute("y2", topY);
+      topTick.setAttribute("stroke", "#666");
+      topTick.setAttribute("stroke-width", 1);
+      svg.appendChild(topTick);
+      
+      const topLabel = document.createElementNS("http://www.w3.org/2000/svg", "text");
+      topLabel.setAttribute("x", W/2 + 10);
+      topLabel.setAttribute("y", topY + 3);
+      topLabel.setAttribute("font-size", "10");
+      topLabel.setAttribute("fill", "#666");
+      topLabel.textContent = tickValue;
+      svg.appendChild(topLabel);
+      
+      // 下方刻度
+      const bottomY = midY + tickValue * yScale;
+      const bottomTick = document.createElementNS("http://www.w3.org/2000/svg", "line");
+      bottomTick.setAttribute("x1", W/2 - 5);
+      bottomTick.setAttribute("y1", bottomY);
+      bottomTick.setAttribute("x2", W/2 + 5);
+      bottomTick.setAttribute("y2", bottomY);
+      bottomTick.setAttribute("stroke", "#666");
+      bottomTick.setAttribute("stroke-width", 1);
+      svg.appendChild(bottomTick);
+      
+      const bottomLabel = document.createElementNS("http://www.w3.org/2000/svg", "text");
+      bottomLabel.setAttribute("x", W/2 + 10);
+      bottomLabel.setAttribute("y", bottomY + 3);
+      bottomLabel.setAttribute("font-size", "10");
+      bottomLabel.setAttribute("fill", "#666");
+      bottomLabel.textContent = -tickValue;
+      svg.appendChild(bottomLabel);
+    }
+  }
+  
+  // 添加箭头点击事件
+  document.querySelectorAll('.obj, .img-real, .img-vir').forEach(element => {
+    element.addEventListener('click', function() {
+      const type = this.getAttribute('data-type');
+      const index = this.getAttribute('data-index');
+      let colorIndex = parseInt(this.getAttribute('data-color-index')) || 0;
+      
+      // 循环颜色
+      colorIndex = (colorIndex + 1) % colorCycle.length;
+      const newColor = colorCycle[colorIndex];
+      
+      // 更新所有相同类型和索引的箭头
+      document.querySelectorAll(`[data-type="${type}"][data-index="${index}"]`).forEach(el => {
+        el.setAttribute('data-color-index', colorIndex);
+        el.style.stroke = newColor;
+        el.style.fill = newColor;
+        
+        // 如果是虚线，保持虚线样式
+        if (el.classList.contains('img-vir')) {
+          el.style.strokeDasharray = "4,4";
+        }
+      });
+    });
+  });
+}
+
+// 导出Excel功能
+document.getElementById('exportBtn').addEventListener('click', function() {
+  // 创建工作簿
+  const wb = XLSX.utils.book_new();
+  
+  // 收集所有表格的数据
+  const tables = document.querySelectorAll('.table-container:not(.combined-table)');
+  
+  tables.forEach((table, index) => {
+    const tableId = table.getAttribute('data-table-id');
+    const f = table.querySelector('.table-f').value;
+    const ho = table.querySelector('.table-ho').value;
+    
+    // 获取表格数据
+    const rows = table.querySelectorAll('.dataTable tbody tr');
+    const data = [];
+    
+    // 添加表头
+    data.push(['序号', '物距 u (cm)', '光屏上是否成像', '像距 v (cm)', '像高 hᵢ (cm)', '虚实', '正倒', '像的大小']);
+    
+    // 添加焦距和物高信息
+    data.push(['焦距 f (cm):', f]);
+    data.push(['物高 hₒ (cm):', ho]);
+    data.push([]); // 空行
+    
+    // 添加数据行
+    rows.forEach(row => {
+      const cells = row.cells;
+      const u = cells[1].querySelector('.u-input').value;
+      const imageStatus = cells[2].querySelector('.image-status').value;
+      const v = cells[3].querySelector('.v-input').value;
+      const hi = cells[4].querySelector('.hi-input').value;
+      const real = cells[5].querySelector('.real-input').value;
+      const orientation = cells[6].querySelector('.orientation-input').value;
+      const size = cells[7].querySelector('.size-input').value;
+      
+      // 只导出有物距数据的行
+      if (u) {
+        data.push([
+          cells[0].textContent,
+          u,
+          imageStatus === 'normal' ? '正常成像' : '光屏上不成像',
+          v,
+          hi,
+          real === 'real' ? '实像' : (real === 'virtual' ? '虚像' : '光屏上不成像'),
+          orientation === 'upright' ? '正立' : (orientation === 'inverted' ? '倒立' : '光屏上不成像'),
+          size === 'reduced' ? '缩小' : (size === 'same' ? '等大' : (size === 'enlarged' ? '放大' : '光屏上不成像'))
+        ]);
+      }
+    });
+    
+    // 创建工作表
+    const ws = XLSX.utils.aoa_to_sheet(data);
+    
+    // 将工作表添加到工作簿
+    XLSX.utils.book_append_sheet(wb, ws, `实验数据表${tableId}`);
+  });
+  
+  // 添加整合表格（如果存在）
+  const combinedTable = document.getElementById('combinedTable');
+  if (combinedTable && document.getElementById('combinedTableContainer').style.display !== 'none') {
+    const combinedRows = combinedTable.querySelectorAll('tbody tr');
+    const combinedData = [];
+    
+    // 添加表头
+    combinedData.push(['序号', '物距 u (cm)', '光屏上是否成像', '像距 v (cm)', '像高 hᵢ (cm)', '虚实', '正倒', '像的大小', '来源表格']);
+    
+    // 添加焦距和物高信息
+    const combinedF = document.getElementById('combinedF').textContent;
+    const combinedHo = document.getElementById('combinedHo').textContent;
+    combinedData.push(['焦距 f (cm):', combinedF]);
+    combinedData.push(['物高 hₒ (cm):', combinedHo]);
+    combinedData.push([]); // 空行
+    
+    // 添加数据行
+    combinedRows.forEach(row => {
+      const cells = row.cells;
+      combinedData.push([
+        cells[0].textContent,
+        cells[1].textContent,
+        cells[2].textContent,
+        cells[3].textContent,
+        cells[4].textContent,
+        cells[5].textContent,
+        cells[6].textContent,
+        cells[7].textContent,
+        cells[8].textContent
+      ]);
+    });
+    
+    // 创建工作表
+    const ws = XLSX.utils.aoa_to_sheet(combinedData);
+    
+    // 将工作表添加到工作簿
+    XLSX.utils.book_append_sheet(wb, ws, '整合表格');
+  }
+  
+  // 生成Excel文件并下载
+  XLSX.writeFile(wb, '凸透镜成像实验数据.xlsx');
+});
+
+// 导入Excel功能
+document.getElementById('importBtn').addEventListener('click', function() {
+  document.getElementById('fileInput').click();
+});
+
+document.getElementById('fileInput').addEventListener('change', function(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    const data = new Uint8Array(e.target.result);
+    const workbook = XLSX.read(data, {type: 'array'});
+    
+    // 获取所有工作表名称
+    const sheetNames = workbook.SheetNames;
+    
+    // 处理每个工作表
+    sheetNames.forEach(sheetName => {
+      if (sheetName.startsWith('实验数据表') || sheetName === '整合表格') {
+        const worksheet = workbook.Sheets[sheetName];
+        const jsonData = XLSX.utils.sheet_to_json(worksheet, {header: 1});
+        
+        // 提取焦距和物高
+        let f = '';
+        let ho = '';
+        
+        // 查找焦距和物高
+        for (let i = 0; i < jsonData.length; i++) {
+          const row = jsonData[i];
+          if (row && row.length > 0) {
+            if (typeof row[0] === 'string' && row[0].includes('焦距')) {
+              f = row[1];
+            } else if (typeof row[0] === 'string' && row[0].includes('物高')) {
+              ho = row[1];
+            }
+          }
+        }
+        
+        // 查找数据开始位置
+        let dataStartIndex = -1;
+        for (let i = 0; i < jsonData.length; i++) {
+          if (jsonData[i] && jsonData[i][0] === '序号' && 
+              (jsonData[i][1] === '物距 u (cm)' || jsonData[i][1] === '物距 u<br>(cm，>0)')) {
+            dataStartIndex = i + 1;
+            break;
+          }
+        }
+        
+        if (dataStartIndex === -1) {
+          console.log('未找到数据表头');
+          return;
+        }
+        
+        // 获取表格ID
+        const tableId = sheetName.replace('实验数据表', '');
+        let tableContainer;
+        
+        if (sheetName === '整合表格') {
+          // 处理整合表格
+          tableContainer = document.getElementById('combinedTableContainer');
+          if (!tableContainer) return;
+          
+          // 设置焦距和物高
+          document.getElementById('combinedF').textContent = f;
+          document.getElementById('combinedHo').textContent = ho;
+          
+          // 清空整合表格
+          const tbody = document.getElementById('combinedTable').querySelector('tbody');
+          tbody.innerHTML = '';
+          
+          // 添加数据行
+          for (let j = dataStartIndex; j < jsonData.length; j++) {
+            const rowData = jsonData[j];
+            if (rowData && rowData.length >= 8 && rowData[0] && rowData[1]) {
+              const newRow = document.createElement('tr');
+              newRow.innerHTML = `
+                <td>${rowData[0]}</td>
+                <td>${rowData[1]}</td>
+                <td>${rowData[2]}</td>
+                <td>${rowData[3] || ''}</td>
+                <td>${rowData[4] || ''}</td>
+                <td>${rowData[5]}</td>
+                <td>${rowData[6]}</td>
+                <td>${rowData[7]}</td>
+                <td>${rowData[8] || ''}</td>
+              `;
+              tbody.appendChild(newRow);
+            }
+          }
+          
+          // 显示整合表格
+          tableContainer.style.display = 'block';
+        } else {
+          // 处理普通表格
+          tableContainer = document.querySelector(`.table-container[data-table-id="${tableId}"]`);
+          
+          // 如果表格不存在，创建新表格
+          if (!tableContainer) {
+            document.getElementById('addTable').click();
+            tableContainer = document.querySelector(`.table-container[data-table-id="${tableCount}"]`);
+            tableContainer.setAttribute('data-table-id', tableId);
+            tableContainer.querySelector('.table-title').textContent = `实验数据表 ${tableId}`;
+          }
+          
+          // 设置焦距和物高
+          if (f) {
+            tableContainer.querySelector('.table-f').value = f;
+          }
+          if (ho) {
+            tableContainer.querySelector('.table-ho').value = ho;
+          }
+          
+          // 清空现有数据行（保留第一行）
+          const tbody = tableContainer.querySelector('.dataTable tbody');
+          while (tbody.children.length > 1) {
+            tbody.removeChild(tbody.lastChild);
+          }
+          
+          // 添加新数据行
+          for (let j = dataStartIndex; j < jsonData.length; j++) {
+            const rowData = jsonData[j];
+            if (rowData && rowData.length >= 8 && rowData[0] && rowData[1]) {
+              // 如果是第一行，直接填充
+              if (j === dataStartIndex) {
+                const firstRow = tbody.querySelector('tr');
+                fillRowData(firstRow, rowData);
+              } else {
+                // 添加新行并填充数据
+                tableContainer.querySelector('.addRow').click();
+                const newRow = tbody.lastChild;
+                fillRowData(newRow, rowData);
+              }
+            }
+          }
+          
+          // 更新行号
+          updateTableRowNumbers(tableContainer);
+          
+          // 删除空白行
+          removeEmptyRows(tableContainer);
+        }
+      }
+    });
+    
+    alert('数据导入成功！');
+  };
+  reader.readAsArrayBuffer(file);
+  
+  // 重置文件输入，以便可以再次选择同一文件
+  e.target.value = '';
+});
+
+// 填充行数据
+function fillRowData(row, data) {
+  const cells = row.cells;
+  
+  // 序号
+  cells[0].textContent = data[0];
+  
+  // 物距
+  cells[1].querySelector('.u-input').value = data[1];
+  
+  // 光屏上是否成像
+  const imageStatus = data[2] === '正常成像' ? 'normal' : 'no-image';
+  cells[2].querySelector('.image-status').value = imageStatus;
+  
+  // 像距
+  cells[3].querySelector('.v-input').value = data[3] || '';
+  
+  // 像高
+  cells[4].querySelector('.hi-input').value = data[4] || '';
+  
+  // 虚实
+  let realValue = 'real';
+  if (data[5] === '虚像') realValue = 'virtual';
+  else if (data[5] === '光屏上不成像') realValue = 'no-image';
+  cells[5].querySelector('.real-input').value = realValue;
+  
+  // 正倒
+  let orientationValue = 'inverted';
+  if (data[6] === '正立') orientationValue = 'upright';
+  else if (data[6] === '光屏上不成像') orientationValue = 'no-image';
+  cells[6].querySelector('.orientation-input').value = orientationValue;
+  
+  // 像的大小
+  let sizeValue = 'reduced';
+  if (data[7] === '等大') sizeValue = 'same';
+  else if (data[7] === '放大') sizeValue = 'enlarged';
+  else if (data[7] === '光屏上不成像') sizeValue = 'no-image';
+  cells[7].querySelector('.size-input').value = sizeValue;
+  
+  // 触发成像状态变更事件，以更新相关字段的禁用状态
+  const imageStatusSelect = cells[2].querySelector('.image-status');
+  const event = new Event('change');
+  imageStatusSelect.dispatchEvent(event);
+}
+
+// 删除空白行
+function removeEmptyRows(tableContainer) {
+  const tbody = tableContainer.querySelector('.dataTable tbody');
+  const rows = tbody.querySelectorAll('tr');
+  
+  rows.forEach(row => {
+    const uInput = row.querySelector('.u-input');
+    if (uInput && !uInput.value) {
+      if (tbody.children.length > 1) {
+        row.remove();
+      }
+    }
+  });
+  
+  // 更新行号
+  updateTableRowNumbers(tableContainer);
+}
+
+// 初始化第一个表格的事件
+setupTableEvents(document.querySelector('.table-container'));
+</script>
+</body>
+</html>

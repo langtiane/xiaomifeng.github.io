@@ -1,0 +1,1255 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>光的传播与影子形成 - 交互式演示</title>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #0a0e17;
+            --bg-panel: #141c2b;
+            --fg: #e8ecf4;
+            --muted: #6b7a94;
+            --accent: #f59e0b;
+            --accent-glow: rgba(245, 158, 11, 0.4);
+            --light-ray: #fcd34d;
+            --shadow-color: #1a1a2e;
+            --border: #2a3548;
+            --card: #1a2436;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Noto Sans SC', sans-serif;
+            background: var(--bg);
+            color: var(--fg);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        header {
+            text-align: center;
+            padding: 30px 0;
+            border-bottom: 1px solid var(--border);
+            margin-bottom: 20px;
+        }
+
+        h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--accent), #fbbf24);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            color: var(--muted);
+            font-size: 1rem;
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 280px;
+            gap: 20px;
+        }
+
+        @media (max-width: 900px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .canvas-container {
+            background: var(--card);
+            border-radius: 16px;
+            border: 1px solid var(--border);
+            overflow: hidden;
+            position: relative;
+        }
+
+        #mainCanvas {
+            display: block;
+            width: 100%;
+            cursor: crosshair;
+        }
+
+        .control-panel {
+            background: var(--bg-panel);
+            border-radius: 16px;
+            border: 1px solid var(--border);
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .panel-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--fg);
+            padding-bottom: 12px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .control-label {
+            font-size: 0.85rem;
+            color: var(--muted);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .control-label .icon {
+            width: 18px;
+            height: 18px;
+        }
+
+        .btn {
+            padding: 12px 20px;
+            border: none;
+            border-radius: 10px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-family: inherit;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--accent), #d97706);
+            color: #000;
+            box-shadow: 0 4px 20px var(--accent-glow);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 30px var(--accent-glow);
+        }
+
+        .btn-primary:active {
+            transform: translateY(0);
+        }
+
+        .btn-secondary {
+            background: var(--card);
+            color: var(--fg);
+            border: 1px solid var(--border);
+        }
+
+        .btn-secondary:hover {
+            background: var(--border);
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn-group .btn {
+            flex: 1;
+        }
+
+        .info-box {
+            background: var(--card);
+            border-radius: 10px;
+            padding: 14px;
+            border: 1px solid var(--border);
+        }
+
+        .info-title {
+            font-size: 0.8rem;
+            color: var(--accent);
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .info-content {
+            font-size: 0.85rem;
+            color: var(--muted);
+            line-height: 1.6;
+        }
+
+        .legend {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 0.85rem;
+            color: var(--muted);
+        }
+
+        .legend-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+
+        .legend-line {
+            width: 24px;
+            height: 3px;
+            border-radius: 2px;
+        }
+
+        .status-bar {
+            margin-top: auto;
+            padding-top: 16px;
+            border-top: 1px solid var(--border);
+        }
+
+        .status-item {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.85rem;
+            padding: 6px 0;
+        }
+
+        .status-label {
+            color: var(--muted);
+        }
+
+        .status-value {
+            color: var(--fg);
+            font-weight: 500;
+        }
+
+        .status-value.on {
+            color: #22c55e;
+        }
+
+        .status-value.off {
+            color: #ef4444;
+        }
+
+        .tooltip {
+            position: absolute;
+            background: var(--bg-panel);
+            color: var(--fg);
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-size: 0.8rem;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.2s;
+            border: 1px solid var(--border);
+            z-index: 100;
+        }
+
+        .tooltip.visible {
+            opacity: 1;
+        }
+
+        .instructions {
+            background: linear-gradient(135deg, rgba(245, 158, 11, 0.1), rgba(251, 191, 36, 0.05));
+            border: 1px solid rgba(245, 158, 11, 0.3);
+            border-radius: 10px;
+            padding: 14px;
+        }
+
+        .instructions-title {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--accent);
+            margin-bottom: 8px;
+        }
+
+        .instructions-list {
+            font-size: 0.8rem;
+            color: var(--muted);
+            line-height: 1.8;
+        }
+
+        .instructions-list li {
+            margin-left: 16px;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }
+
+        .light-on .status-value {
+            animation: pulse 1.5s infinite;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            height: 6px;
+            border-radius: 3px;
+            background: var(--border);
+            outline: none;
+            -webkit-appearance: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: var(--accent);
+            cursor: pointer;
+            box-shadow: 0 2px 8px var(--accent-glow);
+        }
+
+        /* 滚动条样式 */
+        .control-panel::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .control-panel::-webkit-scrollbar-track {
+            background: var(--border);
+            border-radius: 4px;
+        }
+
+        .control-panel::-webkit-scrollbar-thumb {
+            background: var(--accent);
+            border-radius: 4px;
+        }
+
+        .control-panel::-webkit-scrollbar-thumb:hover {
+            background: #d97706;
+        }
+
+        .slider-value {
+            text-align: center;
+            font-size: 0.85rem;
+            color: var(--fg);
+            margin-top: 4px;
+        }
+
+        .slider-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .slider-row .slider-value {
+            min-width: 50px;
+            text-align: right;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>光的传播与影子形成</h1>
+            <p class="subtitle">交互式物理演示 - 探索光沿直线传播与影子的形成原理</p>
+        </header>
+
+        <div class="main-content">
+            <div class="canvas-container">
+                <canvas id="mainCanvas"></canvas>
+                <div class="tooltip" id="tooltip"></div>
+            </div>
+
+            <div class="control-panel">
+                <div class="panel-title">控制面板</div>
+
+                <div class="instructions">
+                    <div class="instructions-title">操作说明</div>
+                    <ul class="instructions-list">
+                        <li>拖拽光源移动位置</li>
+                        <li>拖拽线段端点调整长度</li>
+                        <li>拖拽线段中间移动整体</li>
+                        <li>点击开灯观察光线传播</li>
+                        <li>鼠标右键点击删除光源、吸光纸或白墙</li>
+                    </ul>
+                </div>
+
+                <div class="control-group">
+                    <button class="btn btn-primary" id="toggleLight">开灯</button>
+                </div>
+
+                <div class="control-group">
+                    <button class="btn btn-secondary" id="addPointLight" style="width: 100%;">添加点光源</button>
+                </div>
+
+                <div class="control-group">
+                    <div class="btn-group">
+                        <button class="btn btn-secondary" id="addAbsorber">添加吸光纸</button>
+                        <button class="btn btn-secondary" id="addWall">添加白墙</button>
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <button class="btn btn-secondary" id="resetBtn" style="width: 100%;">重置场景</button>
+                </div>
+
+                <div class="control-group">
+                    <div class="control-label">光线数量</div>
+                    <div class="slider-row">
+                        <input type="range" id="rayCount" min="1" max="200" value="20" style="flex: 1;">
+                        <span class="slider-value" id="rayCountValue">20 条</span>
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <div class="control-label">照射角度范围</div>
+                    <div class="slider-row">
+                        <input type="range" id="rayAngle" min="0" max="360" value="360" style="flex: 1;">
+                        <span class="slider-value" id="rayAngleValue">360°</span>
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <div class="control-label">光线速度</div>
+                    <div class="slider-row">
+                        <input type="range" id="raySpeed" min="1" max="10" value="5" style="flex: 1;">
+                        <span class="slider-value" id="raySpeedValue">5</span>
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <div class="control-label">光线旋转角度</div>
+                    <div class="slider-row">
+                        <input type="range" id="rayRotation" min="0" max="360" value="0" style="flex: 1;">
+                        <span class="slider-value" id="rayRotationValue">0°</span>
+                    </div>
+                </div>
+
+                <div class="info-box">
+                    <div class="info-title">图例说明</div>
+                    <div class="legend">
+                        <div class="legend-item">
+                            <div class="legend-dot" style="background: #fbbf24;"></div>
+                            <span>点光源</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-line" style="background: #3b82f6;"></div>
+                            <span>吸光纸</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-line" style="background: #e5e7eb;"></div>
+                            <span>白墙</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-dot" style="background: #fcd34d;"></div>
+                            <span>光线</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="status-bar">
+                    <div class="status-item">
+                        <span class="status-label">光源状态</span>
+                        <span class="status-value off" id="lightStatus">关闭</span>
+                    </div>
+                    <div class="status-item">
+                        <span class="status-label">光源数量</span>
+                        <span class="status-value" id="lightCount">0</span>
+                    </div>
+                    <div class="status-item">
+                        <span class="status-label">吸光纸数量</span>
+                        <span class="status-value" id="absorberCount">0</span>
+                    </div>
+                    <div class="status-item">
+                        <span class="status-label">白墙数量</span>
+                        <span class="status-value" id="wallCount">0</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 初始化Canvas
+        const canvas = document.getElementById('mainCanvas');
+        const ctx = canvas.getContext('2d');
+        const tooltip = document.getElementById('tooltip');
+
+        // 设置Canvas尺寸
+        function resizeCanvas() {
+            const container = canvas.parentElement;
+            const rect = container.getBoundingClientRect();
+            canvas.width = rect.width;
+            canvas.height = Math.max(500, window.innerHeight - 250);
+        }
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
+
+        // 状态管理
+        let isLightOn = false;
+        let rayCount = 20;
+        let rayAngle = 360;
+        let raySpeed = 5;
+        let rayRotation = 0;
+        let rays = [];
+        let animationId = null;
+
+        // 光源类
+        class LightSource {
+            constructor(type, x, y, length = 0) {
+                this.type = type;
+                this.x = x;
+                this.y = y;
+                this.length = length;
+                this.id = Date.now() + Math.random();
+            }
+
+            draw() {
+                ctx.save();
+                
+                // 点光源 - 发光效果
+                const gradient = ctx.createRadialGradient(this.x, this.y, 0, this.x, this.y, 30);
+                if (isLightOn) {
+                    gradient.addColorStop(0, 'rgba(251, 191, 36, 1)');
+                    gradient.addColorStop(0.5, 'rgba(251, 191, 36, 0.5)');
+                    gradient.addColorStop(1, 'rgba(251, 191, 36, 0)');
+                } else {
+                    gradient.addColorStop(0, 'rgba(251, 191, 36, 0.6)');
+                    gradient.addColorStop(1, 'rgba(251, 191, 36, 0)');
+                }
+                ctx.fillStyle = gradient;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, 30, 0, Math.PI * 2);
+                ctx.fill();
+
+                // 核心点
+                ctx.fillStyle = isLightOn ? '#fff' : '#fbbf24';
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, 8, 0, Math.PI * 2);
+                ctx.fill();
+                
+                ctx.restore();
+            }
+
+            containsPoint(px, py) {
+                const dist = Math.sqrt((px - this.x) ** 2 + (py - this.y) ** 2);
+                return dist < 20;
+            }
+        }
+
+        // 线段类（吸光纸和白墙）
+        class LineSegment {
+            constructor(type, x1, y1, x2, y2) {
+                this.type = type;
+                this.x1 = x1;
+                this.y1 = y1;
+                this.x2 = x2;
+                this.y2 = y2;
+                this.id = Date.now() + Math.random();
+            }
+
+            draw() {
+                ctx.save();
+                
+                if (this.type === 'absorber') {
+                    // 吸光纸 - 深蓝色
+                    ctx.strokeStyle = '#3b82f6';
+                    ctx.lineWidth = 8;
+                    ctx.lineCap = 'round';
+                    
+                    ctx.setLineDash([]);
+                    ctx.beginPath();
+                    ctx.moveTo(this.x1, this.y1);
+                    ctx.lineTo(this.x2, this.y2);
+                    ctx.stroke();
+
+                    // 端点标记
+                    ctx.fillStyle = '#60a5fa';
+                    ctx.beginPath();
+                    ctx.arc(this.x1, this.y1, 6, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.beginPath();
+                    ctx.arc(this.x2, this.y2, 6, 0, Math.PI * 2);
+                    ctx.fill();
+                } else {
+                    // 白墙 - 浅灰色
+                    ctx.strokeStyle = '#e5e7eb';
+                    ctx.lineWidth = 12;
+                    ctx.lineCap = 'round';
+                    ctx.beginPath();
+                    ctx.moveTo(this.x1, this.y1);
+                    ctx.lineTo(this.x2, this.y2);
+                    ctx.stroke();
+
+                    // 边框
+                    ctx.strokeStyle = '#9ca3af';
+                    ctx.lineWidth = 2;
+                    ctx.beginPath();
+                    ctx.moveTo(this.x1, this.y1);
+                    ctx.lineTo(this.x2, this.y2);
+                    ctx.stroke();
+                }
+                
+                ctx.restore();
+            }
+
+            containsPoint(px, py) {
+                const dist = this.pointToLineDistance(px, py, this.x1, this.y1, this.x2, this.y2);
+                return dist < 15;
+            }
+
+            isNearEndpoint(px, py) {
+                const d1 = Math.sqrt((px - this.x1) ** 2 + (py - this.y1) ** 2);
+                const d2 = Math.sqrt((px - this.x2) ** 2 + (py - this.y2) ** 2);
+                if (d1 < 15) return 1;
+                if (d2 < 15) return 2;
+                return 0;
+            }
+
+            pointToLineDistance(px, py, x1, y1, x2, y2) {
+                const A = px - x1;
+                const B = py - y1;
+                const C = x2 - x1;
+                const D = y2 - y1;
+                const dot = A * C + B * D;
+                const lenSq = C * C + D * D;
+                let param = -1;
+                if (lenSq !== 0) param = dot / lenSq;
+                let xx, yy;
+                if (param < 0) {
+                    xx = x1;
+                    yy = y1;
+                } else if (param > 1) {
+                    xx = x2;
+                    yy = y2;
+                } else {
+                    xx = x1 + param * C;
+                    yy = y1 + param * D;
+                }
+                return Math.sqrt((px - xx) ** 2 + (py - yy) ** 2);
+            }
+        }
+
+        // 光线类
+        class Ray {
+            constructor(x, y, angle, sourceId) {
+                this.startX = x;
+                this.startY = y;
+                this.x = x;
+                this.y = y;
+                this.angle = angle;
+                this.speed = raySpeed;
+                this.maxLength = 2000;
+                this.length = 0;
+                this.sourceId = sourceId;
+                this.blocked = false;
+                this.blockX = null;
+                this.blockY = null;
+                this.hitWall = false;
+                this.wallX = null;
+                this.wallY = null;
+            }
+
+            update() {
+                if (this.blocked || this.hitWall) return;
+                
+                this.length += this.speed * 2;
+                this.x = this.startX + Math.cos(this.angle) * this.length;
+                this.y = this.startY + Math.sin(this.angle) * this.length;
+
+                // 检测与吸光纸的碰撞
+                for (const absorber of absorbers) {
+                    const intersection = this.checkIntersection(absorber);
+                    if (intersection && this.length > intersection.dist) {
+                        this.blocked = true;
+                        this.blockX = intersection.x;
+                        this.blockY = intersection.y;
+                        this.length = intersection.dist;
+                        this.x = this.blockX;
+                        this.y = this.blockY;
+                        break;
+                    }
+                }
+
+                // 检测与白墙的碰撞
+                if (!this.blocked) {
+                    for (const wall of walls) {
+                        const intersection = this.checkIntersection(wall);
+                        if (intersection && this.length > intersection.dist) {
+                            this.hitWall = true;
+                            this.wallX = intersection.x;
+                            this.wallY = intersection.y;
+                            this.length = intersection.dist;
+                            this.x = this.wallX;
+                            this.y = this.wallY;
+                            break;
+                        }
+                    }
+                }
+            }
+
+            checkIntersection(segment) {
+                const x1 = this.startX;
+                const y1 = this.startY;
+                const x2 = this.x;
+                const y2 = this.y;
+                const x3 = segment.x1;
+                const y3 = segment.y1;
+                const x4 = segment.x2;
+                const y4 = segment.y2;
+
+                const denom = (x1 - x2) * (y3 - y4) - (y1 - y2) * (x3 - x4);
+                if (Math.abs(denom) < 0.0001) return null;
+
+                const t = ((x1 - x3) * (y3 - y4) - (y1 - y3) * (x3 - x4)) / denom;
+                const u = -((x1 - x2) * (y1 - y3) - (y1 - y2) * (x1 - x3)) / denom;
+
+                if (t >= 0 && t <= 1 && u >= 0 && u <= 1) {
+                    const ix = x1 + t * (x2 - x1);
+                    const iy = y1 + t * (y2 - y1);
+                    const dist = Math.sqrt((ix - x1) ** 2 + (iy - y1) ** 2);
+                    return { x: ix, y: iy, dist: dist };
+                }
+                return null;
+            }
+
+            draw() {
+                if (this.length <= 0) return;
+
+                ctx.save();
+                
+                // 光线渐变
+                const gradient = ctx.createLinearGradient(
+                    this.startX, this.startY, this.x, this.y
+                );
+                gradient.addColorStop(0, 'rgba(252, 211, 77, 0.9)');
+                gradient.addColorStop(1, 'rgba(252, 211, 77, 0.6)');
+
+                ctx.strokeStyle = gradient;
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(this.startX, this.startY);
+                ctx.lineTo(this.x, this.y);
+                ctx.stroke();
+
+                // 箭头
+                if (this.length > 20) {
+                    const arrowLen = 10;
+                    const arrowAngle = 0.4;
+                    const tipX = this.x;
+                    const tipY = this.y;
+                    
+                    ctx.fillStyle = 'rgba(252, 211, 77, 0.9)';
+                    ctx.beginPath();
+                    ctx.moveTo(tipX, tipY);
+                    ctx.lineTo(
+                        tipX - arrowLen * Math.cos(this.angle - arrowAngle),
+                        tipY - arrowLen * Math.sin(this.angle - arrowAngle)
+                    );
+                    ctx.lineTo(
+                        tipX - arrowLen * Math.cos(this.angle + arrowAngle),
+                        tipY - arrowLen * Math.sin(this.angle + arrowAngle)
+                    );
+                    ctx.closePath();
+                    ctx.fill();
+                }
+
+                // 碰撞点发光效果
+                if (this.blocked && this.blockX && this.blockY) {
+                    ctx.fillStyle = 'rgba(251, 191, 36, 0.8)';
+                    ctx.beginPath();
+                    ctx.arc(this.blockX, this.blockY, 4, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+
+                ctx.restore();
+            }
+        }
+
+        // 数据存储
+        let lightSources = [];
+        let absorbers = [];
+        let walls = [];
+
+        // 拖拽状态
+        let isDragging = false;
+        let dragTarget = null;
+        let dragType = null;
+        let dragEndpoint = 0;
+        let dragOffsetX = 0;
+        let dragOffsetY = 0;
+
+        // 初始化场景
+        function initScene() {
+            lightSources = [];
+            absorbers = [];
+            walls = [];
+            rays = [];
+            
+            // 默认添加一个点光源
+            lightSources.push(new LightSource('point', 150, canvas.height / 2));
+            
+            // 添加一个吸光纸
+            absorbers.push(new LineSegment('absorber', 400, canvas.height / 2 - 80, 400, canvas.height / 2 + 80));
+            
+            // 添加一个白墙
+            walls.push(new LineSegment('wall', canvas.width - 100, 100, canvas.width - 100, canvas.height - 100));
+            
+            updateStatus();
+        }
+
+        // 生成光线
+        function generateRays() {
+            rays = [];
+            
+            for (const source of lightSources) {
+                // 点光源 - 根据角度范围发射
+                const angleRange = (rayAngle / 180) * Math.PI;
+                const startAngle = -angleRange / 2;
+                const rotationRad = (rayRotation / 180) * Math.PI;
+                
+                if (rayCount === 1) {
+                    // 单条光线按旋转角度发射
+                    rays.push(new Ray(source.x, source.y, rotationRad, source.id));
+                } else {
+                    for (let i = 0; i < rayCount; i++) {
+                        const angle = startAngle + (angleRange / (rayCount - 1)) * i + rotationRad;
+                        rays.push(new Ray(source.x, source.y, angle, source.id));
+                    }
+                }
+            }
+        }
+
+        // 绘制背景网格
+        function drawGrid() {
+            ctx.save();
+            ctx.strokeStyle = 'rgba(42, 53, 72, 0.5)';
+            ctx.lineWidth = 1;
+
+            const gridSize = 50;
+            
+            for (let x = 0; x < canvas.width; x += gridSize) {
+                ctx.beginPath();
+                ctx.moveTo(x, 0);
+                ctx.lineTo(x, canvas.height);
+                ctx.stroke();
+            }
+            
+            for (let y = 0; y < canvas.height; y += gridSize) {
+                ctx.beginPath();
+                ctx.moveTo(0, y);
+                ctx.lineTo(canvas.width, y);
+                ctx.stroke();
+            }
+            
+            ctx.restore();
+        }
+
+        // 绘制影子
+        function drawShadows() {
+            if (!isLightOn) return;
+            
+            ctx.save();
+            
+            for (const wall of walls) {
+                const shadowPoints = [];
+                
+                for (const source of lightSources) {
+                    // 计算从光源到吸光纸端点的射线与白墙的交点
+                    for (const absorber of absorbers) {
+                        const endpoints = [
+                            { x: absorber.x1, y: absorber.y1 },
+                            { x: absorber.x2, y: absorber.y2 }
+                        ];
+                        
+                        for (const ep of endpoints) {
+                            // 计算从光源经过吸光纸端点的射线方向
+                            const dx = ep.x - source.x;
+                            const dy = ep.y - source.y;
+                            
+                            // 延长到白墙位置
+                            const t = (wall.x1 - ep.x) / dx;
+                            const shadowY = ep.y + dy * t;
+                            
+                            if (t > 0 && shadowY >= Math.min(wall.y1, wall.y2) && shadowY <= Math.max(wall.y1, wall.y2)) {
+                                shadowPoints.push({ y: shadowY, source: source.id });
+                            }
+                        }
+                    }
+                }
+                
+                // 绘制影子区域
+                if (shadowPoints.length >= 2) {
+                    shadowPoints.sort((a, b) => a.y - b.y);
+                    
+                    ctx.fillStyle = 'rgba(26, 26, 46, 0.7)';
+                    ctx.beginPath();
+                    ctx.moveTo(wall.x1 - 6, shadowPoints[0].y);
+                    ctx.lineTo(wall.x1 + 6, shadowPoints[0].y);
+                    ctx.lineTo(wall.x1 + 6, shadowPoints[shadowPoints.length - 1].y);
+                    ctx.lineTo(wall.x1 - 6, shadowPoints[shadowPoints.length - 1].y);
+                    ctx.closePath();
+                    ctx.fill();
+                }
+            }
+            
+            ctx.restore();
+        }
+
+        // 主渲染循环
+        function render() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // 绘制背景
+            ctx.fillStyle = '#0d1117';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            drawGrid();
+            
+            // 更新和绘制光线
+            if (isLightOn) {
+                for (const ray of rays) {
+                    ray.update();
+                }
+            }
+            
+            // 绘制影子
+            drawShadows();
+            
+            // 绘制光线
+            for (const ray of rays) {
+                ray.draw();
+            }
+            
+            // 绘制吸光纸
+            for (const absorber of absorbers) {
+                absorber.draw();
+            }
+            
+            // 绘制白墙
+            for (const wall of walls) {
+                wall.draw();
+            }
+            
+            // 绘制光源
+            for (const source of lightSources) {
+                source.draw();
+            }
+            
+            if (isLightOn) {
+                animationId = requestAnimationFrame(render);
+            }
+        }
+
+        // 更新状态显示
+        function updateStatus() {
+            document.getElementById('lightStatus').textContent = isLightOn ? '开启' : '关闭';
+            document.getElementById('lightStatus').className = 'status-value ' + (isLightOn ? 'on' : 'off');
+            document.getElementById('lightCount').textContent = lightSources.length;
+            document.getElementById('absorberCount').textContent = absorbers.length;
+            document.getElementById('wallCount').textContent = walls.length;
+        }
+
+        // 鼠标事件处理
+        canvas.addEventListener('mousedown', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+
+            // 检查是否点击了光源
+            for (const source of lightSources) {
+                if (source.containsPoint(x, y)) {
+                    isDragging = true;
+                    dragTarget = source;
+                    dragType = 'light';
+                    dragOffsetX = x - source.x;
+                    dragOffsetY = y - source.y;
+                    return;
+                }
+            }
+
+            // 检查是否点击了吸光纸
+            for (const absorber of absorbers) {
+                const endpoint = absorber.isNearEndpoint(x, y);
+                if (endpoint) {
+                    isDragging = true;
+                    dragTarget = absorber;
+                    dragType = 'absorber';
+                    dragEndpoint = endpoint;
+                    return;
+                }
+                if (absorber.containsPoint(x, y)) {
+                    isDragging = true;
+                    dragTarget = absorber;
+                    dragType = 'absorber-move';
+                    dragOffsetX = x;
+                    dragOffsetY = y;
+                    return;
+                }
+            }
+
+            // 检查是否点击了白墙
+            for (const wall of walls) {
+                const endpoint = wall.isNearEndpoint(x, y);
+                if (endpoint) {
+                    isDragging = true;
+                    dragTarget = wall;
+                    dragType = 'wall';
+                    dragEndpoint = endpoint;
+                    return;
+                }
+                if (wall.containsPoint(x, y)) {
+                    isDragging = true;
+                    dragTarget = wall;
+                    dragType = 'wall-move';
+                    dragOffsetX = x;
+                    dragOffsetY = y;
+                    return;
+                }
+            }
+        });
+
+        canvas.addEventListener('mousemove', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+
+            if (isDragging && dragTarget) {
+                if (dragType === 'light') {
+                    dragTarget.x = Math.max(20, Math.min(canvas.width - 20, x - dragOffsetX));
+                    dragTarget.y = Math.max(20, Math.min(canvas.height - 20, y - dragOffsetY));
+                    if (isLightOn) generateRays();
+                } else if (dragType === 'absorber') {
+                    if (dragEndpoint === 1) {
+                        dragTarget.x1 = x;
+                        dragTarget.y1 = y;
+                    } else {
+                        dragTarget.x2 = x;
+                        dragTarget.y2 = y;
+                    }
+                    if (isLightOn) generateRays();
+                } else if (dragType === 'absorber-move') {
+                    const dx = x - dragOffsetX;
+                    const dy = y - dragOffsetY;
+                    dragTarget.x1 += dx;
+                    dragTarget.y1 += dy;
+                    dragTarget.x2 += dx;
+                    dragTarget.y2 += dy;
+                    dragOffsetX = x;
+                    dragOffsetY = y;
+                    if (isLightOn) generateRays();
+                } else if (dragType === 'wall') {
+                    if (dragEndpoint === 1) {
+                        dragTarget.x1 = x;
+                        dragTarget.y1 = y;
+                    } else {
+                        dragTarget.x2 = x;
+                        dragTarget.y2 = y;
+                    }
+                    if (isLightOn) generateRays();
+                } else if (dragType === 'wall-move') {
+                    const dx = x - dragOffsetX;
+                    const dy = y - dragOffsetY;
+                    dragTarget.x1 += dx;
+                    dragTarget.y1 += dy;
+                    dragTarget.x2 += dx;
+                    dragTarget.y2 += dy;
+                    dragOffsetX = x;
+                    dragOffsetY = y;
+                    if (isLightOn) generateRays();
+                }
+                
+                if (!isLightOn) {
+                    render();
+                }
+            }
+
+            // 更新光标样式
+            let cursor = 'crosshair';
+            for (const source of lightSources) {
+                if (source.containsPoint(x, y)) {
+                    cursor = 'grab';
+                    break;
+                }
+            }
+            for (const absorber of absorbers) {
+                if (absorber.isNearEndpoint(x, y)) {
+                    cursor = 'nwse-resize';
+                    break;
+                }
+                if (absorber.containsPoint(x, y)) {
+                    cursor = 'move';
+                    break;
+                }
+            }
+            for (const wall of walls) {
+                if (wall.isNearEndpoint(x, y)) {
+                    cursor = 'nwse-resize';
+                    break;
+                }
+                if (wall.containsPoint(x, y)) {
+                    cursor = 'move';
+                    break;
+                }
+            }
+            canvas.style.cursor = cursor;
+        });
+
+        canvas.addEventListener('mouseup', () => {
+            isDragging = false;
+            dragTarget = null;
+            dragType = null;
+        });
+
+        canvas.addEventListener('mouseleave', () => {
+            isDragging = false;
+            dragTarget = null;
+            dragType = null;
+        });
+
+        // 鼠标右键删除功能
+        canvas.addEventListener('contextmenu', (e) => {
+            e.preventDefault(); // 阻止默认右键菜单
+            const rect = canvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+
+            // 检查是否点击了光源
+            for (let i = lightSources.length - 1; i >= 0; i--) {
+                if (lightSources[i].containsPoint(x, y)) {
+                    lightSources.splice(i, 1);
+                    if (isLightOn) generateRays();
+                    updateStatus();
+                    render();
+                    return;
+                }
+            }
+
+            // 检查是否点击了吸光纸
+            for (let i = absorbers.length - 1; i >= 0; i--) {
+                if (absorbers[i].containsPoint(x, y) || absorbers[i].isNearEndpoint(x, y)) {
+                    absorbers.splice(i, 1);
+                    if (isLightOn) generateRays();
+                    updateStatus();
+                    render();
+                    return;
+                }
+            }
+
+            // 检查是否点击了白墙
+            for (let i = walls.length - 1; i >= 0; i--) {
+                if (walls[i].containsPoint(x, y) || walls[i].isNearEndpoint(x, y)) {
+                    walls.splice(i, 1);
+                    if (isLightOn) generateRays();
+                    updateStatus();
+                    render();
+                    return;
+                }
+            }
+        });
+
+        // 按钮事件
+        document.getElementById('toggleLight').addEventListener('click', () => {
+            isLightOn = !isLightOn;
+            const btn = document.getElementById('toggleLight');
+            btn.textContent = isLightOn ? '关灯' : '开灯';
+            
+            if (isLightOn) {
+                generateRays();
+                render();
+            } else {
+                rays = [];
+                if (animationId) {
+                    cancelAnimationFrame(animationId);
+                }
+                render();
+            }
+            
+            updateStatus();
+        });
+
+        document.getElementById('addPointLight').addEventListener('click', () => {
+            const x = 100 + Math.random() * 200;
+            const y = 100 + Math.random() * (canvas.height - 200);
+            lightSources.push(new LightSource('point', x, y));
+            if (isLightOn) generateRays();
+            updateStatus();
+            render();
+        });
+
+        document.getElementById('addAbsorber').addEventListener('click', () => {
+            const x = 300 + Math.random() * 200;
+            const y = canvas.height / 2;
+            absorbers.push(new LineSegment('absorber', x, y - 60, x, y + 60));
+            if (isLightOn) generateRays();
+            updateStatus();
+            render();
+        });
+
+        document.getElementById('addWall').addEventListener('click', () => {
+            const x = canvas.width - 150;
+            const y = 100 + Math.random() * 100;
+            walls.push(new LineSegment('wall', x, y, x, y + 200));
+            if (isLightOn) generateRays();
+            updateStatus();
+            render();
+        });
+
+        document.getElementById('resetBtn').addEventListener('click', () => {
+            isLightOn = false;
+            document.getElementById('toggleLight').textContent = '开灯';
+            if (animationId) {
+                cancelAnimationFrame(animationId);
+            }
+            initScene();
+            render();
+        });
+
+        // 滑块事件
+        document.getElementById('rayCount').addEventListener('input', (e) => {
+            rayCount = parseInt(e.target.value);
+            document.getElementById('rayCountValue').textContent = rayCount + ' 条';
+            if (isLightOn) {
+                generateRays();
+            }
+        });
+
+        document.getElementById('rayAngle').addEventListener('input', (e) => {
+            rayAngle = parseInt(e.target.value);
+            document.getElementById('rayAngleValue').textContent = rayAngle + '°';
+            if (isLightOn) {
+                generateRays();
+            }
+        });
+
+        document.getElementById('raySpeed').addEventListener('input', (e) => {
+            raySpeed = parseInt(e.target.value);
+            document.getElementById('raySpeedValue').textContent = raySpeed;
+            for (const ray of rays) {
+                ray.speed = raySpeed;
+            }
+        });
+
+        document.getElementById('rayRotation').addEventListener('input', (e) => {
+            rayRotation = parseInt(e.target.value);
+            document.getElementById('rayRotationValue').textContent = rayRotation + '°';
+            if (isLightOn) {
+                generateRays();
+            }
+        });
+
+        // 初始化
+        initScene();
+        render();
+    </script>
+</body>
+</html>

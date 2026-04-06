@@ -1,0 +1,1183 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>小孔成像 - 交互式物理学件</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;500;700&family=ZCOOL+KuaiLe&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #0c1222;
+            --fg: #e2e8f0;
+            --muted: #64748b;
+            --accent: #f59e0b;
+            --accent-light: #fbbf24;
+            --card: #1e293b;
+            --border: #334155;
+            --light-ray: #fcd34d;
+            --screen-color: #06b6d4;
+            --image-color: #f43f5e;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Noto Sans SC', sans-serif;
+            background: var(--bg);
+            color: var(--fg);
+            min-height: 100vh;
+            overflow: auto;
+            user-select: none;
+        }
+        
+        .container {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+        
+        /* 模拟区域 */
+        .simulation-area {
+            flex: 1;
+            position: relative;
+        }
+        
+        canvas {
+            display: block;
+            cursor: default;
+            width: 100%;
+            height: 100%;
+        }
+        
+        /* 答题区域 */
+        .quiz-area {
+            height: auto;
+            background: linear-gradient(135deg, rgba(30, 41, 59, 0.95), rgba(15, 23, 42, 0.98));
+            border-top: 1px solid var(--border);
+            padding: 20px;
+            overflow: visible;
+        }
+        
+        .quiz-content {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        
+        .title-font {
+            font-family: 'ZCOOL KuaiLe', cursive;
+        }
+        
+        .panel {
+            background: linear-gradient(135deg, rgba(30, 41, 59, 0.95), rgba(15, 23, 42, 0.98));
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 20px;
+            backdrop-filter: blur(12px);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+        
+        .info-panel {
+            position: absolute;
+            top: 24px;
+            left: 24px;
+            max-width: 260px;
+        }
+        
+        .data-panel {
+            position: absolute;
+            top: 24px;
+            right: 24px;
+            min-width: 220px;
+        }
+        
+        .control-panel {
+            position: absolute;
+            bottom: 24px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 16px;
+        }
+        
+        .data-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+        
+        .data-item:last-child {
+            border-bottom: none;
+        }
+        
+        .data-label {
+            color: var(--muted);
+            font-size: 14px;
+        }
+        
+        .data-value {
+            color: var(--accent-light);
+            font-weight: 600;
+            font-size: 15px;
+            font-family: 'Courier New', monospace;
+        }
+        
+        .btn {
+            background: linear-gradient(135deg, var(--accent), #d97706);
+            color: #0c1222;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 14px;
+            transition: all 0.25s ease;
+            box-shadow: 0 4px 15px rgba(245, 158, 11, 0.25);
+        }
+        
+        .btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(245, 158, 11, 0.4);
+        }
+        
+        .btn:active {
+            transform: translateY(-1px);
+        }
+        
+        .btn-secondary {
+            background: linear-gradient(135deg, #475569, #334155);
+            color: var(--fg);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.25);
+        }
+        
+        .btn-secondary:hover {
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.4);
+        }
+        
+        .legend {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-top: 16px;
+            padding-top: 16px;
+            border-top: 1px solid rgba(255,255,255,0.08);
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 13px;
+        }
+        
+        .legend-color {
+            width: 28px;
+            height: 5px;
+            border-radius: 3px;
+        }
+        
+        .formula-box {
+            background: rgba(0,0,0,0.3);
+            border-radius: 8px;
+            padding: 12px;
+            margin-top: 16px;
+            text-align: center;
+        }
+        
+        .formula {
+            font-family: 'Times New Roman', serif;
+            font-size: 16px;
+            color: var(--accent-light);
+            font-style: italic;
+        }
+        
+        .hint {
+            position: absolute;
+            bottom: 90px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(30, 41, 59, 0.9);
+            padding: 10px 20px;
+            border-radius: 20px;
+            font-size: 13px;
+            color: var(--muted);
+            border: 1px solid var(--border);
+            transition: opacity 0.5s ease;
+        }
+        
+        .status-dot {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            margin-right: 8px;
+            animation: pulse 1.5s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 0.5; transform: scale(1); }
+            50% { opacity: 1; transform: scale(1.2); }
+        }
+        
+        /* 练习模式弹窗样式 */
+        .modal {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(12, 18, 34, 0.95);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            border-radius: 12px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+        }
+        
+        .modal-content {
+            background: var(--bg-light);
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            max-width: 500px;
+            width: 90%;
+            text-align: center;
+        }
+        
+        .modal-content h2, .modal-content h3 {
+            color: var(--accent);
+            margin-bottom: 20px;
+        }
+        
+        .modal-content p {
+            margin-bottom: 15px;
+            line-height: 1.5;
+        }
+        
+        .distance-info {
+            background: rgba(0, 0, 0, 0.1);
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        
+        .questions {
+            text-align: left;
+            margin-bottom: 25px;
+        }
+        
+        .question {
+            margin-bottom: 15px;
+        }
+        
+        select {
+            padding: 8px 12px;
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            background: var(--bg);
+            color: var(--text);
+            margin: 0 5px;
+        }
+        
+        .modal-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-top: 20px;
+        }
+        
+        /* 答题区域样式 */
+        .quiz-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 16px;
+            margin-top: 20px;
+        }
+        
+        .distance-info {
+            display: flex;
+            justify-content: center;
+            gap: 40px;
+            margin-bottom: 15px;
+            padding: 15px;
+            background: rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
+        }
+        
+        .questions {
+            margin-bottom: 20px;
+        }
+        
+        .question {
+            margin-bottom: 12px;
+            padding: 12px;
+            background: rgba(0, 0, 0, 0.05);
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        
+        @media (max-width: 768px) {
+            .info-panel, .data-panel {
+                position: relative;
+                top: auto;
+                left: auto;
+                right: auto;
+                margin: 10px;
+                max-width: none;
+            }
+            
+            .control-panel {
+                flex-wrap: wrap;
+                justify-content: center;
+            }
+            
+            .modal-content {
+                padding: 20px;
+            }
+            
+            .questions {
+                font-size: 14px;
+            }
+            
+            select {
+                padding: 6px 8px;
+                font-size: 14px;
+            }
+            
+            .quiz-area {
+                height: auto;
+                padding: 15px;
+            }
+            
+            .distance-info {
+                flex-direction: column;
+                gap: 10px;
+                align-items: center;
+            }
+            
+            .question {
+                padding: 10px;
+                font-size: 14px;
+            }
+            
+            .quiz-buttons {
+                flex-direction: column;
+                align-items: center;
+                gap: 10px;
+            }
+            
+            .btn {
+                width: 80%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- 模拟区域 -->
+        <div class="simulation-area">
+            <canvas id="canvas"></canvas>
+            
+            <div class="control-panel">
+                <button class="btn btn-secondary" id="animBtn">暂停动画</button>
+            </div>
+            
+            <div class="hint" id="hint">拖动物体、挡板或光屏来观察成像变化</div>
+        </div>
+        
+        <!-- 答题区域 -->
+        <div class="quiz-area" style="display: none;">
+            <div class="quiz-content">
+                <h2>小孔成像练习</h2>
+                <div class="distance-info">
+                    <p>物距: <span id="objectDistance">0</span> cm</p>
+                    <p>像距: <span id="imageDistance">0</span> cm</p>
+                </div>
+                <div class="questions">
+                    <div class="question">
+                        <p>1. 成像性质：光屏上呈现（<select id="q1-1">
+                            <option value="">请选择</option>
+                            <option value="倒立">倒立</option>
+                            <option value="正立">正立</option>
+                        </select>）（<select id="q1-2">
+                            <option value="">请选择</option>
+                            <option value="放大">放大</option>
+                            <option value="等大">等大</option>
+                            <option value="缩小">缩小</option>
+                        </select>）的像</p>
+                    </div>
+                    <div class="question">
+                        <p>2. 光源靠近小孔，像（<select id="q2">
+                            <option value="">请选择</option>
+                            <option value="变大">变大</option>
+                            <option value="变小">变小</option>
+                            <option value="不变">不变</option>
+                        </select>）</p>
+                    </div>
+                    <div class="question">
+                        <p>3. 光屏靠近小孔，像（<select id="q3">
+                            <option value="">请选择</option>
+                            <option value="变大">变大</option>
+                            <option value="变小">变小</option>
+                            <option value="不变">不变</option>
+                        </select>）</p>
+                    </div>
+                </div>
+                <div class="quiz-buttons">
+                    <button class="btn" id="showHintBtn">显示提示</button>
+                    <button class="btn" id="submitBtn">提交答案</button>
+                    <button class="btn btn-secondary" id="resetQuizBtn">重新练习</button>
+                </div>
+                
+                <!-- 答案结果显示区域 -->
+                <div id="resultArea" style="display: none; margin-top: 30px; padding: 20px; background: rgba(0, 0, 0, 0.2); border-radius: 12px; border: 1px solid var(--border);">
+                    <h3 style="color: var(--accent); margin-bottom: 15px; font-family: 'ZCOOL KuaiLe', cursive;">练习结果</h3>
+                    <div id="resultContent"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 练习模式弹窗 -->
+    <div class="modal" id="practiceModal">
+        <div class="modal-content">
+            <h2>小孔成像练习</h2>
+            <p>请根据光源和光屏的位置，预测成像性质，并进行题目填写。</p>
+            <button class="btn" id="startPracticeBtn">开始练习</button>
+        </div>
+    </div>
+    
+
+
+    <script>
+        // ============ 初始化配置 ============
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        
+        // 颜色配置
+        const COLORS = {
+            bg: '#0c1222',
+            grid: 'rgba(255, 255, 255, 0.02)',
+            arrow: '#f59e0b',
+            arrowLight: '#fbbf24',
+            barrier: '#475569',
+            barrierDark: '#334155',
+            screen: '#06b6d4',
+            screenLight: '#22d3ee',
+            lightRay: '#fcd34d',
+            lightRayAlt: '#fb923c',
+            image: '#f43f5e',
+            imageLight: '#fb7185',
+            text: '#e2e8f0',
+            muted: '#64748b'
+        };
+        
+        // 状态变量
+        let isAnimating = true;
+        let animationSpeed = 1;
+        let rayProgress = 0;
+        let dragTarget = null;
+        let dragOffset = { x: 0, y: 0 };
+        
+        // 练习模式变量
+        let isPracticeMode = false;
+        let showHint = false;
+        
+        // 可拖动对象
+        const objects = {
+            arrow: { x: window.innerWidth * 0.25, y: window.innerHeight * 0.6, height: 100 },
+            barrier: { x: window.innerWidth * 0.5, holeY: window.innerHeight * 0.5, holeSize: 12 },
+            screen: { x: window.innerWidth * 0.75, height: 350 }
+        };
+        
+        // ============ 画布设置 ============
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            
+            // 保持实验区域在中央
+            objects.arrow.x = window.innerWidth * 0.25;
+            objects.arrow.y = window.innerHeight * 0.6;
+            objects.barrier.x = window.innerWidth * 0.5;
+            objects.barrier.holeY = window.innerHeight * 0.5;
+            objects.screen.x = window.innerWidth * 0.75;
+        }
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
+        
+        // ============ 物理计算 ============
+        function calculateImage() {
+            const arrow = objects.arrow;
+            const barrier = objects.barrier;
+            const screen = objects.screen;
+            
+            const objectDistance = barrier.x - arrow.x;
+            const imageDistance = screen.x - barrier.x;
+            
+            if (objectDistance <= 0 || imageDistance <= 0) return null;
+            
+            const magnification = imageDistance / objectDistance;
+            const imageHeight = arrow.height * magnification;
+            
+            // 像相对于小孔的高度位置（倒立）
+            const arrowTipY = arrow.y - arrow.height; // 箭头尖端
+            const arrowBaseY = arrow.y; // 箭头底部
+            
+            // 小孔成像：像相对于小孔的位置是倒的
+            // 箭头尖端成像在光屏下方，箭头底部成像在光屏上方
+            const tipOffset = (barrier.holeY - arrowTipY) * magnification;
+            const baseOffset = (barrier.holeY - arrowBaseY) * magnification;
+            
+            return {
+                x: screen.x,
+                topY: barrier.holeY - baseOffset,    // 像的顶端（对应物的底部）
+                bottomY: barrier.holeY - tipOffset,   // 像的底端（对应物的尖端）
+                height: imageHeight,
+                magnification: magnification,
+                objectDistance: objectDistance,
+                imageDistance: imageDistance,
+                arrowTipY: arrowTipY,
+                arrowBaseY: arrowBaseY
+            };
+        }
+        
+        // ============ 绘制函数 ============
+        function drawGrid() {
+            ctx.strokeStyle = COLORS.grid;
+            ctx.lineWidth = 1;
+            const gridSize = 60;
+            
+            for (let x = 0; x < canvas.width; x += gridSize) {
+                ctx.beginPath();
+                ctx.moveTo(x, 0);
+                ctx.lineTo(x, canvas.height);
+                ctx.stroke();
+            }
+            for (let y = 0; y < canvas.height; y += gridSize) {
+                ctx.beginPath();
+                ctx.moveTo(0, y);
+                ctx.lineTo(canvas.width, y);
+                ctx.stroke();
+            }
+        }
+        
+        function drawArrow() {
+            const { x, y, height } = objects.arrow;
+            
+            // 发光效果
+            ctx.save();
+            ctx.shadowColor = 'rgba(245, 158, 11, 0.5)';
+            ctx.shadowBlur = 25;
+            
+            // 箭头主体
+            const gradient = ctx.createLinearGradient(x - 10, y, x + 10, y);
+            gradient.addColorStop(0, COLORS.arrow);
+            gradient.addColorStop(1, COLORS.arrowLight);
+            
+            ctx.strokeStyle = gradient;
+            ctx.lineWidth = 5;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+            
+            ctx.beginPath();
+            ctx.moveTo(x, y);              // 底部
+            ctx.lineTo(x, y - height);     // 顶部
+            ctx.stroke();
+            
+            // 箭头头部
+            ctx.beginPath();
+            ctx.moveTo(x - 18, y - height + 25);
+            ctx.lineTo(x, y - height);
+            ctx.lineTo(x + 18, y - height + 25);
+            ctx.stroke();
+            
+            // 端点发光圆点
+            ctx.fillStyle = '#fff';
+            ctx.shadowColor = COLORS.arrowLight;
+            ctx.shadowBlur = 15;
+            
+            // 顶端（尖端）
+            ctx.beginPath();
+            ctx.arc(x, y - height, 7, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // 底端
+            ctx.beginPath();
+            ctx.arc(x, y, 7, 0, Math.PI * 2);
+            ctx.fill();
+            
+            ctx.restore();
+            
+            // 标签
+            ctx.fillStyle = COLORS.text;
+            ctx.font = 'bold 14px "Noto Sans SC"';
+            ctx.textAlign = 'center';
+            ctx.fillText('物体', x, y + 35);
+        }
+        
+        function drawBarrier() {
+            const { x, holeY, holeSize } = objects.barrier;
+            const screenWidth = 20;
+            
+            // 上半部分挡板
+            const gradientTop = ctx.createLinearGradient(x - screenWidth, 0, x + screenWidth, 0);
+            gradientTop.addColorStop(0, COLORS.barrierDark);
+            gradientTop.addColorStop(0.5, COLORS.barrier);
+            gradientTop.addColorStop(1, COLORS.barrierDark);
+            
+            ctx.fillStyle = gradientTop;
+            ctx.fillRect(x - screenWidth/2, 0, screenWidth, holeY - holeSize);
+            
+            // 下半部分挡板
+            ctx.fillRect(x - screenWidth/2, holeY + holeSize, screenWidth, canvas.height - holeY - holeSize);
+            
+            // 小孔高亮边框
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(x - screenWidth/2, holeY - holeSize);
+            ctx.lineTo(x + screenWidth/2, holeY - holeSize);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(x - screenWidth/2, holeY + holeSize);
+            ctx.lineTo(x + screenWidth/2, holeY + holeSize);
+            ctx.stroke();
+            
+            // 小孔中心点标记（隐形小点）
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
+            ctx.beginPath();
+            ctx.arc(x, holeY, 3, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // 小孔标记
+            ctx.fillStyle = COLORS.muted;
+            ctx.font = '12px "Noto Sans SC"';
+            ctx.textAlign = 'center';
+            ctx.fillText('小孔', x, holeY - holeSize - 12);
+            
+            // 挡板标签
+            ctx.fillStyle = COLORS.text;
+            ctx.font = 'bold 13px "Noto Sans SC"';
+            ctx.fillText('挡板', x, 25);
+        }
+        
+        function drawScreen() {
+            const { x, height } = objects.screen;
+            const centerY = objects.barrier.holeY;
+            const halfHeight = height / 2;
+            
+            ctx.save();
+            ctx.shadowColor = 'rgba(6, 182, 212, 0.4)';
+            ctx.shadowBlur = 20;
+            
+            const gradient = ctx.createLinearGradient(0, centerY - halfHeight, 0, centerY + halfHeight);
+            gradient.addColorStop(0, COLORS.screenLight);
+            gradient.addColorStop(0.5, COLORS.screen);
+            gradient.addColorStop(1, COLORS.screenLight);
+            
+            ctx.strokeStyle = gradient;
+            ctx.lineWidth = 8;
+            ctx.lineCap = 'round';
+            
+            ctx.beginPath();
+            ctx.moveTo(x, centerY - halfHeight);
+            ctx.lineTo(x, centerY + halfHeight);
+            ctx.stroke();
+            
+            ctx.restore();
+            
+            // 标签
+            ctx.fillStyle = COLORS.text;
+            ctx.font = 'bold 14px "Noto Sans SC"';
+            ctx.textAlign = 'center';
+            ctx.fillText('光屏', x, centerY - halfHeight - 20);
+        }
+        
+        function drawLightRays() {
+            const arrow = objects.arrow;
+            const barrier = objects.barrier;
+            const screen = objects.screen;
+            
+            const objectDistance = barrier.x - arrow.x;
+            const imageDistance = screen.x - barrier.x;
+            
+            if (objectDistance <= 0 || imageDistance <= 0) return;
+            
+            const arrowTip = { x: arrow.x, y: arrow.y - arrow.height };
+            const arrowBase = { x: arrow.x, y: arrow.y };
+            const hole = { x: barrier.x, y: barrier.holeY };
+            
+            // 计算光线与光屏的交点（像的位置）
+            // 物体上的两个点引出射线，经过小孔，与光屏相交形成像
+            
+            // 计算光线的斜率
+            const tipSlope = (hole.y - arrowTip.y) / (hole.x - arrowTip.x);
+            const baseSlope = (hole.y - arrowBase.y) / (hole.x - arrowBase.x);
+            
+            // 计算光线与光屏的交点
+            const imageTipY = arrowTip.y + tipSlope * (screen.x - arrowTip.x);
+            const imageBaseY = arrowBase.y + baseSlope * (screen.x - arrowBase.x);
+            
+            // 光线端点 - 从物体出发，经过小孔，到光屏（互换位置）
+            const rays = [
+                { start: arrowTip, mid: hole, end: { x: screen.x, y: imageTipY }, color: COLORS.lightRay, glowColor: 'rgba(252, 211, 77, 0.6)' },
+                { start: arrowBase, mid: hole, end: { x: screen.x, y: imageBaseY }, color: COLORS.lightRayAlt, glowColor: 'rgba(251, 146, 60, 0.6)' }
+            ];
+            
+            rays.forEach((ray, index) => {
+                // 计算光点位置
+                const progress = (rayProgress + index * 0.5) % 1;
+                
+                // 绘制光线 - 明确经过小孔
+                ctx.save();
+                ctx.strokeStyle = ray.color;
+                ctx.lineWidth = 2.5;
+                ctx.shadowColor = ray.glowColor;
+                ctx.shadowBlur = 12;
+                ctx.globalAlpha = 0.9;
+                
+                // 绘制光线：从物体到小孔，再从小孔到光屏
+                ctx.beginPath();
+                ctx.moveTo(ray.start.x, ray.start.y);
+                ctx.lineTo(ray.mid.x, ray.mid.y);
+                ctx.lineTo(ray.end.x, ray.end.y);
+                ctx.stroke();
+                
+                ctx.restore();
+                
+                // 移动的箭头
+                // 计算从物体到小孔的距离
+                const seg1Len = Math.hypot(ray.mid.x - ray.start.x, ray.mid.y - ray.start.y);
+                // 计算从小孔到光屏的距离
+                const seg2Len = Math.hypot(ray.end.x - ray.mid.x, ray.end.y - ray.mid.y);
+                const totalLen = seg1Len + seg2Len;
+                
+                let pointX, pointY, angle;
+                const progressDist = progress * totalLen;
+                
+                if (progressDist < seg1Len) {
+                    // 物体到小孔的部分
+                    const t = progressDist / seg1Len;
+                    pointX = ray.start.x + (ray.mid.x - ray.start.x) * t;
+                    pointY = ray.start.y + (ray.mid.y - ray.start.y) * t;
+                    angle = Math.atan2(ray.mid.y - ray.start.y, ray.mid.x - ray.start.x);
+                } else {
+                    // 小孔到光屏的部分
+                    const t = (progressDist - seg1Len) / seg2Len;
+                    pointX = ray.mid.x + (ray.end.x - ray.mid.x) * t;
+                    pointY = ray.mid.y + (ray.end.y - ray.mid.y) * t;
+                    angle = Math.atan2(ray.end.y - ray.mid.y, ray.end.x - ray.mid.x);
+                }
+                
+                // 绘制箭头
+                ctx.save();
+                ctx.translate(pointX, pointY);
+                ctx.rotate(angle);
+                
+                ctx.fillStyle = '#fff';
+                ctx.shadowColor = ray.color;
+                ctx.shadowBlur = 20;
+                
+                // 箭头形状
+                ctx.beginPath();
+                ctx.moveTo(10, 0);
+                ctx.lineTo(-5, -5);
+                ctx.lineTo(-5, 5);
+                ctx.closePath();
+                ctx.fill();
+                
+                ctx.restore();
+            });
+        }
+        
+        function drawImage() {
+            const arrow = objects.arrow;
+            const barrier = objects.barrier;
+            const screen = objects.screen;
+            
+            const objectDistance = barrier.x - arrow.x;
+            const imageDistance = screen.x - barrier.x;
+            
+            if (objectDistance <= 0 || imageDistance <= 0) return;
+            
+            const arrowTip = { x: arrow.x, y: arrow.y - arrow.height };
+            const arrowBase = { x: arrow.x, y: arrow.y };
+            const hole = { x: barrier.x, y: barrier.holeY };
+            
+            // 计算光线与光屏的交点（像的位置）
+            // 物体上的两个点引出射线，经过小孔，与光屏相交形成像
+            
+            // 计算光线的斜率
+            const tipSlope = (hole.y - arrowTip.y) / (hole.x - arrowTip.x);
+            const baseSlope = (hole.y - arrowBase.y) / (hole.x - arrowBase.x);
+            
+            // 计算光线与光屏的交点
+            const imageTipY = arrowTip.y + tipSlope * (screen.x - arrowTip.x);
+            const imageBaseY = arrowBase.y + baseSlope * (screen.x - arrowBase.x);
+            
+            const x = screen.x;
+            const imageTopY = imageBaseY;  // 像的顶端（对应物体的底部）
+            const imageBottomY = imageTipY; // 像的底端（对应物体的顶部）
+            const imgHeight = imageBottomY - imageTopY;
+            
+            if (imgHeight <= 0) return;
+            
+            ctx.save();
+            ctx.shadowColor = 'rgba(244, 63, 94, 0.5)';
+            ctx.shadowBlur = 20;
+            
+            const gradient = ctx.createLinearGradient(x - 10, imageTopY, x + 10, imageBottomY);
+            gradient.addColorStop(0, COLORS.imageLight);
+            gradient.addColorStop(1, COLORS.image);
+            
+            ctx.strokeStyle = gradient;
+            ctx.lineWidth = 4;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+            
+            // 倒立箭头（像）
+            ctx.beginPath();
+            ctx.moveTo(x, imageTopY);              // 像的顶端
+            ctx.lineTo(x, imageBottomY);           // 像的底端
+            ctx.stroke();
+            
+            // 箭头头部（向下，因为是倒立的像）
+            const arrowSize = Math.min(15, imgHeight * 0.15);
+            ctx.beginPath();
+            ctx.moveTo(x - arrowSize, imageBottomY - arrowSize * 1.5);
+            ctx.lineTo(x, imageBottomY);
+            ctx.lineTo(x + arrowSize, imageBottomY - arrowSize * 1.5);
+            ctx.stroke();
+            
+            // 端点
+            ctx.fillStyle = '#fff';
+            ctx.shadowBlur = 12;
+            ctx.beginPath();
+            ctx.arc(x, imageTopY, 5, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.beginPath();
+            ctx.arc(x, imageBottomY, 5, 0, Math.PI * 2);
+            ctx.fill();
+            
+            ctx.restore();
+            
+            // 标签
+            ctx.fillStyle = COLORS.image;
+            ctx.font = 'bold 14px "Noto Sans SC"';
+            ctx.textAlign = 'left';
+            ctx.fillText('像', x + 20, (imageTopY + imageBottomY) / 2);
+        }
+        
+        function drawDistanceMarkers() {
+            const arrow = objects.arrow;
+            const barrier = objects.barrier;
+            const screen = objects.screen;
+            const image = calculateImage();
+            
+            if (!image) return;
+            
+            const markerY = canvas.height - 60;
+            
+            ctx.save();
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
+            ctx.lineWidth = 1;
+            ctx.setLineDash([5, 5]);
+            ctx.font = '12px "Noto Sans SC"';
+            ctx.textAlign = 'center';
+            
+            // 物距标记
+            ctx.beginPath();
+            ctx.moveTo(arrow.x, markerY);
+            ctx.lineTo(barrier.x, markerY);
+            ctx.stroke();
+            
+            ctx.setLineDash([]);
+            ctx.fillText('物距 u', (arrow.x + barrier.x) / 2, markerY - 10);
+            
+            // 像距标记
+            ctx.setLineDash([5, 5]);
+            ctx.beginPath();
+            ctx.moveTo(barrier.x, markerY);
+            ctx.lineTo(screen.x, markerY);
+            ctx.stroke();
+            
+            ctx.setLineDash([]);
+            ctx.fillText('像距 v', (barrier.x + screen.x) / 2, markerY - 10);
+            
+            ctx.restore();
+        }
+        
+
+        
+        // ============ 主绘制循环 ============
+        function draw() {
+            ctx.fillStyle = COLORS.bg;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            drawGrid();
+            drawDistanceMarkers();
+            drawBarrier();
+            drawScreen();
+            drawArrow();
+            
+            // 在练习模式下不显示光线和像，除非显示提示
+            if (!isPracticeMode || showHint) {
+                drawLightRays();
+                drawImage();
+            }
+        }
+        
+        function animate() {
+            if (isAnimating) {
+                rayProgress += 0.008 * animationSpeed;
+                if (rayProgress > 1) rayProgress = 0;
+            }
+            draw();
+            requestAnimationFrame(animate);
+        }
+        
+        // ============ 交互处理 ============
+        function getMousePos(e) {
+            const rect = canvas.getBoundingClientRect();
+            return { x: e.clientX - rect.left, y: e.clientY - rect.top };
+        }
+        
+        function hitTest(pos) {
+            const arrow = objects.arrow;
+            const barrier = objects.barrier;
+            const screen = objects.screen;
+            
+            // 箭头区域
+            if (pos.x >= arrow.x - 30 && pos.x <= arrow.x + 30 &&
+                pos.y >= arrow.y - arrow.height - 30 && pos.y <= arrow.y + 30) {
+                return { target: 'arrow', cursor: 'grab' };
+            }
+            
+            // 挡板区域
+            if (pos.x >= barrier.x - 20 && pos.x <= barrier.x + 20) {
+                if (Math.abs(pos.y - barrier.holeY) < barrier.holeSize + 15) {
+                    return { target: 'hole', cursor: 'ns-resize' };
+                }
+                return { target: 'barrier', cursor: 'ew-resize' };
+            }
+            
+            // 光屏区域
+            if (pos.x >= screen.x - 20 && pos.x <= screen.x + 20) {
+                const centerY = barrier.holeY;
+                if (Math.abs(pos.y - centerY) < screen.height / 2) {
+                    return { target: 'screen', cursor: 'ew-resize' };
+                }
+            }
+            
+            return null;
+        }
+        
+        canvas.addEventListener('mousedown', (e) => {
+            // 在练习模式下禁止拖动
+            if (isPracticeMode) return;
+            
+            const pos = getMousePos(e);
+            const hit = hitTest(pos);
+            
+            if (hit) {
+                dragTarget = hit.target;
+                canvas.style.cursor = 'grabbing';
+                document.getElementById('hint').style.opacity = '0';
+                
+                if (hit.target === 'arrow') {
+                    dragOffset.x = pos.x - objects.arrow.x;
+                    dragOffset.y = pos.y - objects.arrow.y;
+                } else if (hit.target === 'barrier') {
+                    dragOffset.x = pos.x - objects.barrier.x;
+                } else if (hit.target === 'hole') {
+                    dragOffset.y = pos.y - objects.barrier.holeY;
+                } else if (hit.target === 'screen') {
+                    dragOffset.x = pos.x - objects.screen.x;
+                }
+            }
+        });
+        
+        canvas.addEventListener('mousemove', (e) => {
+            const pos = getMousePos(e);
+            
+            if (dragTarget) {
+                const arrow = objects.arrow;
+                const barrier = objects.barrier;
+                const screen = objects.screen;
+                
+                if (dragTarget === 'arrow') {
+                    arrow.x = Math.max(50, Math.min(canvas.width - 50, pos.x - dragOffset.x));
+                    arrow.y = Math.max(100, Math.min(canvas.height - 100, pos.y - dragOffset.y));
+                } else if (dragTarget === 'barrier') {
+                    barrier.x = Math.max(50, Math.min(canvas.width - 50, pos.x));
+                } else if (dragTarget === 'hole') {
+                    barrier.holeY = Math.max(100, Math.min(canvas.height - 100, pos.y - dragOffset.y));
+                } else if (dragTarget === 'screen') {
+                    screen.x = Math.max(50, Math.min(canvas.width - 50, pos.x - dragOffset.x));
+                }
+            } else {
+                const hit = hitTest(pos);
+                canvas.style.cursor = hit ? hit.cursor : 'default';
+            }
+        });
+        
+        canvas.addEventListener('mouseup', () => {
+            dragTarget = null;
+            canvas.style.cursor = 'default';
+        });
+        
+        canvas.addEventListener('mouseleave', () => {
+            dragTarget = null;
+            canvas.style.cursor = 'default';
+        });
+        
+        // 触摸支持
+        canvas.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            const touch = e.touches[0];
+            canvas.dispatchEvent(new MouseEvent('mousedown', { clientX: touch.clientX, clientY: touch.clientY }));
+        }, { passive: false });
+        
+        canvas.addEventListener('touchmove', (e) => {
+            e.preventDefault();
+            const touch = e.touches[0];
+            canvas.dispatchEvent(new MouseEvent('mousemove', { clientX: touch.clientX, clientY: touch.clientY }));
+        }, { passive: false });
+        
+        canvas.addEventListener('touchend', () => {
+            canvas.dispatchEvent(new MouseEvent('mouseup'));
+        });
+        
+        // ============ 控制按钮 ============
+        document.getElementById('animBtn').addEventListener('click', function() {
+            isAnimating = !isAnimating;
+            this.textContent = isAnimating ? '暂停动画' : '继续动画';
+        });
+        
+        // ============ 练习模式 ============
+        // 开始练习按钮
+        document.getElementById('startPracticeBtn').addEventListener('click', function() {
+            isPracticeMode = true;
+            showHint = false;
+            
+            // 随机生成物距和像距
+            const centerX = canvas.width / 2;
+            const arrowMinX = centerX - 400;
+            const arrowMaxX = centerX - 150;
+            const screenMinX = centerX + 150;
+            const screenMaxX = centerX + 400;
+            
+            // 随机设置物体和光屏的位置
+            objects.arrow.x = Math.random() * (arrowMaxX - arrowMinX) + arrowMinX;
+            objects.screen.x = Math.random() * (screenMaxX - screenMinX) + screenMinX;
+            
+            // 计算物距和像距
+            const objectDistance = objects.barrier.x - objects.arrow.x;
+            const imageDistance = objects.screen.x - objects.barrier.x;
+            
+            // 更新距离显示
+            document.getElementById('objectDistance').textContent = objectDistance.toFixed(1);
+            document.getElementById('imageDistance').textContent = imageDistance.toFixed(1);
+            
+            // 隐藏练习模式弹窗，显示答题区域
+            document.getElementById('practiceModal').style.display = 'none';
+            document.querySelector('.quiz-area').style.display = 'block';
+        });
+        
+        // 显示提示按钮
+        document.getElementById('showHintBtn').addEventListener('click', function() {
+            showHint = true;
+        });
+        
+        // 提交答案按钮
+        document.getElementById('submitBtn').addEventListener('click', function() {
+            // 获取用户答案
+            const q1_1 = document.getElementById('q1-1').value;
+            const q1_2 = document.getElementById('q1-2').value;
+            const q2 = document.getElementById('q2').value;
+            const q3 = document.getElementById('q3').value;
+            
+            // 计算正确答案
+            const objectDistance = objects.barrier.x - objects.arrow.x;
+            const imageDistance = objects.screen.x - objects.barrier.x;
+            const magnification = imageDistance / objectDistance;
+            
+            let correctQ1_1 = '倒立';
+            let correctQ1_2 = magnification > 1 ? '放大' : (magnification === 1 ? '等大' : '缩小');
+            let correctQ2 = '变大';
+            let correctQ3 = '变小';
+            
+            // 计算得分
+            let score = 0;
+            if (q1_1 === correctQ1_1) score++;
+            if (q1_2 === correctQ1_2) score++;
+            if (q2 === correctQ2) score++;
+            if (q3 === correctQ3) score++;
+            
+            // 生成结果内容
+            let resultContent = `
+                <p style="margin-bottom: 15px;">得分：${score}/4</p>
+                <h4 style="color: var(--accent-light); margin-bottom: 10px;">正确答案：</h4>
+                <p style="margin-bottom: 8px;">1. 成像性质：光屏上呈现（${correctQ1_1}）（${correctQ1_2}）的像</p>
+                <p style="margin-bottom: 8px;">2. 光源靠近小孔，像（${correctQ2}）</p>
+                <p style="margin-bottom: 8px;">3. 光屏靠近小孔，像（${correctQ3}）</p>
+            `;
+            
+            // 显示结果在答题区域下面
+            document.getElementById('resultContent').innerHTML = resultContent;
+            document.getElementById('resultArea').style.display = 'block';
+            
+            // 显示光线和像
+            showHint = true;
+            
+            // 解除练习模式限制，允许自由拖动
+            isPracticeMode = false;
+        });
+        
+        // 重新练习按钮
+        document.getElementById('resetQuizBtn').addEventListener('click', function() {
+            // 重置下拉菜单
+            document.getElementById('q1-1').value = '';
+            document.getElementById('q1-2').value = '';
+            document.getElementById('q2').value = '';
+            document.getElementById('q3').value = '';
+            
+            // 隐藏结果区域
+            document.getElementById('resultArea').style.display = 'none';
+            
+            // 随机重新设置物体和光屏的位置
+            const centerX = canvas.width / 2;
+            const arrowMinX = centerX - 400;
+            const arrowMaxX = centerX - 150;
+            const screenMinX = centerX + 150;
+            const screenMaxX = centerX + 400;
+            
+            objects.arrow.x = Math.random() * (arrowMaxX - arrowMinX) + arrowMinX;
+            objects.screen.x = Math.random() * (screenMaxX - screenMinX) + screenMinX;
+            
+            // 计算并更新距离显示
+            const objectDistance = objects.barrier.x - objects.arrow.x;
+            const imageDistance = objects.screen.x - objects.barrier.x;
+            
+            document.getElementById('objectDistance').textContent = objectDistance.toFixed(1);
+            document.getElementById('imageDistance').textContent = imageDistance.toFixed(1);
+            
+            // 隐藏提示
+            showHint = false;
+            
+            // 重新进入练习模式
+            isPracticeMode = true;
+        });
+        
+        // ============ 启动 ============
+        animate();
+    </script>
+</body>
+</html>

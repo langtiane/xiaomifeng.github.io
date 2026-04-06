@@ -1,0 +1,766 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D球体交互演示 - 日食/月食模拟</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            overflow: hidden;
+            background: #0a0a0f;
+            font-family: 'Segoe UI', system-ui, sans-serif;
+        }
+
+        #canvas-container {
+            width: 100vw;
+            height: 100vh;
+            position: fixed;
+            top: 0;
+            left: 0;
+        }
+
+        .ui-panel {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            background: rgba(15, 20, 30, 0.85);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 180, 80, 0.2);
+            border-radius: 12px;
+            padding: 20px;
+            color: #e8e0d5;
+            z-index: 100;
+            min-width: 260px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+        }
+
+        .ui-panel h2 {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 16px;
+            color: #ffb050;
+            letter-spacing: 0.5px;
+        }
+
+        .info-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .info-item:last-child {
+            border-bottom: none;
+        }
+
+        .info-label {
+            font-size: 13px;
+            color: #8a8a9a;
+        }
+
+        .info-value {
+            font-size: 14px;
+            font-weight: 500;
+            color: #fff;
+            font-family: 'Consolas', monospace;
+        }
+
+        .legend {
+            margin-top: 16px;
+            padding-top: 16px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 8px;
+            font-size: 13px;
+        }
+
+        .legend-color {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            box-shadow: 0 0 8px currentColor;
+        }
+
+        .legend-color.light-source {
+            background: radial-gradient(circle, #fff8e0, #ffb020);
+            color: #ffb020;
+        }
+
+        .legend-color.blue-ball {
+            background: radial-gradient(circle, #60a0ff, #2050a0);
+            color: #4080ff;
+        }
+
+        .legend-color.white-ball {
+            background: radial-gradient(circle, #ffffff, #c0c0c0);
+            color: #e0e0e0;
+        }
+
+        .hint-panel {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(15, 20, 30, 0.8);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 180, 80, 0.15);
+            border-radius: 30px;
+            padding: 12px 24px;
+            color: #a0a0b0;
+            font-size: 13px;
+            z-index: 100;
+            display: flex;
+            gap: 24px;
+        }
+
+        .hint-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .hint-key {
+            background: rgba(255, 180, 80, 0.15);
+            color: #ffb050;
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .selected-indicator {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: rgba(255, 180, 80, 0.15);
+            border: 1px solid rgba(255, 180, 80, 0.4);
+            border-radius: 10px;
+            padding: 14px 20px;
+            color: #ffb050;
+            font-size: 14px;
+            font-weight: 500;
+            z-index: 100;
+            opacity: 0;
+            transform: translateY(-10px);
+            transition: all 0.3s ease;
+        }
+
+        .selected-indicator.active {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        canvas {
+            display: block;
+        }
+        
+        /* 新增：日食模式切换按钮 */
+        .mode-toggle {
+            position: fixed;
+            top: 20px;
+            right: 160px;
+            background: rgba(30, 80, 150, 0.7);
+            backdrop-filter: blur(5px);
+            border: 1px solid rgba(100, 180, 255, 0.4);
+            border-radius: 10px;
+            padding: 10px 16px;
+            color: #c0e0ff;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            z-index: 100;
+        }
+        
+        .mode-toggle:hover {
+            background: rgba(40, 100, 180, 0.8);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        }
+        
+        .mode-toggle.active {
+            background: rgba(180, 100, 30, 0.7);
+            border-color: rgba(255, 180, 80, 0.6);
+            color: #ffd0a0;
+        }
+    </style>
+</head>
+<body>
+    <div id="canvas-container"></div>
+    
+    <div class="ui-panel">
+        <h2>3D球体交互演示 - 日食/月食模拟</h2>
+        <div class="info-item">
+            <span class="info-label">选中物体</span>
+            <span class="info-value" id="selected-name">无</span>
+        </div>
+        <div class="info-item">
+            <span class="info-label">位置 X</span>
+            <span class="info-value" id="pos-x">-</span>
+        </div>
+        <div class="info-item">
+            <span class="info-label">位置 Y</span>
+            <span class="info-value" id="pos-y">-</span>
+        </div>
+        <div class="info-item">
+            <span class="info-label">位置 Z</span>
+            <span class="info-value" id="pos-z">-</span>
+        </div>
+        <div class="info-item">
+            <span class="info-label">阴影强度</span>
+            <span class="info-value" id="shadow-intensity">-</span>
+        </div>
+        <div class="legend">
+            <div class="legend-item">
+                <div class="legend-color light-source"></div>
+                <span>太阳 (光源)</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color blue-ball"></div>
+                <span>地球</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color white-ball"></div>
+                <span>月球</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="selected-indicator" id="selected-indicator">
+        正在拖动: <span id="drag-name">-</span>
+    </div>
+    
+    <!-- 新增：日食模式切换按钮 -->
+    <div class="mode-toggle" id="eclipse-toggle">
+        日食/月食模式: <span id="mode-status">关闭</span>
+    </div>
+
+    <div class="hint-panel">
+        <div class="hint-item">
+            <span class="hint-key">点击</span>
+            <span>选中物体</span>
+        </div>
+        <div class="hint-item">
+            <span class="hint-key">拖动</span>
+            <span>移动物体/旋转视角</span>
+        </div>
+        <div class="hint-item">
+            <span class="hint-key">滚轮</span>
+            <span>缩放视图</span>
+        </div>
+        <div class="hint-item">
+            <span class="hint-key">E</span>
+            <span>切换日食模式</span>
+        </div>
+    </div>
+
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+            "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+        }
+    }
+    </script>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+        // 场景初始化
+        const container = document.getElementById('canvas-container');
+        const scene = new THREE.Scene();
+        
+        // 相机设置
+        const camera = new THREE.PerspectiveCamera(
+            60,
+            window.innerWidth / window.innerHeight,
+            0.1,
+            1000
+        );
+        camera.position.set(8, 6, 10);
+
+        // 渲染器
+        const renderer = new THREE.WebGLRenderer({ 
+            antialias: true,
+            alpha: true 
+        });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        renderer.toneMapping = THREE.ACESFilmicToneMapping;
+        renderer.toneMappingExposure = 1.2;
+        container.appendChild(renderer.domElement);
+
+        // 轨道控制器
+        const controls = new OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.05;
+        controls.minDistance = 5;
+        controls.maxDistance = 50;
+
+        // 背景星空
+        const starGeometry = new THREE.BufferGeometry();
+        const starCount = 2000;
+        const starPositions = new Float32Array(starCount * 3);
+        const starColors = new Float32Array(starCount * 3);
+
+        for (let i = 0; i < starCount; i++) {
+            const i3 = i * 3;
+            const radius = 80 + Math.random() * 120;
+            const theta = Math.random() * Math.PI * 2;
+            const phi = Math.acos(2 * Math.random() - 1);
+            
+            starPositions[i3] = radius * Math.sin(phi) * Math.cos(theta);
+            starPositions[i3 + 1] = radius * Math.sin(phi) * Math.sin(theta);
+            starPositions[i3 + 2] = radius * Math.cos(phi);
+            
+            const brightness = 0.5 + Math.random() * 0.5;
+            starColors[i3] = brightness;
+            starColors[i3 + 1] = brightness * 0.95;
+            starColors[i3 + 2] = brightness * 0.9;
+        }
+
+        starGeometry.setAttribute('position', new THREE.BufferAttribute(starPositions, 3));
+        starGeometry.setAttribute('color', new THREE.BufferAttribute(starColors, 3));
+
+        const starMaterial = new THREE.PointsMaterial({
+            size: 0.8,
+            vertexColors: true,
+            transparent: true,
+            opacity: 0.8,
+            sizeAttenuation: true
+        });
+
+        const stars = new THREE.Points(starGeometry, starMaterial);
+        scene.add(stars);
+
+        // 环境光 - 增加强度使阴影区域可见
+        const ambientLight = new THREE.AmbientLight(0x303050, 0.5);
+        scene.add(ambientLight);
+
+        // 新增：方向光模拟太阳直射光
+        const directionalLight = new THREE.DirectionalLight(0xffeedd, 2.5);
+        directionalLight.position.set(-5, 10, 5);
+        directionalLight.castShadow = true;
+        directionalLight.shadow.mapSize.width = 2048;
+        directionalLight.shadow.mapSize.height = 2048;
+        directionalLight.shadow.camera.near = 0.5;
+        directionalLight.shadow.camera.far = 50;
+        directionalLight.shadow.bias = -0.001;
+        scene.add(directionalLight);
+
+        // 点光源 - 增加强度
+        const pointLight = new THREE.PointLight(0xffdd99, 6, 40);
+        pointLight.position.set(-4, 2, 0);
+        pointLight.castShadow = true;
+        pointLight.shadow.mapSize.width = 2048;
+        pointLight.shadow.mapSize.height = 2048;
+        pointLight.shadow.bias = -0.001;
+        scene.add(pointLight);
+
+        // 创建光源球（太阳）- 不投射影子
+        const lightSphereGeometry = new THREE.SphereGeometry(2, 64, 64);
+        const lightSphereMaterial = new THREE.MeshStandardMaterial({
+            color: 0xffd070,
+            emissive: 0xff8010,
+            emissiveIntensity: 3,
+            metalness: 0.05,
+            roughness: 0.1
+        });
+        const lightSphere = new THREE.Mesh(lightSphereGeometry, lightSphereMaterial);
+        lightSphere.position.set(-4, 2, 0);
+        lightSphere.castShadow = false; // 禁用影子投射
+        lightSphere.receiveShadow = false;
+        lightSphere.name = '太阳';
+        lightSphere.userData.originalColor = 0xffd070;
+        lightSphere.userData.isLightSource = true;
+        scene.add(lightSphere);
+
+        // 光源辉光效果
+        const glowGeometry = new THREE.SphereGeometry(2.8, 48, 48);
+        const glowMaterial = new THREE.MeshBasicMaterial({
+            color: 0xffcc44,
+            transparent: true,
+            opacity: 0.25,
+            side: THREE.BackSide
+        });
+        const glowSphere = new THREE.Mesh(glowGeometry, glowMaterial);
+        lightSphere.add(glowSphere);
+
+        // 创建地球（蓝色球）
+        const blueSphereGeometry = new THREE.SphereGeometry(1.2, 64, 64);
+        const blueSphereMaterial = new THREE.MeshStandardMaterial({
+            color: 0x4080e0, // 更亮的蓝色
+            metalness: 0.7, // 增加金属感
+            roughness: 0.15, // 更光滑的表面
+            emissive: 0x102040, // 微弱自发光使阴影中可见
+            emissiveIntensity: 0.2
+        });
+        const blueSphere = new THREE.Mesh(blueSphereGeometry, blueSphereMaterial);
+        blueSphere.position.set(3, 1, 2);
+        blueSphere.castShadow = true;
+        blueSphere.receiveShadow = true;
+        blueSphere.name = '地球';
+        blueSphere.userData.originalColor = 0x4080e0;
+        scene.add(blueSphere);
+
+        // 创建月球（白色球）
+        const whiteSphereGeometry = new THREE.SphereGeometry(0.6, 64, 64);
+        const whiteSphereMaterial = new THREE.MeshStandardMaterial({
+            color: 0xf0f0f0, // 更亮的白色
+            metalness: 0.5, // 增加金属感
+            roughness: 0.1, // 更光滑的表面
+            emissive: 0x202020, // 微弱自发光使阴影中可见
+            emissiveIntensity: 0.3
+        });
+        const whiteSphere = new THREE.Mesh(whiteSphereGeometry, whiteSphereMaterial);
+        whiteSphere.position.set(1, 3, -2);
+        whiteSphere.castShadow = true;
+        whiteSphere.receiveShadow = true;
+        whiteSphere.name = '月球';
+        whiteSphere.userData.originalColor = 0xf0f0f0;
+        scene.add(whiteSphere);
+
+        // 地面网格
+        const gridHelper = new THREE.GridHelper(20, 20, 0x303050, 0x202030);
+        gridHelper.position.y = -2;
+        scene.add(gridHelper);
+
+        // 地面 - 优化阴影接收
+        const groundGeometry = new THREE.PlaneGeometry(30, 30);
+        const groundMaterial = new THREE.MeshStandardMaterial({
+            color: 0x101020,
+            metalness: 0.2,
+            roughness: 0.7,
+            side: THREE.DoubleSide
+        });
+        const ground = new THREE.Mesh(groundGeometry, groundMaterial);
+        ground.rotation.x = -Math.PI / 2;
+        ground.position.y = -2;
+        ground.receiveShadow = true;
+        scene.add(ground);
+
+        // 可拖动物体列表
+        const draggableObjects = [lightSphere, blueSphere, whiteSphere];
+        
+        // 日食模式状态
+        let eclipseMode = false;
+        const eclipseToggle = document.getElementById('eclipse-toggle');
+        const modeStatus = document.getElementById('mode-status');
+        const shadowIntensityDisplay = document.getElementById('shadow-intensity');
+
+        // 射线投射器
+        const raycaster = new THREE.Raycaster();
+        const mouse = new THREE.Vector2();
+        
+        // 拖拽状态
+        let selectedObject = null;
+        let isDragging = false;
+        const dragPlane = new THREE.Plane(new THREE.Vector3(0, 0, 1), 0);
+        const intersection = new THREE.Vector3();
+        const offset = new THREE.Vector3();
+        const previousPosition = new THREE.Vector3();
+
+        // UI元素
+        const selectedName = document.getElementById('selected-name');
+        const posX = document.getElementById('pos-x');
+        const posY = document.getElementById('pos-y');
+        const posZ = document.getElementById('pos-z');
+        const selectedIndicator = document.getElementById('selected-indicator');
+        const dragName = document.getElementById('drag-name');
+
+        // 高亮材质
+        const highlightMaterial = new THREE.MeshStandardMaterial({
+            color: 0x00ff88,
+            emissive: 0x00ff44,
+            emissiveIntensity: 0.5,
+            metalness: 0.5,
+            roughness: 0.3
+        });
+
+        // 更新UI信息
+        function updateUI(object) {
+            if (object) {
+                selectedName.textContent = object.name;
+                posX.textContent = object.position.x.toFixed(2);
+                posY.textContent = object.position.y.toFixed(2);
+                posZ.textContent = object.position.z.toFixed(2);
+                
+                // 计算阴影强度
+                if (eclipseMode) {
+                    const lightPos = lightSphere.position.clone();
+                    const objPos = object.position.clone();
+                    const dist = lightPos.distanceTo(objPos);
+                    
+                    // 简单模拟阴影强度（距离光源越远越暗）
+                    const shadowIntensity = Math.max(0, 1 - (dist / 20));
+                    shadowIntensityDisplay.textContent = shadowIntensity.toFixed(2);
+                    
+                    // 应用阴影效果
+                    if (object.name === '月球') {
+                        object.material.emissiveIntensity = 0.1 + shadowIntensity * 0.2;
+                    }
+                }
+            } else {
+                selectedName.textContent = '无';
+                posX.textContent = '-';
+                posY.textContent = '-';
+                posZ.textContent = '-';
+                shadowIntensityDisplay.textContent = '-';
+            }
+        }
+
+        // 检测日食/月食
+        function checkEclipse() {
+            const sunPos = lightSphere.position.clone();
+            const earthPos = blueSphere.position.clone();
+            const moonPos = whiteSphere.position.clone();
+            
+            // 地球到月球的向量
+            const earthToMoon = new THREE.Vector3().subVectors(moonPos, earthPos);
+            // 地球到太阳的向量
+            const earthToSun = new THREE.Vector3().subVectors(sunPos, earthPos);
+            
+            // 计算角度（点积）
+            const dotProduct = earthToMoon.dot(earthToSun);
+            const magnitudeEM = earthToMoon.length();
+            const magnitudeES = earthToSun.length();
+            
+            const angle = Math.acos(dotProduct / (magnitudeEM * magnitudeES));
+            const eclipseThreshold = 0.05; // 角度阈值
+            
+            return angle < eclipseThreshold;
+        }
+
+        // 鼠标按下
+        function onMouseDown(event) {
+            event.preventDefault();
+            
+            mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+            mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+            
+            raycaster.setFromCamera(mouse, camera);
+            const intersects = raycaster.intersectObjects(draggableObjects);
+            
+            if (intersects.length > 0) {
+                controls.enabled = false;
+                selectedObject = intersects[0].object;
+                isDragging = true;
+                
+                // 高亮显示
+                selectedObject.material.emissive.setHex(0x00ff44);
+                selectedObject.material.emissiveIntensity = 0.8;
+                
+                // 记录初始位置
+                previousPosition.copy(selectedObject.position);
+                
+                // 设置拖拽平面
+                dragPlane.setFromNormalAndCoplanarPoint(
+                    camera.getWorldDirection(new THREE.Vector3()).negate(),
+                    selectedObject.position
+                );
+                
+                // 计算偏移
+                raycaster.ray.intersectPlane(dragPlane, intersection);
+                offset.copy(intersection).sub(selectedObject.position);
+                
+                // 更新UI
+                updateUI(selectedObject);
+                dragName.textContent = selectedObject.name;
+                selectedIndicator.classList.add('active');
+            }
+        }
+
+        // 鼠标移动
+        function onMouseMove(event) {
+            mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+            mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+            
+            if (isDragging && selectedObject) {
+                // 计算新的射线
+                raycaster.setFromCamera(mouse, camera);
+                
+                // 计算新的交点
+                const newIntersection = new THREE.Vector3();
+                if (raycaster.ray.intersectPlane(dragPlane, newIntersection)) {
+                    // 计算位移向量
+                    const displacement = new THREE.Vector3();
+                    displacement.copy(newIntersection).sub(intersection);
+                    
+                    // 应用位移到物体
+                    selectedObject.position.add(displacement);
+                    
+                    // 更新交点用于下一次计算
+                    intersection.copy(newIntersection);
+                    
+                    // 如果是光源球，同步点光源位置
+                    if (selectedObject.userData.isLightSource) {
+                        pointLight.position.copy(selectedObject.position);
+                        directionalLight.position.copy(selectedObject.position);
+                    }
+                    
+                    updateUI(selectedObject);
+                }
+            } else {
+                // 悬停检测
+                raycaster.setFromCamera(mouse, camera);
+                const intersects = raycaster.intersectObjects(draggableObjects);
+                
+                // 重置所有物体
+                draggableObjects.forEach(obj => {
+                    if (obj !== selectedObject) {
+                        if (obj.userData.isLightSource) {
+                            obj.material.emissive.setHex(0xff8010);
+                            obj.material.emissiveIntensity = 3;
+                        } else {
+                            obj.material.emissive.setHex(0x000000);
+                            obj.material.emissiveIntensity = 0.2;
+                        }
+                    }
+                });
+                
+                // 高亮悬停物体
+                if (intersects.length > 0) {
+                    const hoveredObject = intersects[0].object;
+                    if (hoveredObject !== selectedObject) {
+                        hoveredObject.material.emissive.setHex(0x444444);
+                        hoveredObject.material.emissiveIntensity = 0.5;
+                    }
+                    renderer.domElement.style.cursor = 'grab';
+                } else {
+                    renderer.domElement.style.cursor = 'default';
+                }
+            }
+        }
+
+        // 鼠标释放
+        function onMouseUp(event) {
+            if (isDragging && selectedObject) {
+                // 恢复材质
+                if (selectedObject.userData.isLightSource) {
+                    selectedObject.material.emissive.setHex(0xff8010);
+                    selectedObject.material.emissiveIntensity = 3;
+                } else {
+                    selectedObject.material.emissive.setHex(0x000000);
+                    selectedObject.material.emissiveIntensity = 0.2;
+                }
+            }
+            
+            controls.enabled = true;
+            isDragging = false;
+            selectedObject = null;
+            selectedIndicator.classList.remove('active');
+            updateUI(null);
+            renderer.domElement.style.cursor = 'default';
+        }
+
+        // 键盘事件
+        function onKeyDown(event) {
+            // E键切换日食模式
+            if (event.key === 'e' || event.key === 'E') {
+                toggleEclipseMode();
+            }
+        }
+        
+        // 切换日食模式
+        function toggleEclipseMode() {
+            eclipseMode = !eclipseMode;
+            modeStatus.textContent = eclipseMode ? '开启' : '关闭';
+            eclipseToggle.classList.toggle('active', eclipseMode);
+            
+            if (eclipseMode) {
+                // 初始位置设置
+                lightSphere.position.set(-8, 0, 0);
+                blueSphere.position.set(0, 0, 0);
+                whiteSphere.position.set(3, 0, 0);
+                
+                // 更新光源位置
+                pointLight.position.copy(lightSphere.position);
+                directionalLight.position.copy(lightSphere.position);
+                
+                // 更新UI
+                updateUI(blueSphere);
+            }
+        }
+
+        // 滚轮缩放
+        function onWheel(event) {
+            // OrbitControls 已处理滚轮缩放
+        }
+
+        // 窗口大小调整
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        // 事件监听
+        renderer.domElement.addEventListener('mousedown', onMouseDown);
+        renderer.domElement.addEventListener('mousemove', onMouseMove);
+        renderer.domElement.addEventListener('mouseup', onMouseUp);
+        renderer.domElement.addEventListener('mouseleave', onMouseUp);
+        window.addEventListener('keydown', onKeyDown);
+        window.addEventListener('resize', onWindowResize);
+        eclipseToggle.addEventListener('click', toggleEclipseMode);
+
+        // 动画循环
+        let time = 0;
+        function animate() {
+            requestAnimationFrame(animate);
+            time += 0.01;
+            
+            // 星空缓慢旋转
+            stars.rotation.y += 0.0001;
+            stars.rotation.x += 0.00005;
+            
+            // 光源辉光动画
+            if (glowSphere) {
+                glowSphere.scale.setScalar(1 + Math.sin(time * 2) * 0.1);
+                glowMaterial.opacity = 0.15 + Math.sin(time * 3) * 0.1;
+            }
+            
+            // 日食模式下的特殊动画
+            if (eclipseMode) {
+                // 月球绕地球旋转
+                const moonOrbitRadius = 3;
+                const moonSpeed = 0.5;
+                whiteSphere.position.x = blueSphere.position.x + Math.cos(time * moonSpeed) * moonOrbitRadius;
+                whiteSphere.position.z = blueSphere.position.z + Math.sin(time * moonSpeed) * moonOrbitRadius;
+                
+                // 检测日食/月食
+                const isEclipse = checkEclipse();
+                
+                // 日食时降低月球亮度
+                if (isEclipse) {
+                    whiteSphere.material.emissiveIntensity = 0.05;
+                } else {
+                    whiteSphere.material.emissiveIntensity = 0.2;
+                }
+                
+                // 更新UI
+                updateUI(blueSphere);
+            }
+            
+            controls.update();
+            renderer.render(scene, camera);
+        }
+
+        animate();
+    </script>
+</body>
+</html>

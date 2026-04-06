@@ -1,0 +1,1177 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>透镜光学实验 - 凸透镜与凹透镜</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700&family=Orbitron:wght@500;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-primary: #0a0e17;
+            --bg-secondary: #111827;
+            --bg-card: #1a2234;
+            --accent-cyan: #00d4ff;
+            --accent-orange: #ff6b35;
+            --accent-green: #00ff88;
+            --text-primary: #e8edf5;
+            --text-secondary: #8892a6;
+            --border-color: #2a3a52;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Noto Sans SC', sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+        
+        .title-font {
+            font-family: 'Orbitron', sans-serif;
+        }
+        
+        /* 背景网格 */
+        .grid-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: 
+                linear-gradient(rgba(0, 212, 255, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 212, 255, 0.03) 1px, transparent 1px);
+            background-size: 50px 50px;
+            pointer-events: none;
+            z-index: 0;
+        }
+        
+        /* 控制面板样式 */
+        .control-panel {
+            background: linear-gradient(135deg, var(--bg-card) 0%, rgba(26, 34, 52, 0.8) 100%);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            backdrop-filter: blur(10px);
+        }
+        
+        .control-btn {
+            padding: 12px 24px;
+            border-radius: 10px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            border: 2px solid transparent;
+            cursor: pointer;
+        }
+        
+        .control-btn.active {
+            background: linear-gradient(135deg, var(--accent-cyan), #0099cc);
+            color: var(--bg-primary);
+            box-shadow: 0 0 20px rgba(0, 212, 255, 0.4);
+        }
+        
+        .control-btn:not(.active) {
+            background: var(--bg-secondary);
+            border-color: var(--border-color);
+            color: var(--text-secondary);
+        }
+        
+        .control-btn:not(.active):hover {
+            border-color: var(--accent-cyan);
+            color: var(--text-primary);
+        }
+        
+        /* 滑块样式 */
+        .slider-container {
+            position: relative;
+        }
+        
+        .custom-slider {
+            -webkit-appearance: none;
+            width: 100%;
+            height: 8px;
+            border-radius: 4px;
+            background: var(--bg-secondary);
+            outline: none;
+            cursor: pointer;
+        }
+        
+        .custom-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--accent-cyan), #0099cc);
+            cursor: pointer;
+            box-shadow: 0 0 15px rgba(0, 212, 255, 0.5);
+            transition: transform 0.2s;
+        }
+        
+        .custom-slider::-webkit-slider-thumb:hover {
+            transform: scale(1.2);
+        }
+        
+        .custom-slider::-moz-range-thumb {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--accent-cyan), #0099cc);
+            cursor: pointer;
+            border: none;
+            box-shadow: 0 0 15px rgba(0, 212, 255, 0.5);
+        }
+        
+        /* Canvas容器 */
+        .canvas-container {
+            background: linear-gradient(180deg, rgba(10, 14, 23, 0.9) 0%, rgba(17, 24, 39, 0.9) 100%);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            overflow: hidden;
+            position: relative;
+        }
+        
+        .canvas-container::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, var(--accent-cyan), transparent);
+        }
+        
+        /* 信息面板 */
+        .info-panel {
+            background: rgba(26, 34, 52, 0.6);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            backdrop-filter: blur(5px);
+        }
+        
+        .info-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 12px;
+            border-bottom: 1px solid rgba(42, 58, 82, 0.5);
+        }
+        
+        .info-item:last-child {
+            border-bottom: none;
+        }
+        
+        .info-label {
+            color: var(--text-secondary);
+        }
+        
+        .info-value {
+            font-weight: 600;
+            font-family: 'Orbitron', sans-serif;
+        }
+        
+        /* 图例 */
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 12px;
+            background: rgba(17, 24, 39, 0.6);
+            border-radius: 8px;
+        }
+        
+        .legend-color {
+            width: 24px;
+            height: 4px;
+            border-radius: 2px;
+        }
+        
+        /* 动画 */
+        @keyframes pulse-glow {
+            0%, 100% { box-shadow: 0 0 20px rgba(0, 212, 255, 0.3); }
+            50% { box-shadow: 0 0 40px rgba(0, 212, 255, 0.6); }
+        }
+        
+        .pulse-glow {
+            animation: pulse-glow 2s ease-in-out infinite;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .fade-in {
+            animation: fadeIn 0.6s ease-out forwards;
+        }
+        
+        .fade-in-delay-1 { animation-delay: 0.1s; opacity: 0; }
+        .fade-in-delay-2 { animation-delay: 0.2s; opacity: 0; }
+        .fade-in-delay-3 { animation-delay: 0.3s; opacity: 0; }
+        
+        /* 提示框 */
+        .tooltip {
+            position: relative;
+        }
+        
+        .tooltip-text {
+            visibility: hidden;
+            position: absolute;
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--bg-card);
+            color: var(--text-primary);
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-size: 12px;
+            white-space: nowrap;
+            border: 1px solid var(--border-color);
+            z-index: 100;
+            margin-bottom: 8px;
+        }
+        
+        .tooltip:hover .tooltip-text {
+            visibility: visible;
+        }
+        
+        @media (prefers-reduced-motion: reduce) {
+            * {
+                animation: none !important;
+                transition: none !important;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="grid-bg"></div>
+    
+    <div class="relative z-10 min-h-screen p-4 md:p-8">
+        <!-- 标题 -->
+        <header class="text-center mb-8 fade-in">
+            <h1 class="title-font text-3xl md:text-4xl font-bold mb-2" style="color: var(--accent-cyan);">
+                透镜光学实验
+            </h1>
+            <p class="text-lg" style="color: var(--text-secondary);">
+                探索凸透镜与凹透镜对光线的作用规律
+            </p>
+        </header>
+        
+        <div class="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-4 gap-6">
+            <!-- 左侧控制面板 -->
+            <div class="lg:col-span-1 space-y-4">
+                <!-- 透镜类型选择 -->
+                <div class="control-panel p-5 fade-in fade-in-delay-1">
+                    <h3 class="text-sm font-medium mb-4" style="color: var(--text-secondary);">透镜类型</h3>
+                    <div class="grid grid-cols-2 gap-3">
+                        <button id="convexBtn" class="control-btn active" onclick="setLensType('convex')">
+                            凸透镜
+                        </button>
+                        <button id="concaveBtn" class="control-btn" onclick="setLensType('concave')">
+                            凹透镜
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- 参数控制 -->
+                <div class="control-panel p-5 fade-in fade-in-delay-2">
+                    <h3 class="text-sm font-medium mb-4" style="color: var(--text-secondary);">参数调节</h3>
+                    
+                    <div class="space-y-6">
+                        <!-- 焦距调节 -->
+                        <div class="slider-container">
+                            <div class="flex justify-between mb-2">
+                                <span class="text-sm" style="color: var(--text-secondary);">焦距</span>
+                                <span id="focalValue" class="title-font text-sm" style="color: var(--accent-cyan);">100 px</span>
+                            </div>
+                            <input type="range" id="focalSlider" class="custom-slider" 
+                                   min="50" max="200" value="100" 
+                                   oninput="updateFocal()">
+                        </div>
+                        
+                        <!-- 光线数量 -->
+                        <div class="slider-container">
+                            <div class="flex justify-between mb-2">
+                                <span class="text-sm" style="color: var(--text-secondary);">平行光线数</span>
+                                <span id="raysValue" class="title-font text-sm" style="color: var(--accent-cyan);">5 条</span>
+                            </div>
+                            <input type="range" id="raysSlider" class="custom-slider" 
+                                   min="3" max="11" value="5" step="2"
+                                   oninput="updateRays()">
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 显示选项 -->
+                <div class="control-panel p-5 fade-in fade-in-delay-3">
+                    <h3 class="text-sm font-medium mb-4" style="color: var(--text-secondary);">显示选项</h3>
+                    <div class="space-y-3">
+                        <label class="flex items-center gap-3 cursor-pointer">
+                            <input type="checkbox" id="showAxis" checked onchange="draw()" 
+                                   class="w-5 h-5 rounded accent-cyan-500">
+                            <span>显示主光轴</span>
+                        </label>
+                        <label class="flex items-center gap-3 cursor-pointer">
+                            <input type="checkbox" id="showFocal" checked onchange="draw()"
+                                   class="w-5 h-5 rounded accent-cyan-500">
+                            <span>显示焦点</span>
+                        </label>
+                        <label class="flex items-center gap-3 cursor-pointer">
+                            <input type="checkbox" id="showVirtual" checked onchange="draw()"
+                                   class="w-5 h-5 rounded accent-cyan-500">
+                            <span>显示出射光线反向延长线</span>
+                        </label>
+                        <label class="flex items-center gap-3 cursor-pointer">
+                            <input type="checkbox" id="animateRays" checked onchange="toggleAnimation()"
+                                   class="w-5 h-5 rounded accent-cyan-500">
+                            <span>光线动画</span>
+                        </label>
+                    </div>
+                </div>
+                
+                <!-- 图例 -->
+                <div class="control-panel p-5 fade-in fade-in-delay-3">
+                    <h3 class="text-sm font-medium mb-4" style="color: var(--text-secondary);">图例说明</h3>
+                    <div class="space-y-2">
+                        <div class="legend-item">
+                            <div class="legend-color" style="background: linear-gradient(90deg, #ffcc00, #ff8800);"></div>
+                            <span class="text-sm">入射光线</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-color" style="background: linear-gradient(90deg, #00ff88, #00cc66);"></div>
+                            <span class="text-sm">折射光线</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-color" style="background: #ff6b35; opacity: 0.6;"></div>
+                            <span class="text-sm">出射光线反向延长线</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 右侧主画布区域 -->
+            <div class="lg:col-span-3 space-y-4">
+                <!-- 画布 -->
+                <div class="canvas-container fade-in fade-in-delay-2">
+                    <canvas id="lensCanvas"></canvas>
+                </div>
+                
+                <!-- 信息面板 -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="info-panel p-4 fade-in fade-in-delay-3">
+                        <h3 class="text-sm font-medium mb-3" style="color: var(--accent-cyan);">透镜特性</h3>
+                        <div id="lensInfo">
+                            <div class="info-item">
+                                <span class="info-label">类型</span>
+                                <span class="info-value" id="infoType">凸透镜</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">焦距 f</span>
+                                <span class="info-value" id="infoFocal">100 px</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">作用</span>
+                                <span class="info-value" id="infoEffect">会聚光线</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="info-panel p-4 fade-in fade-in-delay-3">
+                        <h3 class="text-sm font-medium mb-3" style="color: var(--accent-cyan);">物理原理</h3>
+                        <p id="principleText" class="text-sm leading-relaxed" style="color: var(--text-secondary);">
+                            凸透镜中间厚、边缘薄，对光线有会聚作用。平行于主光轴的光线经凸透镜折射后，会聚于焦点F。焦点到透镜光心的距离叫做焦距f。
+                        </p>
+                    </div>
+                </div>
+                
+                <!-- 操作提示 -->
+                <div class="info-panel p-4 fade-in fade-in-delay-3">
+                    <div class="flex items-start gap-3">
+                        <svg class="w-5 h-5 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="color: var(--accent-cyan);">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                        <div class="text-sm" style="color: var(--text-secondary);">
+                            <strong style="color: var(--text-primary);">操作提示：</strong>
+                            切换透镜类型观察光线变化，调节焦距滑块改变透镜的会聚/发散程度，调整光线数量观察不同位置的折射效果。
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 课中练习 -->
+                <div class="info-panel p-4 fade-in fade-in-delay-3">
+                    <h3 class="text-sm font-medium mb-4" style="color: var(--accent-cyan);">课中练习</h3>
+                    
+                    <div class="space-y-4">
+                        <!-- 题目1 -->
+                        <div class="space-y-2">
+                            <p class="text-sm">1. 凸透镜对光线有____（会聚/发散）作用，使光线向____（靠近/远离）主光轴的方向偏折。</p>
+                            <div class="grid grid-cols-2 gap-2">
+                                <div class="flex items-center gap-2">
+                                    <input type="radio" name="q1a" value="会聚" class="w-4 h-4 accent-cyan-500">
+                                    <span class="text-sm">会聚</span>
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <input type="radio" name="q1a" value="发散" class="w-4 h-4 accent-cyan-500">
+                                    <span class="text-sm">发散</span>
+                                </div>
+                            </div>
+                            <div class="grid grid-cols-2 gap-2 mt-2">
+                                <div class="flex items-center gap-2">
+                                    <input type="radio" name="q1b" value="靠近" class="w-4 h-4 accent-cyan-500">
+                                    <span class="text-sm">靠近</span>
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <input type="radio" name="q1b" value="远离" class="w-4 h-4 accent-cyan-500">
+                                    <span class="text-sm">远离</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- 题目2 -->
+                        <div class="space-y-2">
+                            <p class="text-sm">2. 平行于凸透镜主光轴的光____（能/不能）会聚于____（焦点/虚焦点）。</p>
+                            <div class="grid grid-cols-2 gap-2">
+                                <div class="flex items-center gap-2">
+                                    <input type="radio" name="q2a" value="能" class="w-4 h-4 accent-cyan-500">
+                                    <span class="text-sm">能</span>
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <input type="radio" name="q2a" value="不能" class="w-4 h-4 accent-cyan-500">
+                                    <span class="text-sm">不能</span>
+                                </div>
+                            </div>
+                            <div class="grid grid-cols-2 gap-2 mt-2">
+                                <div class="flex items-center gap-2">
+                                    <input type="radio" name="q2b" value="焦点" class="w-4 h-4 accent-cyan-500">
+                                    <span class="text-sm">焦点</span>
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <input type="radio" name="q2b" value="虚焦点" class="w-4 h-4 accent-cyan-500">
+                                    <span class="text-sm">虚焦点</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- 题目3 -->
+                        <div class="space-y-2">
+                            <p class="text-sm">3. 凸透镜越凸，焦距越___（小/大）。</p>
+                            <div class="grid grid-cols-2 gap-2">
+                                <div class="flex items-center gap-2">
+                                    <input type="radio" name="q3" value="小" class="w-4 h-4 accent-cyan-500">
+                                    <span class="text-sm">小</span>
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <input type="radio" name="q3" value="大" class="w-4 h-4 accent-cyan-500">
+                                    <span class="text-sm">大</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- 题目4 -->
+                        <div class="space-y-2">
+                            <p class="text-sm">4. 凹透镜对光线有____（会聚/发散）作用，使光线向____（靠近/远离）主光轴的方向偏折。</p>
+                            <div class="grid grid-cols-2 gap-2">
+                                <div class="flex items-center gap-2">
+                                    <input type="radio" name="q4a" value="会聚" class="w-4 h-4 accent-cyan-500">
+                                    <span class="text-sm">会聚</span>
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <input type="radio" name="q4a" value="发散" class="w-4 h-4 accent-cyan-500">
+                                    <span class="text-sm">发散</span>
+                                </div>
+                            </div>
+                            <div class="grid grid-cols-2 gap-2 mt-2">
+                                <div class="flex items-center gap-2">
+                                    <input type="radio" name="q4b" value="靠近" class="w-4 h-4 accent-cyan-500">
+                                    <span class="text-sm">靠近</span>
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <input type="radio" name="q4b" value="远离" class="w-4 h-4 accent-cyan-500">
+                                    <span class="text-sm">远离</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- 题目5 -->
+                        <div class="space-y-2">
+                            <p class="text-sm">5. 平行于凹透镜主光轴的光____（能/不能）会聚于____（焦点/虚焦点）。</p>
+                            <div class="grid grid-cols-2 gap-2">
+                                <div class="flex items-center gap-2">
+                                    <input type="radio" name="q5a" value="能" class="w-4 h-4 accent-cyan-500">
+                                    <span class="text-sm">能</span>
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <input type="radio" name="q5a" value="不能" class="w-4 h-4 accent-cyan-500">
+                                    <span class="text-sm">不能</span>
+                                </div>
+                            </div>
+                            <div class="grid grid-cols-2 gap-2 mt-2">
+                                <div class="flex items-center gap-2">
+                                    <input type="radio" name="q5b" value="焦点" class="w-4 h-4 accent-cyan-500">
+                                    <span class="text-sm">焦点</span>
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <input type="radio" name="q5b" value="虚焦点" class="w-4 h-4 accent-cyan-500">
+                                    <span class="text-sm">虚焦点</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- 题目6 -->
+                        <div class="space-y-2">
+                            <p class="text-sm">6. 该平行光的折射光线的反向延长线____（能/不能）会聚于____（焦点/虚焦点）。</p>
+                            <div class="grid grid-cols-2 gap-2">
+                                <div class="flex items-center gap-2">
+                                    <input type="radio" name="q6a" value="能" class="w-4 h-4 accent-cyan-500">
+                                    <span class="text-sm">能</span>
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <input type="radio" name="q6a" value="不能" class="w-4 h-4 accent-cyan-500">
+                                    <span class="text-sm">不能</span>
+                                </div>
+                            </div>
+                            <div class="grid grid-cols-2 gap-2 mt-2">
+                                <div class="flex items-center gap-2">
+                                    <input type="radio" name="q6b" value="焦点" class="w-4 h-4 accent-cyan-500">
+                                    <span class="text-sm">焦点</span>
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <input type="radio" name="q6b" value="虚焦点" class="w-4 h-4 accent-cyan-500">
+                                    <span class="text-sm">虚焦点</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- 提交按钮 -->
+                        <button id="submitQuiz" class="w-full py-2 px-4 bg-gradient-to-r from-cyan-500 to-blue-500 rounded-lg text-white font-medium hover:opacity-90 transition-opacity">
+                            提交答案
+                        </button>
+                        
+                        <!-- 答案显示区域 -->
+                        <div id="quizResult" class="hidden mt-4 p-3 bg-secondary rounded-lg">
+                            <h4 class="text-sm font-medium mb-2" style="color: var(--accent-cyan);">答案解析</h4>
+                            <div id="resultContent" class="text-sm space-y-2"></div>
+                            <div class="mt-3 pt-3 border-t border-border-color">
+                                <p class="text-sm" style="color: var(--accent-green);">正确率：<span id="correctRate">0%</span></p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // ===== 练习答案 =====
+        const quizAnswers = {
+            q1a: '会聚',
+            q1b: '靠近',
+            q2a: '能',
+            q2b: '焦点',
+            q3: '小',
+            q4a: '发散',
+            q4b: '远离',
+            q5a: '不能',
+            q5b: '虚焦点',
+            q6a: '能',
+            q6b: '虚焦点'
+        };
+        
+        // ===== 提交答案 =====
+        document.getElementById('submitQuiz').addEventListener('click', function() {
+            let correctCount = 0;
+            const totalQuestions = Object.keys(quizAnswers).length;
+            let resultHtml = '';
+            
+            for (const [key, correctAnswer] of Object.entries(quizAnswers)) {
+                const selectedOption = document.querySelector(`input[name="${key}"]:checked`);
+                const userAnswer = selectedOption ? selectedOption.value : '未作答';
+                const isCorrect = userAnswer === correctAnswer;
+                
+                if (isCorrect) correctCount++;
+                
+                resultHtml += `
+                    <p class="${isCorrect ? 'text-green-400' : 'text-red-400'}">
+                        ${key.includes('a') ? '问题 ' + key.charAt(1) + '：' : ''}
+                        ${userAnswer} (${isCorrect ? '正确' : '错误，正确答案：' + correctAnswer})
+                    </p>
+                `;
+            }
+            
+            const correctRate = Math.round((correctCount / totalQuestions) * 100);
+            document.getElementById('resultContent').innerHTML = resultHtml;
+            document.getElementById('correctRate').textContent = correctRate + '%';
+            document.getElementById('quizResult').classList.remove('hidden');
+        });
+        
+        // ===== 全局状态初始化 =====
+        const state = {
+            lensType: 'convex',
+            focalLength: 100,
+            rayCount: 5,
+            animating: true,
+            animationProgress: 0
+        };
+        
+        // ===== Canvas 初始化 =====
+        const canvas = document.getElementById('lensCanvas');
+        const ctx = canvas.getContext('2d');
+        let animationId = null;
+        
+        // ===== 响应式Canvas尺寸 =====
+        function resizeCanvas() {
+            const container = canvas.parentElement;
+            const rect = container.getBoundingClientRect();
+            const dpr = window.devicePixelRatio || 1;
+            
+            canvas.width = rect.width * dpr;
+            canvas.height = Math.max(400, Math.min(500, window.innerHeight * 0.5)) * dpr;
+            canvas.style.width = rect.width + 'px';
+            canvas.style.height = Math.max(400, Math.min(500, window.innerHeight * 0.5)) + 'px';
+            
+            ctx.scale(dpr, dpr);
+            draw();
+        }
+        
+        // ===== 透镜类型切换 =====
+        function setLensType(type) {
+            state.lensType = type;
+            
+            document.getElementById('convexBtn').classList.toggle('active', type === 'convex');
+            document.getElementById('concaveBtn').classList.toggle('active', type === 'concave');
+            
+            updateInfoPanel();
+            resetAnimation();
+        }
+        
+        // ===== 焦距更新 =====
+        function updateFocal() {
+            const slider = document.getElementById('focalSlider');
+            state.focalLength = parseInt(slider.value);
+            document.getElementById('focalValue').textContent = state.focalLength + ' px';
+            document.getElementById('infoFocal').textContent = state.focalLength + ' px';
+            draw();
+        }
+        
+        // ===== 光线数量更新 =====
+        function updateRays() {
+            const slider = document.getElementById('raysSlider');
+            state.rayCount = parseInt(slider.value);
+            document.getElementById('raysValue').textContent = state.rayCount + ' 条';
+            draw();
+        }
+        
+        // ===== 更新信息面板 =====
+        function updateInfoPanel() {
+            const isConvex = state.lensType === 'convex';
+            
+            document.getElementById('infoType').textContent = isConvex ? '凸透镜' : '凹透镜';
+            document.getElementById('infoEffect').textContent = isConvex ? '会聚光线' : '发散光线';
+            document.getElementById('infoFocal').textContent = state.focalLength + ' px';
+            
+            const principleText = isConvex 
+                ? '凸透镜中间厚、边缘薄，对光线有会聚作用。平行于主光轴的光线经凸透镜折射后，会聚于焦点F。焦点到透镜光心的距离叫做焦距f。'
+                : '凹透镜中间薄、边缘厚，对光线有发散作用。平行于主光轴的光线经凹透镜折射后发散，其反向延长线交于虚焦点F。凹透镜的焦距取负值。';
+            
+            document.getElementById('principleText').textContent = principleText;
+        }
+        
+        // ===== 动画控制 =====
+        function toggleAnimation() {
+            state.animating = document.getElementById('animateRays').checked;
+            if (state.animating) {
+                startAnimation();
+            } else {
+                stopAnimation();
+                state.animationProgress = 1;
+                draw();
+            }
+        }
+        
+        function startAnimation() {
+            if (animationId) return;
+            state.animationProgress = 0;
+            animate();
+        }
+        
+        function stopAnimation() {
+            if (animationId) {
+                cancelAnimationFrame(animationId);
+                animationId = null;
+            }
+        }
+        
+        function resetAnimation() {
+            stopAnimation();
+            if (state.animating) {
+                startAnimation();
+            } else {
+                state.animationProgress = 1;
+                draw();
+            }
+        }
+        
+        function animate() {
+            if (!state.animating) return;
+            
+            state.animationProgress += 0.015;
+            if (state.animationProgress > 1) {
+                state.animationProgress = 0;
+            }
+            
+            draw();
+            animationId = requestAnimationFrame(animate);
+        }
+        
+        // ===== 绘制主函数 =====
+        function draw() {
+            const width = canvas.width / (window.devicePixelRatio || 1);
+            const height = canvas.height / (window.devicePixelRatio || 1);
+            
+            // 清空画布
+            ctx.clearRect(0, 0, width, height);
+            
+            // 绘制背景
+            drawBackground(width, height);
+            
+            // 中心点
+            const centerX = width / 2;
+            const centerY = height / 2;
+            
+            // 绘制主光轴
+            if (document.getElementById('showAxis').checked) {
+                drawOpticalAxis(width, centerY);
+            }
+            
+            // 绘制透镜
+            drawLens(centerX, centerY, height);
+            
+            // 绘制焦点
+            if (document.getElementById('showFocal').checked) {
+                drawFocalPoints(centerX, centerY);
+            }
+            
+            // 绘制光线
+            drawRays(centerX, centerY, width);
+        }
+        
+        // ===== 绘制背景 =====
+        function drawBackground(width, height) {
+            const gradient = ctx.createLinearGradient(0, 0, 0, height);
+            gradient.addColorStop(0, '#0d1320');
+            gradient.addColorStop(1, '#0a0e17');
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, width, height);
+            
+            // 绘制网格
+            ctx.strokeStyle = 'rgba(0, 212, 255, 0.05)';
+            ctx.lineWidth = 1;
+            const gridSize = 40;
+            
+            for (let x = 0; x < width; x += gridSize) {
+                ctx.beginPath();
+                ctx.moveTo(x, 0);
+                ctx.lineTo(x, height);
+                ctx.stroke();
+            }
+            
+            for (let y = 0; y < height; y += gridSize) {
+                ctx.beginPath();
+                ctx.moveTo(0, y);
+                ctx.lineTo(width, y);
+                ctx.stroke();
+            }
+        }
+        
+        // ===== 绘制主光轴 =====
+        function drawOpticalAxis(width, centerY) {
+            ctx.save();
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+            ctx.lineWidth = 1;
+            ctx.setLineDash([10, 5]);
+            
+            ctx.beginPath();
+            ctx.moveTo(0, centerY);
+            ctx.lineTo(width, centerY);
+            ctx.stroke();
+            
+            ctx.restore();
+            
+            // 箭头
+            ctx.save();
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
+            ctx.beginPath();
+            ctx.moveTo(width - 10, centerY - 5);
+            ctx.lineTo(width, centerY);
+            ctx.lineTo(width - 10, centerY + 5);
+            ctx.closePath();
+            ctx.fill();
+            ctx.restore();
+        }
+        
+        // ===== 绘制透镜 =====
+        function drawLens(centerX, centerY, height) {
+            const lensHeight = height * 0.7;
+            const isConvex = state.lensType === 'convex';
+            const focalLength = state.focalLength;
+            
+            // 根据焦距计算透镜的凹凸程度
+            // 焦距越小，凹凸程度越大
+            const baseConvexWidth = 20;
+            const maxConvexWidth = 40;
+            const convexWidth = maxConvexWidth - (focalLength - 50) * (maxConvexWidth - baseConvexWidth) / (200 - 50);
+            
+            // 凹透镜：焦距越小，边缘越厚，中间凹入越深
+            const minEdgeWidth = 15;
+            const maxEdgeWidth = 30;
+            const edgeWidth = maxEdgeWidth - (focalLength - 50) * (maxEdgeWidth - minEdgeWidth) / (200 - 50);
+            
+            const minCenterIndent = 5;
+            const maxCenterIndent = 15;
+            const centerIndent = maxCenterIndent - (focalLength - 50) * (maxCenterIndent - minCenterIndent) / (200 - 50);
+            
+            ctx.save();
+            
+            // 透镜发光效果
+            const glowGradient = ctx.createRadialGradient(centerX, centerY, 0, centerX, centerY, lensHeight / 2);
+            if (isConvex) {
+                glowGradient.addColorStop(0, 'rgba(0, 212, 255, 0.15)');
+                glowGradient.addColorStop(1, 'rgba(0, 212, 255, 0)');
+            } else {
+                glowGradient.addColorStop(0, 'rgba(255, 107, 53, 0.15)');
+                glowGradient.addColorStop(1, 'rgba(255, 107, 53, 0)');
+            }
+            ctx.fillStyle = glowGradient;
+            ctx.fillRect(centerX - lensHeight / 2, centerY - lensHeight / 2, lensHeight, lensHeight);
+            
+            // 绘制透镜形状
+            ctx.beginPath();
+            
+            if (isConvex) {
+                // 凸透镜 - 中间厚，边缘薄
+                const lensWidth = convexWidth;
+                ctx.moveTo(centerX, centerY - lensHeight / 2);
+                // 右侧曲面（向外凸）
+                ctx.bezierCurveTo(
+                    centerX + lensWidth, centerY - lensHeight / 3,
+                    centerX + lensWidth, centerY + lensHeight / 3,
+                    centerX, centerY + lensHeight / 2
+                );
+                // 左侧曲面（向外凸）
+                ctx.bezierCurveTo(
+                    centerX - lensWidth, centerY + lensHeight / 3,
+                    centerX - lensWidth, centerY - lensHeight / 3,
+                    centerX, centerY - lensHeight / 2
+                );
+            } else {
+                // 凹透镜 - 中间薄，边缘厚，两面都向内凹
+                
+                ctx.moveTo(centerX - edgeWidth, centerY - lensHeight / 2);
+                // 左侧表面（向右凹入）
+                ctx.bezierCurveTo(
+                    centerX - centerIndent, centerY - lensHeight / 3,
+                    centerX - centerIndent, centerY + lensHeight / 3,
+                    centerX - edgeWidth, centerY + lensHeight / 2
+                );
+                // 底部连接线
+                ctx.lineTo(centerX + edgeWidth, centerY + lensHeight / 2);
+                // 右侧表面（向左凹入）
+                ctx.bezierCurveTo(
+                    centerX + centerIndent, centerY + lensHeight / 3,
+                    centerX + centerIndent, centerY - lensHeight / 3,
+                    centerX + edgeWidth, centerY - lensHeight / 2
+                );
+                // 顶部连接线
+                ctx.closePath();
+            }
+            
+            // 透镜填充
+            const lensWidth = isConvex ? convexWidth : edgeWidth;
+            const lensGradient = ctx.createLinearGradient(
+                centerX - lensWidth, centerY,
+                centerX + lensWidth, centerY
+            );
+            if (isConvex) {
+                lensGradient.addColorStop(0, 'rgba(0, 180, 220, 0.3)');
+                lensGradient.addColorStop(0.5, 'rgba(0, 212, 255, 0.5)');
+                lensGradient.addColorStop(1, 'rgba(0, 180, 220, 0.3)');
+            } else {
+                lensGradient.addColorStop(0, 'rgba(255, 140, 60, 0.5)');
+                lensGradient.addColorStop(0.3, 'rgba(255, 107, 53, 0.2)');
+                lensGradient.addColorStop(0.7, 'rgba(255, 107, 53, 0.2)');
+                lensGradient.addColorStop(1, 'rgba(255, 140, 60, 0.5)');
+            }
+            
+            ctx.fillStyle = lensGradient;
+            ctx.fill();
+            
+            // 透镜边框
+            ctx.strokeStyle = isConvex ? '#00d4ff' : '#ff6b35';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+            
+            ctx.restore();
+            
+            // 绘制光心标记
+            ctx.save();
+            ctx.fillStyle = '#ffffff';
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, 4, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // 标注O
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+            ctx.font = '14px "Noto Sans SC"';
+            ctx.textAlign = 'center';
+            ctx.fillText('O', centerX, centerY + 25);
+            ctx.restore();
+        }
+        
+        // ===== 绘制焦点 =====
+        function drawFocalPoints(centerX, centerY) {
+            const f = state.focalLength;
+            const isConvex = state.lensType === 'convex';
+            
+            ctx.save();
+            
+            // 焦点颜色
+            const focalColor = isConvex ? '#00ff88' : '#ff6b35';
+            
+            // 左焦点 F
+            ctx.beginPath();
+            ctx.arc(centerX - f, centerY, 6, 0, Math.PI * 2);
+            ctx.fillStyle = focalColor;
+            ctx.fill();
+            
+            // 焦点发光
+            ctx.beginPath();
+            ctx.arc(centerX - f, centerY, 12, 0, Math.PI * 2);
+            const glowLeft = ctx.createRadialGradient(centerX - f, centerY, 0, centerX - f, centerY, 12);
+            glowLeft.addColorStop(0, isConvex ? 'rgba(0, 255, 136, 0.4)' : 'rgba(255, 107, 53, 0.4)');
+            glowLeft.addColorStop(1, 'rgba(0, 0, 0, 0)');
+            ctx.fillStyle = glowLeft;
+            ctx.fill();
+            
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+            ctx.font = 'bold 14px "Noto Sans SC"';
+            ctx.textAlign = 'center';
+            ctx.fillText(isConvex ? 'F' : "F'", centerX - f, centerY + 25);
+            
+            // 右焦点 F'
+            ctx.beginPath();
+            ctx.arc(centerX + f, centerY, 6, 0, Math.PI * 2);
+            ctx.fillStyle = focalColor;
+            ctx.fill();
+            
+            // 焦点发光
+            ctx.beginPath();
+            ctx.arc(centerX + f, centerY, 12, 0, Math.PI * 2);
+            const glowRight = ctx.createRadialGradient(centerX + f, centerY, 0, centerX + f, centerY, 12);
+            glowRight.addColorStop(0, isConvex ? 'rgba(0, 255, 136, 0.4)' : 'rgba(255, 107, 53, 0.4)');
+            glowRight.addColorStop(1, 'rgba(0, 0, 0, 0)');
+            ctx.fillStyle = glowRight;
+            ctx.fill();
+            
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+            ctx.fillText(isConvex ? "F'" : 'F', centerX + f, centerY + 25);
+            
+            // 2f 标记
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+            ctx.lineWidth = 1;
+            
+            // 左 2f
+            ctx.beginPath();
+            ctx.moveTo(centerX - 2 * f, centerY - 8);
+            ctx.lineTo(centerX - 2 * f, centerY + 8);
+            ctx.stroke();
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
+            ctx.font = '12px "Noto Sans SC"';
+            ctx.fillText('2f', centerX - 2 * f, centerY + 22);
+            
+            // 右 2f
+            ctx.beginPath();
+            ctx.moveTo(centerX + 2 * f, centerY - 8);
+            ctx.lineTo(centerX + 2 * f, centerY + 8);
+            ctx.stroke();
+            ctx.fillText('2f', centerX + 2 * f, centerY + 22);
+            
+            ctx.restore();
+        }
+        
+        // ===== 绘制光线 =====
+        function drawRays(centerX, centerY, width) {
+            const f = state.focalLength;
+            const isConvex = state.lensType === 'convex';
+            const rayCount = state.rayCount;
+            const lensHeight = width * 0.35 / (window.devicePixelRatio || 1) * 0.7;
+            
+            // 计算光线间距
+            const totalSpread = Math.min(lensHeight * 0.8, 150);
+            const raySpacing = totalSpread / (rayCount - 1);
+            const startY = centerY - totalSpread / 2;
+            
+            // 动画进度
+            const progress = state.animating ? state.animationProgress : 1;
+            
+            for (let i = 0; i < rayCount; i++) {
+                const rayY = startY + i * raySpacing;
+                drawSingleRay(centerX, centerY, rayY, f, isConvex, width, progress);
+            }
+        }
+        
+        // ===== 绘制单条光线 =====
+        function drawSingleRay(centerX, centerY, rayY, f, isConvex, width, progress) {
+            const startX = 30;
+            const lensX = centerX;
+            const endX = width - 30;
+            
+            // 入射光线（从左到透镜）
+            const incidentProgress = Math.min(1, progress * 2);
+            const incidentEndX = startX + (lensX - startX) * incidentProgress;
+            
+            // 绘制入射光线
+            ctx.save();
+            
+            // 入射光线渐变
+            const incidentGradient = ctx.createLinearGradient(startX, rayY, lensX, rayY);
+            incidentGradient.addColorStop(0, '#ffcc00');
+            incidentGradient.addColorStop(1, '#ff8800');
+            
+            ctx.strokeStyle = incidentGradient;
+            ctx.lineWidth = 2.5;
+            ctx.lineCap = 'round';
+            
+            ctx.beginPath();
+            ctx.moveTo(startX, rayY);
+            ctx.lineTo(incidentEndX, rayY);
+            ctx.stroke();
+            
+            // 光线头部发光
+            if (incidentProgress < 1) {
+                ctx.beginPath();
+                ctx.arc(incidentEndX, rayY, 4, 0, Math.PI * 2);
+                ctx.fillStyle = '#ffcc00';
+                ctx.fill();
+                
+                // 光晕
+                const glow = ctx.createRadialGradient(incidentEndX, rayY, 0, incidentEndX, rayY, 15);
+                glow.addColorStop(0, 'rgba(255, 200, 0, 0.6)');
+                glow.addColorStop(1, 'rgba(255, 200, 0, 0)');
+                ctx.fillStyle = glow;
+                ctx.beginPath();
+                ctx.arc(incidentEndX, rayY, 15, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            
+            ctx.restore();
+            
+            // 折射光线（透镜后）
+            if (progress > 0.5) {
+                const refractProgress = (progress - 0.5) * 2;
+                
+                // 计算折射后的方向
+                let refractEndX, refractEndY;
+                
+                if (isConvex) {
+                    // 凸透镜：会聚于焦点
+                    const slope = (centerY - rayY) / f;
+                    refractEndX = lensX + (endX - lensX) * refractProgress;
+                    refractEndY = rayY + slope * (refractEndX - lensX);
+                } else {
+                    // 凹透镜：发散，反向延长线过虚焦点
+                    const slope = (centerY - rayY) / f;
+                    refractEndX = lensX + (endX - lensX) * refractProgress;
+                    refractEndY = rayY - slope * (refractEndX - lensX);
+                }
+                
+                // 绘制折射光线
+                ctx.save();
+                
+                const refractGradient = ctx.createLinearGradient(lensX, rayY, endX, refractEndY);
+                refractGradient.addColorStop(0, '#00ff88');
+                refractGradient.addColorStop(1, '#00cc66');
+                
+                ctx.strokeStyle = refractGradient;
+                ctx.lineWidth = 2.5;
+                ctx.lineCap = 'round';
+                
+                ctx.beginPath();
+                ctx.moveTo(lensX, rayY);
+                ctx.lineTo(refractEndX, refractEndY);
+                ctx.stroke();
+                
+                // 光线头部发光
+                ctx.beginPath();
+                ctx.arc(refractEndX, refractEndY, 4, 0, Math.PI * 2);
+                ctx.fillStyle = '#00ff88';
+                ctx.fill();
+                
+                const glow = ctx.createRadialGradient(refractEndX, refractEndY, 0, refractEndX, refractEndY, 15);
+                glow.addColorStop(0, 'rgba(0, 255, 136, 0.6)');
+                glow.addColorStop(1, 'rgba(0, 255, 136, 0)');
+                ctx.fillStyle = glow;
+                ctx.beginPath();
+                ctx.arc(refractEndX, refractEndY, 15, 0, Math.PI * 2);
+                ctx.fill();
+                
+                ctx.restore();
+                
+                // 绘制出射光线反向延长线（凹透镜）
+                if (!isConvex && document.getElementById('showVirtual').checked) {
+                    ctx.save();
+                    ctx.strokeStyle = 'rgba(255, 107, 53, 0.4)';
+                    ctx.lineWidth = 1.5;
+                    ctx.setLineDash([8, 4]);
+                    
+                    // 计算出射光线的反向延长线
+                    const refractSlope = (refractEndY - rayY) / (refractEndX - lensX);
+                    const virtualEndX = startX;
+                    const virtualEndY = rayY + refractSlope * (virtualEndX - lensX);
+                    
+                    ctx.beginPath();
+                    ctx.moveTo(lensX, rayY);
+                    ctx.lineTo(virtualEndX, virtualEndY);
+                    ctx.stroke();
+                    
+                    ctx.restore();
+                }
+                
+                // 凸透镜：绘制焦点会聚效果
+                if (isConvex && document.getElementById('showVirtual').checked && Math.abs(rayY - centerY) > 5) {
+                    ctx.save();
+                    ctx.strokeStyle = 'rgba(0, 255, 136, 0.3)';
+                    ctx.lineWidth = 1;
+                    ctx.setLineDash([5, 3]);
+                    
+                    ctx.beginPath();
+                    ctx.moveTo(lensX + f, centerY);
+                    ctx.lineTo(lensX, rayY);
+                    ctx.stroke();
+                    
+                    ctx.restore();
+                }
+            }
+        }
+        
+        // ===== 初始化 =====
+        function init() {
+            resizeCanvas();
+            updateInfoPanel();
+            
+            if (state.animating) {
+                startAnimation();
+            }
+        }
+        
+        // ===== 事件监听 =====
+        window.addEventListener('resize', resizeCanvas);
+        window.addEventListener('load', init);
+        
+        // 初始化时调用
+        init();
+    </script>
+</body>
+</html>

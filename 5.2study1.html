@@ -1,0 +1,1337 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D平面镜成像特点探究</title>
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+            "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+        }
+    }
+    </script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Microsoft YaHei', sans-serif;
+            background: linear-gradient(135deg, #2a2a4e 0%, #26315e 50%, #1f4470 100%);
+            min-height: 100vh;
+            overflow-y: auto;
+            color: #e8e8e8;
+        }
+
+        #canvas-container {
+            position: relative;
+            width: 100%;
+            height: 70vh;
+            z-index: 1;
+        }
+
+        .control-panel {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            width: 320px;
+            background: rgba(15, 25, 45, 0.92);
+            border: 1px solid rgba(100, 180, 255, 0.3);
+            border-radius: 16px;
+            padding: 20px;
+            z-index: 100;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+            max-height: calc(100vh - 40px);
+            overflow-y: auto;
+        }
+
+        .control-panel::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .control-panel::-webkit-scrollbar-thumb {
+            background: rgba(100, 180, 255, 0.4);
+            border-radius: 3px;
+        }
+
+        .panel-title {
+            font-size: 20px;
+            font-weight: bold;
+            color: #64b5f6;
+            margin-bottom: 20px;
+            padding-bottom: 12px;
+            border-bottom: 2px solid rgba(100, 180, 255, 0.3);
+            text-align: center;
+        }
+
+        .section {
+            margin-bottom: 18px;
+            padding: 14px;
+            background: rgba(30, 50, 80, 0.5);
+            border-radius: 10px;
+            border: 1px solid rgba(100, 180, 255, 0.15);
+        }
+
+        .section-title {
+            font-size: 14px;
+            font-weight: bold;
+            color: #81d4fa;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .section-title::before {
+            content: '';
+            width: 4px;
+            height: 16px;
+            background: linear-gradient(180deg, #64b5f6, #42a5f5);
+            border-radius: 2px;
+        }
+
+        .control-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 10px;
+        }
+
+        .control-row:last-child {
+            margin-bottom: 0;
+        }
+
+        label {
+            font-size: 13px;
+            color: #b0bec5;
+        }
+
+        input[type="range"] {
+            width: 140px;
+            height: 6px;
+            -webkit-appearance: none;
+            background: rgba(100, 180, 255, 0.2);
+            border-radius: 3px;
+            outline: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 16px;
+            height: 16px;
+            background: linear-gradient(135deg, #64b5f6, #42a5f5);
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+        }
+
+        input[type="color"] {
+            width: 40px;
+            height: 28px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            background: transparent;
+        }
+
+        input[type="number"] {
+            width: 70px;
+            padding: 6px 8px;
+            background: rgba(20, 40, 70, 0.8);
+            border: 1px solid rgba(100, 180, 255, 0.3);
+            border-radius: 6px;
+            color: #e8e8e8;
+            font-size: 13px;
+            text-align: center;
+        }
+
+        .value-display {
+            font-size: 12px;
+            color: #64b5f6;
+            min-width: 50px;
+            text-align: right;
+        }
+
+        .btn {
+            padding: 10px 16px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #1565c0, #1976d2);
+            color: white;
+            flex: 1;
+        }
+
+        .btn-primary:hover {
+            background: linear-gradient(135deg, #1976d2, #2196f3);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(33, 150, 243, 0.4);
+        }
+
+        .btn-secondary {
+            background: rgba(100, 180, 255, 0.15);
+            color: #81d4fa;
+            border: 1px solid rgba(100, 180, 255, 0.3);
+            flex: 1;
+        }
+
+        .btn-secondary:hover {
+            background: rgba(100, 180, 255, 0.25);
+        }
+
+        .btn-warning {
+            background: linear-gradient(135deg, #e65100, #f57c00);
+            color: white;
+            flex: 1;
+        }
+
+        .btn-warning:hover {
+            background: linear-gradient(135deg, #f57c00, #ff9800);
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 8px;
+            margin-top: 10px;
+        }
+
+        .info-panel {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            width: 280px;
+            background: rgba(15, 25, 45, 0.92);
+            border: 1px solid rgba(100, 180, 255, 0.3);
+            border-radius: 16px;
+            padding: 20px;
+            z-index: 100;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+        }
+
+        .info-title {
+            font-size: 16px;
+            font-weight: bold;
+            color: #64b5f6;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid rgba(100, 180, 255, 0.3);
+        }
+
+        .info-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            font-size: 13px;
+        }
+
+        .info-label {
+            color: #90a4ae;
+        }
+
+        .info-value {
+            color: #81d4fa;
+            font-weight: bold;
+        }
+
+        .marker-list {
+            max-height: 150px;
+            overflow-y: auto;
+            margin-top: 10px;
+        }
+
+        .marker-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 10px;
+            background: rgba(30, 50, 80, 0.5);
+            border-radius: 6px;
+            margin-bottom: 6px;
+            font-size: 12px;
+        }
+
+        .marker-item .delete-btn {
+            background: rgba(244, 67, 54, 0.3);
+            border: none;
+            color: #ef5350;
+            padding: 4px 8px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 11px;
+        }
+
+        .marker-item .delete-btn:hover {
+            background: rgba(244, 67, 54, 0.5);
+        }
+
+        .tips {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(15, 25, 45, 0.9);
+            padding: 12px 24px;
+            border-radius: 30px;
+            font-size: 13px;
+            color: #90a4ae;
+            z-index: 100;
+            border: 1px solid rgba(100, 180, 255, 0.2);
+        }
+
+        .checkbox-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+        }
+
+        .checkbox-wrapper input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            accent-color: #64b5f6;
+            cursor: pointer;
+        }
+
+        .legend {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 12px;
+            color: #b0bec5;
+        }
+
+        .legend-color {
+            width: 16px;
+            height: 16px;
+            border-radius: 4px;
+        }
+
+        .quiz-panel {
+            position: relative;
+            width: 90%;
+            max-width: 600px;
+            margin: 120px auto 20px;
+            background: rgba(15, 25, 45, 0.92);
+            border: 1px solid rgba(100, 180, 255, 0.3);
+            border-radius: 16px;
+            padding: 20px;
+            z-index: 100;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+        }
+
+        .quiz-title {
+            font-size: 18px;
+            font-weight: bold;
+            color: #64b5f6;
+            margin-bottom: 15px;
+            padding-bottom: 12px;
+            border-bottom: 2px solid rgba(100, 180, 255, 0.3);
+            text-align: center;
+        }
+
+        .quiz-content {
+            font-size: 14px;
+            color: #e8e8e8;
+        }
+
+        .question {
+            margin-bottom: 15px;
+        }
+
+        .options {
+            margin-top: 5px;
+            margin-left: 20px;
+        }
+
+        .options label {
+            display: inline-block;
+            margin-right: 20px;
+            cursor: pointer;
+        }
+
+        .options input[type="radio"] {
+            margin-right: 5px;
+            accent-color: #64b5f6;
+        }
+
+        #submitQuiz {
+            margin-top: 20px;
+            width: 100%;
+        }
+
+        .quiz-result {
+            margin-top: 20px;
+            padding: 15px;
+            background: rgba(30, 50, 80, 0.5);
+            border-radius: 10px;
+            border: 1px solid rgba(100, 180, 255, 0.15);
+            font-size: 14px;
+            color: #e8e8e8;
+            display: none;
+        }
+
+        @media (max-width: 768px) {
+            .control-panel {
+                width: calc(100% - 40px);
+                max-height: 30vh;
+            }
+
+            .info-panel {
+                width: calc(100% - 40px);
+                top: auto;
+                bottom: 20px;
+                max-height: 20vh;
+            }
+
+            .quiz-panel {
+                width: calc(100% - 40px);
+                margin: 10px auto;
+            }
+
+            .tips {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="canvas-container"></div>
+
+    <div class="control-panel">
+        <div class="panel-title">平面镜成像探究</div>
+
+        <div class="section">
+            <div class="section-title">平面镜设置</div>
+            <div class="control-row">
+                <label>镜面角度</label>
+                <input type="range" id="mirrorAngle" min="0" max="180" value="90" step="1">
+                <span class="value-display" id="mirrorAngleValue">90°</span>
+            </div>
+            <div class="btn-group">
+                <button class="btn btn-secondary" id="markMirrorPos">标记镜面位置</button>
+            </div>
+        </div>
+
+        <div class="section">
+            <div class="section-title">发光蜡烛（物）</div>
+            <div class="control-row">
+                <label>高度</label>
+                <span class="value-display">10 cm</span>
+            </div>
+            <div class="btn-group">
+                <button class="btn btn-primary" id="markObjectPos">标记物位置</button>
+                <button class="btn btn-primary" id="markImagePos">标记像位置</button>
+            </div>
+        </div>
+
+        <div class="section">
+            <div class="section-title">未发光蜡烛（可调）</div>
+            <div class="control-row">
+                <label>高度</label>
+                <input type="range" id="dummyHeight" min="5" max="15" value="10" step="0.5">
+                <span class="value-display" id="dummyHeightValue">10 cm</span>
+            </div>
+            <div class="control-row">
+                <label>厚度</label>
+                <input type="range" id="dummyThickness" min="0.5" max="3" value="1.5" step="0.1">
+                <span class="value-display" id="dummyThicknessValue">1.5 cm</span>
+            </div>
+            <div class="control-row">
+                <label>颜色</label>
+                <input type="color" id="dummyColor" value="#8b4513">
+            </div>
+        </div>
+
+        <div class="section">
+            <div class="section-title">显示选项</div>
+            <div class="control-row">
+                <label class="checkbox-wrapper">
+                    <input type="checkbox" id="showConnection" checked>
+                    显示物像连线
+                </label>
+            </div>
+
+            <div class="control-row">
+                <label class="checkbox-wrapper">
+                    <input type="checkbox" id="showImage" checked>
+                    显示像
+                </label>
+            </div>
+        </div>
+
+        <div class="section">
+            <div class="section-title">操作</div>
+            <div class="btn-group">
+                <button class="btn btn-warning" id="clearMarkers">清除所有标记</button>
+            </div>
+            <div class="btn-group">
+                <button class="btn btn-secondary" id="connectPoints">连接物像点</button>
+            </div>
+            <div class="btn-group">
+                <button class="btn btn-secondary" id="resetView">重置视角</button>
+            </div>
+        </div>
+
+        <div class="legend">
+            <div class="legend-item">
+                <div class="legend-color" style="background: #ff6b35;"></div>
+                <span>发光蜡烛</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #8b4513;"></div>
+                <span>未发光蜡烛</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: rgba(100,200,255,0.5);"></div>
+                <span>平面镜</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #4fc3f7;"></div>
+                <span>像</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="info-panel">
+        <div class="info-title">测量数据</div>
+        <div class="info-item">
+            <span class="info-label">物距（到镜面）：</span>
+            <span class="info-value" id="objectDistance">8.0 cm</span>
+        </div>
+        <div class="info-item">
+            <span class="info-label">像距（到镜面）：</span>
+            <span class="info-value" id="imageDistance">8.0 cm</span>
+        </div>
+        <div class="info-item">
+            <span class="info-label">物高：</span>
+            <span class="info-value">10.0 cm</span>
+        </div>
+        <div class="info-item">
+            <span class="info-label">像高：</span>
+            <span class="info-value">10.0 cm</span>
+        </div>
+        <div class="info-item">
+            <span class="info-label">镜面角度：</span>
+            <span class="info-value" id="mirrorAngleInfo">90°</span>
+        </div>
+
+        <div class="info-title" style="margin-top: 15px;">位置标记</div>
+        <div class="marker-list" id="markerList">
+            <div style="color: #607d8b; font-size: 12px; text-align: center; padding: 10px;">
+                暂无标记
+            </div>
+        </div>
+    </div>
+
+    <div class="tips">
+        鼠标左键拖动旋转视角 | 滚轮缩放 | 右键平移 | 拖拽物体移动位置
+    </div>
+
+    <div class="quiz-panel">
+        <div class="quiz-title">课中练习</div>
+        <div class="quiz-content">
+            <p>由以上实验可知：</p>
+            <div class="question">
+                <p>1. 在平面镜成像现象中，像与物的大小____（相等/不相等）；</p>
+                <div class="options">
+                    <label><input type="radio" name="q1" value="相等"> 相等</label>
+                    <label><input type="radio" name="q1" value="不相等"> 不相等</label>
+                </div>
+            </div>
+            <div class="question">
+                <p>2. 像到平面镜的距离___（等于/不等于）物到平面镜的距离；</p>
+                <div class="options">
+                    <label><input type="radio" name="q2" value="等于"> 等于</label>
+                    <label><input type="radio" name="q2" value="不等于"> 不等于</label>
+                </div>
+            </div>
+            <div class="question">
+                <p>3. 像和物的连线____（平行/相交/垂直）于镜面；</p>
+                <div class="options">
+                    <label><input type="radio" name="q3" value="平行"> 平行</label>
+                    <label><input type="radio" name="q3" value="相交"> 相交</label>
+                    <label><input type="radio" name="q3" value="垂直"> 垂直</label>
+                </div>
+            </div>
+            <div class="question">
+                <p>4. 像与物关于镜面____（不对称/对称）。</p>
+                <div class="options">
+                    <label><input type="radio" name="q4" value="不对称"> 不对称</label>
+                    <label><input type="radio" name="q4" value="对称"> 对称</label>
+                </div>
+            </div>
+            <button class="btn btn-primary" id="submitQuiz">提交答案</button>
+            <div class="quiz-result" id="quizResult"></div>
+        </div>
+    </div>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+        // 全局变量
+        let scene, camera, renderer, controls;
+        let mirror, lightedCandle, dummyCandle, imageCandle;
+        let connectionLines = []; // 存储所有的连接线
+        let perpendicularLines = [];
+        let markers = [];
+        let mirrorAngle = 90;
+        let raycaster = new THREE.Raycaster();
+        let mouse = new THREE.Vector2();
+        let selectedObject = null;
+        let dragging = false;
+        let lastObjectMarker = null; // 最后标记的物点
+        let lastImageMarker = null; // 最后标记的像点
+
+        // 初始化场景
+        function init() {
+            // 场景
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x1a2638);
+            scene.fog = new THREE.Fog(0x1a2638, 30, 80);
+
+            // 相机
+            camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.set(20, 15, 20);
+
+            // 渲染器
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            document.getElementById('canvas-container').appendChild(renderer.domElement);
+
+            // 控制器
+            controls = new OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.05;
+            controls.minDistance = 10;
+            controls.maxDistance = 60;
+
+            // 灯光
+            const ambientLight = new THREE.AmbientLight(0x404060, 0.8);
+            scene.add(ambientLight);
+
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 1.2);
+            directionalLight.position.set(10, 20, 10);
+            directionalLight.castShadow = true;
+            directionalLight.shadow.mapSize.width = 2048;
+            directionalLight.shadow.mapSize.height = 2048;
+            scene.add(directionalLight);
+
+            // 创建场景元素
+            createTable();
+            createMirror();
+            createLightedCandle();
+            createDummyCandle();
+            createImageCandle();
+            createConnectionLine();
+            createPerpendicularSymbols();
+            createGridHelper();
+
+            // 事件监听
+            setupEventListeners();
+
+            // 动画循环
+            animate();
+        }
+
+        // 创建桌面
+        function createTable() {
+            const tableGeometry = new THREE.BoxGeometry(40, 0.5, 40);
+            const tableMaterial = new THREE.MeshStandardMaterial({
+                color: 0x2d4a3e,
+                roughness: 0.8,
+                metalness: 0.1
+            });
+            const table = new THREE.Mesh(tableGeometry, tableMaterial);
+            table.position.y = -0.25;
+            table.receiveShadow = true;
+            scene.add(table);
+
+            // 桌面边框
+            const edgeGeometry = new THREE.BoxGeometry(41, 0.3, 41);
+            const edgeMaterial = new THREE.MeshStandardMaterial({
+                color: 0x1a2f26,
+                roughness: 0.6
+            });
+            const edge = new THREE.Mesh(edgeGeometry, edgeMaterial);
+            edge.position.y = -0.6;
+            scene.add(edge);
+
+            // 刻度线
+            const scaleMaterial = new THREE.LineBasicMaterial({ color: 0x4a6a5e });
+            for (let i = -15; i <= 15; i += 5) {
+                // X方向刻度
+                const xPoints = [new THREE.Vector3(i, 0.01, -15), new THREE.Vector3(i, 0.01, 15)];
+                const xGeometry = new THREE.BufferGeometry().setFromPoints(xPoints);
+                const xLine = new THREE.Line(xGeometry, scaleMaterial);
+                scene.add(xLine);
+
+                // Z方向刻度
+                const zPoints = [new THREE.Vector3(-15, 0.01, i), new THREE.Vector3(15, 0.01, i)];
+                const zGeometry = new THREE.BufferGeometry().setFromPoints(zPoints);
+                const zLine = new THREE.Line(zGeometry, scaleMaterial);
+                scene.add(zLine);
+            }
+        }
+
+        // 创建平面镜
+        function createMirror() {
+            const mirrorGroup = new THREE.Group();
+
+            // 镜面 - 增大尺寸，宽度达到整个可见的x轴
+            const mirrorGeometry = new THREE.PlaneGeometry(40, 16);
+            const mirrorMaterial = new THREE.MeshPhysicalMaterial({
+                color: 0x88ccff,
+                transparent: true,
+                opacity: 0.4,
+                roughness: 0,
+                metalness: 0.9,
+                side: THREE.DoubleSide,
+                envMapIntensity: 1
+            });
+            const mirrorMesh = new THREE.Mesh(mirrorGeometry, mirrorMaterial);
+            mirrorMesh.position.y = 8;
+            mirrorGroup.add(mirrorMesh);
+
+            // 镜框
+            const frameMaterial = new THREE.MeshStandardMaterial({
+                color: 0x4a4a4a,
+                roughness: 0.3,
+                metalness: 0.8
+            });
+
+            // 左框
+            const leftFrame = new THREE.Mesh(
+                new THREE.BoxGeometry(0.3, 16.5, 0.3),
+                frameMaterial
+            );
+            leftFrame.position.set(-20.15, 8, 0);
+            mirrorGroup.add(leftFrame);
+
+            // 右框
+            const rightFrame = new THREE.Mesh(
+                new THREE.BoxGeometry(0.3, 16.5, 0.3),
+                frameMaterial
+            );
+            rightFrame.position.set(20.15, 8, 0);
+            mirrorGroup.add(rightFrame);
+
+            // 上框
+            const topFrame = new THREE.Mesh(
+                new THREE.BoxGeometry(40.6, 0.3, 0.3),
+                frameMaterial
+            );
+            topFrame.position.set(0, 16.15, 0);
+            mirrorGroup.add(topFrame);
+
+            // 底座
+            const baseGeometry = new THREE.BoxGeometry(42, 0.5, 3);
+            const base = new THREE.Mesh(baseGeometry, frameMaterial);
+            base.position.y = -0.25;
+            mirrorGroup.add(base);
+
+            mirrorGroup.rotation.x = 0;
+            mirror = mirrorGroup;
+            scene.add(mirror);
+        }
+
+        // 创建发光蜡烛
+        function createLightedCandle() {
+            lightedCandle = createCandleModel(0xff6b35, 10, 1.5, true);
+            lightedCandle.position.set(-15, 0, 0);
+            scene.add(lightedCandle);
+        }
+
+        // 创建未发光蜡烛
+        function createDummyCandle() {
+            dummyCandle = createCandleModel(0x8b4513, 10, 1.5, false);
+            dummyCandle.position.set(8, 0, 0);
+            scene.add(dummyCandle);
+        }
+
+        // 创建蜡烛模型
+        function createCandleModel(color, height, thickness, hasFlame) {
+            const group = new THREE.Group();
+
+            // 蜡烛身体
+            const bodyGeometry = new THREE.CylinderGeometry(thickness / 2, thickness / 2, height, 32);
+            const bodyMaterial = new THREE.MeshStandardMaterial({
+                color: color,
+                roughness: 0.7,
+                metalness: 0.1
+            });
+            const body = new THREE.Mesh(bodyGeometry, bodyMaterial);
+            body.position.y = height / 2;
+            body.castShadow = true;
+            group.add(body);
+
+            // 烛芯
+            const wickGeometry = new THREE.CylinderGeometry(0.05, 0.05, 0.8, 8);
+            const wickMaterial = new THREE.MeshStandardMaterial({ color: 0x333333 });
+            const wick = new THREE.Mesh(wickGeometry, wickMaterial);
+            wick.position.y = height + 0.4;
+            group.add(wick);
+
+            if (hasFlame) {
+                // 火焰
+                const flameGeometry = new THREE.ConeGeometry(0.4, 1.2, 16);
+                const flameMaterial = new THREE.MeshBasicMaterial({
+                    color: 0xffaa00,
+                    transparent: true,
+                    opacity: 0.9
+                });
+                const flame = new THREE.Mesh(flameGeometry, flameMaterial);
+                flame.position.y = height + 1;
+                flame.name = 'flame';
+                group.add(flame);
+
+                // 火焰光晕
+                const glowGeometry = new THREE.SphereGeometry(0.8, 16, 16);
+                const glowMaterial = new THREE.MeshBasicMaterial({
+                    color: 0xff6600,
+                    transparent: true,
+                    opacity: 0.3
+                });
+                const glow = new THREE.Mesh(glowGeometry, glowMaterial);
+                glow.position.y = height + 1;
+                glow.name = 'glow';
+                group.add(glow);
+
+                // 点光源
+                const candleLight = new THREE.PointLight(0xff9933, 1, 8);
+                candleLight.position.y = height + 1;
+                candleLight.name = 'candleLight';
+                group.add(candleLight);
+            }
+
+            group.userData = { height, thickness, color, hasFlame };
+            return group;
+        }
+
+        // 创建像
+        function createImageCandle() {
+            // 使用与发光蜡烛相同的颜色，但稍微淡一点
+            const objectColor = 0xff6b35; // 发光蜡烛的颜色
+            imageCandle = createCandleModel(objectColor, 10, 1.5, true); // 让像也有火焰
+            // 调整像的透明度，使其更淡
+            imageCandle.traverse((child) => {
+                if (child.isMesh) {
+                    child.material.transparent = true;
+                    child.material.opacity = 0.6;
+                }
+            });
+            imageCandle.visible = true;
+            scene.add(imageCandle);
+        }
+
+        // 创建连线（不再需要，因为我们在markPosition中动态创建）
+        function createConnectionLine() {
+            // 现在我们在markPosition中动态创建连接线，所以这个函数不再需要
+        }
+        
+        // 连接标记的物点和像点
+        function connectMarkedPoints() {
+            // 将所有已经连接好的线显现出来
+            connectionLines.forEach(line => {
+                line.visible = true;
+            });
+        }
+
+        // 创建垂直符号
+        function createPerpendicularSymbols() {
+            // 将在updatePerpendicularSymbols中动态创建
+        }
+
+        // 创建网格辅助
+        function createGridHelper() {
+            const gridHelper = new THREE.GridHelper(40, 40, 0x1a3a4a, 0x0a2030);
+            gridHelper.position.y = 0.01;
+            scene.add(gridHelper);
+        }
+
+        // 更新像的位置
+        function updateImagePosition() {
+            if (!lightedCandle || !imageCandle || !mirror) return;
+
+            const angleRad = (mirrorAngle * Math.PI) / 180;
+            
+            // 获取物点位置（蜡烛顶部）
+            const objectPos = new THREE.Vector3();
+            lightedCandle.getWorldPosition(objectPos);
+            const objectHeight = lightedCandle.userData.height;
+            const objectTopPos = new THREE.Vector3(objectPos.x, objectHeight, objectPos.z);
+
+            // 计算镜面法向量（考虑旋转）
+            const mirrorNormal = new THREE.Vector3(1, 0, 0);
+            mirrorNormal.applyAxisAngle(new THREE.Vector3(0, 1, 0), angleRad);
+
+            // 计算像的位置（关于镜面对称）
+            // 镜像对称公式：image = object - 2 * (object · normal) * normal
+            const dotProduct = objectPos.dot(mirrorNormal);
+            const scaledNormal = mirrorNormal.clone().multiplyScalar(2 * dotProduct);
+            const imagePos = objectPos.clone().sub(scaledNormal);
+            
+            // 确保像与物在同一高度
+            imagePos.y = objectPos.y;
+
+            imageCandle.position.set(imagePos.x, imagePos.y, imagePos.z);
+            imageCandle.rotation.y = Math.PI;
+
+            // 更新连线
+            updateConnectionLine(objectTopPos, new THREE.Vector3(imagePos.x, objectHeight, imagePos.z));
+
+            // 更新垂直符号
+            updatePerpendicularSymbols(objectPos, imagePos);
+
+            // 更新信息面板
+            updateInfoPanel();
+        }
+
+        // 更新连线
+        function updateConnectionLine(startPos, endPos) {
+            // 不再自动更新连线，而是通过用户点击按钮来连接标记的点
+            // 这样可以保持用户手动连接的点不被覆盖
+        }
+
+        // 更新垂直符号 - 移除显示垂直符号的逻辑
+        function updatePerpendicularSymbols(objectPos, imagePos) {
+            // 清除旧的垂直符号
+            perpendicularLines.forEach(line => scene.remove(line));
+            perpendicularLines = [];
+        }
+
+        // 创建垂直标记
+        function createPerpendicularMark(x, z) {
+            const size = 0.5;
+            const material = new THREE.LineBasicMaterial({ color: 0xff9800 });
+
+            // L形标记
+            const points = [
+                new THREE.Vector3(0, 0.01, z - size),
+                new THREE.Vector3(0, 0.01, z),
+                new THREE.Vector3(size * Math.sign(x), 0.01, z)
+            ];
+            const geometry = new THREE.BufferGeometry().setFromPoints(points);
+            const line = new THREE.Line(geometry, material);
+            scene.add(line);
+            perpendicularLines.push(line);
+        }
+
+        // 更新信息面板
+        function updateInfoPanel() {
+            if (!lightedCandle || !imageCandle) return;
+
+            const objectPos = lightedCandle.position;
+            const imagePos = imageCandle.position;
+
+            // 计算镜面角度和法向量
+            const angleRad = (mirrorAngle * Math.PI) / 180;
+            const mirrorNormal = new THREE.Vector3(1, 0, 0);
+            mirrorNormal.applyAxisAngle(new THREE.Vector3(0, 1, 0), angleRad);
+
+            // 计算物距和像距（到镜面的垂直距离）
+            const objectDistance = Math.abs(objectPos.dot(mirrorNormal)).toFixed(1);
+            const imageDistance = Math.abs(imagePos.dot(mirrorNormal)).toFixed(1);
+
+            document.getElementById('objectDistance').textContent = objectDistance + ' cm';
+            document.getElementById('imageDistance').textContent = imageDistance + ' cm';
+            document.getElementById('mirrorAngleInfo').textContent = mirrorAngle + '°';
+        }
+
+        // 设置事件监听
+        function setupEventListeners() {
+            // 镜面角度
+            document.getElementById('mirrorAngle').addEventListener('input', (e) => {
+                mirrorAngle = parseFloat(e.target.value);
+                document.getElementById('mirrorAngleValue').textContent = mirrorAngle + '°';
+                
+                // 更新镜面旋转
+                const angleRad = (mirrorAngle * Math.PI) / 180;
+                mirror.rotation.y = angleRad;
+                
+                updateImagePosition();
+            });
+
+
+
+            // 未发光蜡烛参数
+            document.getElementById('dummyHeight').addEventListener('input', (e) => {
+                const value = parseFloat(e.target.value);
+                document.getElementById('dummyHeightValue').textContent = value + ' cm';
+                updateDummyCandle();
+            });
+
+            document.getElementById('dummyThickness').addEventListener('input', (e) => {
+                const value = parseFloat(e.target.value);
+                document.getElementById('dummyThicknessValue').textContent = value + ' cm';
+                updateDummyCandle();
+            });
+
+            document.getElementById('dummyColor').addEventListener('input', (e) => {
+                updateDummyCandle();
+            });
+
+
+
+            // 显示选项
+            document.getElementById('showConnection').addEventListener('change', updateImagePosition);
+
+            document.getElementById('showImage').addEventListener('change', (e) => {
+                imageCandle.visible = e.target.checked;
+            });
+
+            // 标记按钮
+            document.getElementById('markMirrorPos').addEventListener('click', markMirrorPosition);
+            document.getElementById('markObjectPos').addEventListener('click', () => markPosition('object'));
+            document.getElementById('markImagePos').addEventListener('click', () => markPosition('image'));
+            document.getElementById('clearMarkers').addEventListener('click', clearAllMarkers);
+            document.getElementById('connectPoints').addEventListener('click', connectMarkedPoints);
+            document.getElementById('resetView').addEventListener('click', resetView);
+
+            // 鼠标事件
+            renderer.domElement.addEventListener('mousedown', onMouseDown);
+            renderer.domElement.addEventListener('mousemove', onMouseMove);
+            renderer.domElement.addEventListener('mouseup', onMouseUp);
+            renderer.domElement.addEventListener('mouseleave', onMouseUp);
+
+            // 窗口大小调整
+            window.addEventListener('resize', onWindowResize);
+        }
+
+        // 鼠标按下事件
+        function onMouseDown(event) {
+            // 计算鼠标在标准化设备坐标中的位置
+            mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+            mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+            // 更新射线caster
+            raycaster.setFromCamera(mouse, camera);
+
+            // 检测与蜡烛的交点
+            const intersects = raycaster.intersectObjects([lightedCandle, dummyCandle], true);
+
+            if (intersects.length > 0) {
+                selectedObject = intersects[0].object;
+                // 找到父物体（蜡烛组）
+                while (selectedObject.parent && selectedObject.parent !== scene) {
+                    if (selectedObject.parent === lightedCandle || selectedObject.parent === dummyCandle) {
+                        selectedObject = selectedObject.parent;
+                        break;
+                    }
+                    selectedObject = selectedObject.parent;
+                }
+                dragging = true;
+                controls.enabled = false; // 禁用轨道控制
+            }
+        }
+
+        // 鼠标移动事件
+        function onMouseMove(event) {
+            if (!dragging || !selectedObject) return;
+
+            // 计算鼠标在标准化设备坐标中的位置
+            mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+            mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+            // 更新射线caster
+            raycaster.setFromCamera(mouse, camera);
+
+            // 计算与地面平面的交点
+            const plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
+            const intersection = new THREE.Vector3();
+
+            if (raycaster.ray.intersectPlane(plane, intersection)) {
+                // 限制在桌面范围内
+                const x = Math.max(-15, Math.min(15, intersection.x));
+                const z = Math.max(-15, Math.min(15, intersection.z));
+
+                // 更新蜡烛位置
+                selectedObject.position.x = x;
+                selectedObject.position.z = z;
+
+                // 如果是发光蜡烛，更新像的位置
+                if (selectedObject === lightedCandle) {
+                    updateImagePosition();
+                }
+            }
+        }
+
+        // 鼠标释放事件
+        function onMouseUp() {
+            dragging = false;
+            selectedObject = null;
+            controls.enabled = true; // 启用轨道控制
+        }
+
+        // 更新未发光蜡烛
+        function updateDummyCandle() {
+            const height = parseFloat(document.getElementById('dummyHeight').value);
+            const thickness = parseFloat(document.getElementById('dummyThickness').value);
+            const color = document.getElementById('dummyColor').value;
+
+            const position = dummyCandle.position.clone();
+            scene.remove(dummyCandle);
+            dummyCandle = createCandleModel(parseInt(color.replace('#', ''), 16), height, thickness, false);
+            dummyCandle.position.copy(position);
+            scene.add(dummyCandle);
+        }
+
+        // 标记镜面位置
+        function markMirrorPosition() {
+            const markerGeometry = new THREE.PlaneGeometry(12, 0.1);
+            const markerMaterial = new THREE.MeshBasicMaterial({
+                color: 0x00ff00,
+                transparent: true,
+                opacity: 0.6,
+                side: THREE.DoubleSide
+            });
+            const marker = new THREE.Mesh(markerGeometry, markerMaterial);
+            marker.rotation.x = -Math.PI / 2;
+            marker.position.y = 0.02;
+            marker.userData = { type: 'mirror', id: Date.now() };
+            scene.add(marker);
+            markers.push(marker);
+
+            addMarkerToList('镜面位置', marker.userData.id);
+        }
+
+        // 标记位置
+        function markPosition(type) {
+            const color = type === 'object' ? 0xff6b35 : 0x4fc3f7;
+            const pos = type === 'object' ? lightedCandle.position : imageCandle.position;
+
+            // 创建标记点（只创建底部标记，记录桌面上的点）
+            const markerGeometry = new THREE.SphereGeometry(0.3, 16, 16);
+            const markerMaterial = new THREE.MeshBasicMaterial({ color: color });
+            
+            // 底部标记
+            const bottomMarker = new THREE.Mesh(markerGeometry, markerMaterial);
+            bottomMarker.position.set(pos.x, 0.3, pos.z);
+            bottomMarker.userData = { type: type, id: Date.now() };
+            scene.add(bottomMarker);
+            markers.push(bottomMarker);
+
+            // 记录最后标记的点
+            if (type === 'object') {
+                lastObjectMarker = bottomMarker;
+            } else if (type === 'image') {
+                lastImageMarker = bottomMarker;
+            }
+
+            // 如果同时有物点和像点，创建连接线但不显现
+            if (lastObjectMarker && lastImageMarker) {
+                const material = new THREE.LineDashedMaterial({
+                    color: 0x4fc3f7,
+                    dashSize: 0.5,
+                    gapSize: 0.3,
+                    linewidth: 2
+                });
+                const geometry = new THREE.BufferGeometry().setFromPoints([
+                    lastObjectMarker.position,
+                    lastImageMarker.position
+                ]);
+                const line = new THREE.Line(geometry, material);
+                line.computeLineDistances();
+                line.visible = false; // 初始不显现
+                scene.add(line);
+                connectionLines.push(line);
+                
+                // 重置最后标记的点，准备下一组
+                lastObjectMarker = null;
+                lastImageMarker = null;
+            }
+
+            const label = type === 'object' ? '物点' : '像点';
+            addMarkerToList(label, bottomMarker.userData.id);
+        }
+
+        // 添加标记到列表
+        function addMarkerToList(label, id) {
+            const list = document.getElementById('markerList');
+            if (list.querySelector('div[style]')) {
+                list.innerHTML = '';
+            }
+
+            const item = document.createElement('div');
+            item.className = 'marker-item';
+            item.innerHTML = `
+                <span>${label} (${new Date().toLocaleTimeString()})</span>
+                <button class="delete-btn" data-id="${id}">删除</button>
+            `;
+            item.querySelector('.delete-btn').addEventListener('click', () => {
+                removeMarker(id);
+                item.remove();
+            });
+            list.appendChild(item);
+        }
+
+        // 删除标记
+        function removeMarker(id) {
+            markers = markers.filter(marker => {
+                if (marker.userData.id === id || marker.userData.id === id + 1 || marker.userData.id === id - 1) {
+                    scene.remove(marker);
+                    return false;
+                }
+                return true;
+            });
+        }
+
+        // 清除所有标记
+        function clearAllMarkers() {
+            // 清除标记
+            markers.forEach(marker => scene.remove(marker));
+            markers = [];
+            
+            // 清除连接线
+            connectionLines.forEach(line => scene.remove(line));
+            connectionLines = [];
+            
+            document.getElementById('markerList').innerHTML = `
+                <div style="color: #607d8b; font-size: 12px; text-align: center; padding: 10px;">
+                    暂无标记
+                </div>
+            `;
+        }
+
+        // 重置视角
+        function resetView() {
+            camera.position.set(20, 15, 20);
+            controls.target.set(0, 3, 0);
+            controls.update();
+        }
+
+        // 窗口大小调整
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        // 动画循环
+        function animate() {
+            requestAnimationFrame(animate);
+
+            // 火焰动画
+            if (lightedCandle) {
+                const flame = lightedCandle.getObjectByName('flame');
+                const glow = lightedCandle.getObjectByName('glow');
+                const light = lightedCandle.getObjectByName('candleLight');
+                
+                if (flame) {
+                    flame.scale.x = 1 + Math.sin(Date.now() * 0.01) * 0.1;
+                    flame.scale.z = 1 + Math.cos(Date.now() * 0.012) * 0.1;
+                }
+                if (glow) {
+                    glow.scale.setScalar(1 + Math.sin(Date.now() * 0.008) * 0.15);
+                }
+                if (light) {
+                    light.intensity = 1 + Math.sin(Date.now() * 0.01) * 0.3;
+                }
+            }
+
+            // 控制像的可见性：当物点和相机的z坐标乘积为正时像可见
+            if (imageCandle) {
+                const showImageCheck = document.getElementById('showImage').checked;
+                if (!showImageCheck) {
+                    imageCandle.visible = false;
+                } else {
+                    // 检查物点和相机是否在z轴的同一侧
+                    // 如果在同一侧（乘积为正），则像可见
+                    // 如果在两侧（乘积为负），则像不可见
+                    
+                    const cameraPos = camera.position.clone();
+                    const objectPos = new THREE.Vector3();
+                    lightedCandle.getWorldPosition(objectPos);
+                    
+                    // 检查物点和相机是否在z轴的同一侧
+                    const cameraZ = cameraPos.z;
+                    const objectZ = objectPos.z;
+                    
+                    // 如果物点和相机在z轴的同一侧，则像可见
+                    // 如果在两侧，则像不可见
+                    imageCandle.visible = (cameraZ * objectZ) > 0;
+                }
+            }
+
+            controls.update();
+            renderer.render(scene, camera);
+        }
+
+        // 启动
+        init();
+
+        // 处理答题逻辑
+        document.getElementById('submitQuiz').addEventListener('click', function() {
+            // 正确答案
+            const correctAnswers = {
+                q1: '相等',
+                q2: '等于',
+                q3: '垂直',
+                q4: '对称'
+            };
+
+            // 用户答案
+            const userAnswers = {
+                q1: document.querySelector('input[name="q1"]:checked')?.value,
+                q2: document.querySelector('input[name="q2"]:checked')?.value,
+                q3: document.querySelector('input[name="q3"]:checked')?.value,
+                q4: document.querySelector('input[name="q4"]:checked')?.value
+            };
+
+            // 计算得分
+            let score = 0;
+            let total = Object.keys(correctAnswers).length;
+
+            for (let key in correctAnswers) {
+                if (userAnswers[key] === correctAnswers[key]) {
+                    score++;
+                }
+            }
+
+            // 计算正确率
+            const accuracy = (score / total * 100).toFixed(0);
+
+            // 显示结果
+            const resultDiv = document.getElementById('quizResult');
+            resultDiv.style.display = 'block';
+            resultDiv.innerHTML = `
+                <p>正确率：${accuracy}%</p>
+                <p>正确答案：</p>
+                <ul>
+                    <li>1. 在平面镜成像现象中，像与物的大小${correctAnswers.q1}；</li>
+                    <li>2. 像到平面镜的距离${correctAnswers.q2}物到平面镜的距离；</li>
+                    <li>3. 像和物的连线${correctAnswers.q3}于镜面；</li>
+                    <li>4. 像与物关于镜面${correctAnswers.q4}。</li>
+                </ul>
+            `;
+        });
+    </script>
+</body>
+</html>

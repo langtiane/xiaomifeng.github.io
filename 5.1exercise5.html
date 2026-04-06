@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>光学现象分类练习：镜面反射 vs 漫反射</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            user-select: none; /* 避免拖拽时选中文本，提升体验 */
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(145deg, #f5f7fc 0%, #e9eef4 100%);
+            margin: 0;
+            min-height: 100vh;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* 主容器 */
+        .container {
+            max-width: 1400px;
+            width: 100%;
+            background: rgba(255,255,255,0.65);
+            backdrop-filter: blur(2px);
+            border-radius: 3rem;
+            box-shadow: 0 20px 35px rgba(0,0,0,0.1);
+            padding: 1.8rem 2rem;
+            transition: all 0.2s;
+        }
+
+        h1 {
+            text-align: center;
+            font-size: 2rem;
+            font-weight: 600;
+            color: #1e2f5e;
+            margin-top: 0;
+            margin-bottom: 0.5rem;
+            letter-spacing: -0.5px;
+        }
+
+        .sub {
+            text-align: center;
+            color: #2c3e66;
+            margin-bottom: 2rem;
+            font-style: italic;
+            border-bottom: 2px solid #b0c4de;
+            display: inline-block;
+            width: auto;
+            margin-left: auto;
+            margin-right: auto;
+            padding-bottom: 6px;
+        }
+
+        /* 三大区域布局 */
+        .zones {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        /* 通用区域卡片样式 */
+        .zone {
+            flex: 1;
+            min-width: 250px;
+            background: #ffffffdd;
+            backdrop-filter: blur(4px);
+            border-radius: 2rem;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.08);
+            padding: 1rem 1rem 1.2rem;
+            transition: transform 0.1s ease, box-shadow 0.2s;
+            border: 1px solid rgba(255,255,255,0.6);
+        }
+
+        .zone-header {
+            font-size: 1.5rem;
+            font-weight: bold;
+            text-align: center;
+            padding: 0.5rem;
+            border-radius: 2rem;
+            margin-bottom: 1rem;
+            background: #ffffffcc;
+            color: #1f3a6b;
+        }
+
+        .zone-header.specular {
+            border-left: 6px solid #ffb347;
+            background: linear-gradient(135deg, #fff5e6, #fff);
+        }
+        .zone-header.diffuse {
+            border-left: 6px solid #5a9c6e;
+            background: linear-gradient(135deg, #eafff0, #fff);
+        }
+        .zone-header.unsorted {
+            border-left: 6px solid #6c757d;
+            background: #f8f9faee;
+        }
+
+        /* 图片网格容器 (dropzone) */
+        .image-grid {
+            min-height: 320px;
+            background: rgba(245, 245, 250, 0.6);
+            border-radius: 1.5rem;
+            padding: 1rem;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+            align-items: flex-start;
+            transition: background 0.2s;
+            border: 2px dashed transparent;
+        }
+
+        .zone.drag-over .image-grid {
+            background: #e3f0ff;
+            border-color: #2c7da0;
+        }
+
+        /* 可拖拽卡片 */
+        .drag-card {
+            width: 140px;
+            background: white;
+            border-radius: 1.2rem;
+            box-shadow: 0 8px 14px rgba(0,0,0,0.1);
+            cursor: grab;
+            transition: all 0.15s ease;
+            text-align: center;
+            padding: 0.6rem 0.4rem 0.6rem;
+            border: 1px solid #e2e8f0;
+            backdrop-filter: blur(2px);
+        }
+        .drag-card:active {
+            cursor: grabbing;
+        }
+        .drag-card.dragging {
+            opacity: 0.5;
+            cursor: grabbing;
+        }
+        .drag-card img {
+            width: 120px;
+            height: 120px;
+            object-fit: cover;
+            border-radius: 1rem;
+            background: #f0f0f0;
+            display: block;
+            margin: 0 auto;
+            pointer-events: none;  /* 避免干扰拖拽事件 */
+            border: 1px solid #ddd;
+        }
+        .card-label {
+            margin-top: 8px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            background: #f1f5f9;
+            display: inline-block;
+            padding: 2px 12px;
+            border-radius: 30px;
+            color: #1e293b;
+        }
+
+        /* 提交和重置按钮 */
+        .action-bar {
+            display: flex;
+            justify-content: center;
+            gap: 2rem;
+            margin: 2rem 0 1.5rem;
+        }
+        button {
+            background: #2c3e66;
+            border: none;
+            color: white;
+            font-size: 1.2rem;
+            font-weight: 600;
+            padding: 0.8rem 2rem;
+            border-radius: 3rem;
+            cursor: pointer;
+            transition: 0.2s;
+            box-shadow: 0 5px 12px rgba(0,0,0,0.1);
+            letter-spacing: 1px;
+        }
+        button:hover {
+            background: #1f2f4f;
+            transform: translateY(-2px);
+        }
+        button:active {
+            transform: translateY(1px);
+        }
+        .reset-btn {
+            background: #5a626e;
+        }
+        .reset-btn:hover {
+            background: #3e4a52;
+        }
+
+        /* 评价面板 */
+        .feedback {
+            background: #fffef7;
+            border-radius: 2rem;
+            padding: 1rem 1.8rem;
+            margin-top: 1rem;
+            box-shadow: 0 5px 12px rgba(0,0,0,0.05);
+            border-left: 8px solid #4b6e8a;
+        }
+        .feedback h3 {
+            margin: 0 0 0.5rem 0;
+            color: #1e4663;
+        }
+        .accuracy {
+            font-size: 1.4rem;
+            font-weight: bold;
+            background: #d9e6f5;
+            display: inline-block;
+            padding: 0.2rem 1rem;
+            border-radius: 40px;
+            margin: 8px 0;
+        }
+        .detail-list {
+            font-family: monospace;
+            background: #f4f7fb;
+            padding: 0.8rem 1.2rem;
+            border-radius: 1.2rem;
+            line-height: 1.5;
+        }
+        .detail-list span {
+            font-weight: bold;
+        }
+        .missing {
+            color: #c7254e;
+            background: #f9e6e9;
+        }
+        .extra {
+            color: #2c6e2f;
+            background: #e1f3e3;
+        }
+        hr {
+            margin: 0.8rem 0;
+        }
+        footer {
+            text-align: center;
+            font-size: 0.75rem;
+            color: #5a687c;
+            margin-top: 1.2rem;
+        }
+        @media (max-width: 850px) {
+            .drag-card { width: 110px; }
+            .drag-card img { width: 90px; height: 90px; }
+            .zone-header { font-size: 1.2rem; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>✨ 镜面反射 vs 漫反射 ✨</h1>
+    <div style="text-align:center; margin-bottom: 1rem;">
+        <span class="sub">📸 拖拽图片到正确的现象区域</span>
+    </div>
+
+    <!-- 三大区域: 镜面反射区, 漫反射区, 待分类区(初始所有图片位置) -->
+    <div class="zones">
+        <!-- 镜面反射区域 -->
+        <div class="zone" data-zone="specular" id="specularZone">
+            <div class="zone-header specular">🪞 镜面反射现象</div>
+            <div class="image-grid dropzone" id="specularGrid"></div>
+        </div>
+
+        <!-- 漫反射区域 -->
+        <div class="zone" data-zone="diffuse" id="diffuseZone">
+            <div class="zone-header diffuse">🌿 漫反射现象</div>
+            <div class="image-grid dropzone" id="diffuseGrid"></div>
+        </div>
+
+        <!-- 待分类区域 (初始所有图片随机打乱放在此处) -->
+        <div class="zone" data-zone="unsorted" id="unsortedZone">
+            <div class="zone-header unsorted">📦 待分类卡片区 (可拖动)</div>
+            <div class="image-grid dropzone" id="unsortedGrid"></div>
+        </div>
+    </div>
+
+    <div class="action-bar">
+        <button id="submitBtn">✅ 提交分类 & 评价</button>
+        <button id="resetBtn" class="reset-btn">🔄 重置 / 重新打乱</button>
+    </div>
+
+    <div class="feedback" id="feedbackArea">
+        <h3>📋 评价结果</h3>
+        <div id="resultMessage">等待你的提交～ 将图片拖到正确的区域，然后点击「提交分类」。</div>
+    </div>
+    <footer>💡 提示：1.png~4.png 属于镜面反射，5.png~7.png 属于漫反射。<br> 🖱️ 任意拖拽卡片，可以随时调整位置，提交后会给出详细纠正建议。</footer>
+</div>
+
+<script>
+    // 图片基础配置
+    const TOTAL_IMAGES = 7;
+    // 真实类别映射: 1~4 镜面(specular) , 5~7 漫反射(diffuse)
+    const GROUND_TRUTH = {
+        1: 'specular',
+        2: 'specular',
+        3: 'specular',
+        4: 'specular',
+        5: 'diffuse',
+        6: 'diffuse',
+        7: 'diffuse'
+    };
+
+    // 存储当前所有卡片DOM的数组（用于重置时快速重建，但实际重置会重新生成，避免引用混乱）
+    let allCards = [];     // 保留最新卡片元素数组，但主要基于容器实时查询
+
+    // ---------- 辅助函数 ----------
+    // 创建单个可拖拽卡片 (基于图片编号)
+    function createCard(imageNumber) {
+        const card = document.createElement('div');
+        card.className = 'drag-card';
+        card.setAttribute('draggable', 'true');
+        // 存储关键数据
+        card.setAttribute('data-id', imageNumber);
+        const category = GROUND_TRUTH[imageNumber];
+        card.setAttribute('data-category', category);
+        // 方便调试显示
+        const img = document.createElement('img');
+        // 图片路径: 直接使用同目录下的 "数字.png"
+        img.src = `${imageNumber}.png`;
+        img.alt = `图${imageNumber}`;
+        // 图片加载失败时的占位提示
+        img.onerror = () => {
+            img.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="120" height="120" viewBox="0 0 24 24" fill="%23ccc"%3E%3Crect width="120" height="120" fill="%23eee"/%3E%3Ctext x="10" y="60" fill="%23999" font-size="14"%3E?%3C/text%3E%3C/svg%3E';
+            img.alt = `加载失败 ${imageNumber}.png`;
+        };
+        const label = document.createElement('div');
+        label.className = 'card-label';
+        label.innerText = `图${imageNumber}`;
+        card.appendChild(img);
+        card.appendChild(label);
+        
+        // drag 事件处理 (拖拽核心)
+        card.addEventListener('dragstart', handleDragStart);
+        card.addEventListener('dragend', handleDragEnd);
+        return card;
+    }
+
+    // 全局记录当前被拖拽的卡片id
+    let draggedCardId = null;
+
+    function handleDragStart(e) {
+        const card = e.target.closest('.drag-card');
+        if (!card) {
+            e.preventDefault();
+            return false;
+        }
+        // 存储被拖拽元素的id (唯一标识)
+        draggedCardId = card.getAttribute('data-id');
+        // 设置拖拽数据，必须调用 setData，否则某些浏览器drop不触发
+        e.dataTransfer.setData('text/plain', draggedCardId);
+        e.dataTransfer.effectAllowed = 'move';
+        // 设置拖拽图标为透明 (为了美观，不显示默认半透明克隆)
+        const dragIcon = document.createElement('div');
+        dragIcon.style.opacity = '0';
+        document.body.appendChild(dragIcon);
+        e.dataTransfer.setDragImage(dragIcon, 0, 0);
+        setTimeout(() => document.body.removeChild(dragIcon), 0);
+        // 添加拖拽样式
+        card.classList.add('dragging');
+    }
+
+    function handleDragEnd(e) {
+        const card = e.target.closest('.drag-card');
+        if (card) card.classList.remove('dragging');
+        draggedCardId = null;
+    }
+
+    // 初始化拖放目标: 所有 .dropzone 容器监听 dragover 和 drop
+    function setupDropZones() {
+        const dropZones = document.querySelectorAll('.dropzone');
+        dropZones.forEach(zone => {
+            zone.addEventListener('dragover', (e) => {
+                e.preventDefault();  // 必须，才能成为有效放置目标
+                e.dataTransfer.dropEffect = 'move';
+                // 高亮效果: 给父级zone加样式
+                const parentZone = zone.closest('.zone');
+                if (parentZone && !parentZone.classList.contains('drag-over')) {
+                    document.querySelectorAll('.zone').forEach(z => z.classList.remove('drag-over'));
+                    parentZone.classList.add('drag-over');
+                }
+            });
+            zone.addEventListener('dragleave', (e) => {
+                const parentZone = zone.closest('.zone');
+                if (parentZone) parentZone.classList.remove('drag-over');
+            });
+            zone.addEventListener('drop', (e) => {
+                e.preventDefault();
+                // 清除高亮
+                document.querySelectorAll('.zone').forEach(z => z.classList.remove('drag-over'));
+                // 获取被拖拽卡片的id
+                const dragData = e.dataTransfer.getData('text/plain');
+                if (!dragData) return;
+                // 根据存储的data-id查找实际卡片元素 (因为卡片可能在任意位置，但id全局唯一)
+                const draggedCard = document.querySelector(`.drag-card[data-id="${dragData}"]`);
+                if (!draggedCard) return;
+                
+                // 目标容器: 当前拖放到的 .image-grid
+                let targetGrid = e.currentTarget; // 因为监听在 .dropzone 上
+                // 防止放入同一容器无意义移动
+                if (draggedCard.parentNode === targetGrid) return;
+                
+                // 移动卡片到新容器
+                targetGrid.appendChild(draggedCard);
+                // 可选: 播放微小提示, 无需其他操作
+            });
+        });
+    }
+
+    // 生成所有卡片 (1-7) 并返回卡片数组
+    function generateAllCards() {
+        const cards = [];
+        for (let i = 1; i <= TOTAL_IMAGES; i++) {
+            cards.push(createCard(i));
+        }
+        return cards;
+    }
+
+    // 随机打乱数组 (Fisher-Yates)
+    function shuffleArray(arr) {
+        for (let i = arr.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [arr[i], arr[j]] = [arr[j], arr[i]];
+        }
+        return arr;
+    }
+
+    // 重置全部状态: 清空三个区域，生成新卡片并打乱顺序放入待分类区
+    function resetAndShuffle() {
+        const specularGrid = document.getElementById('specularGrid');
+        const diffuseGrid = document.getElementById('diffuseGrid');
+        const unsortedGrid = document.getElementById('unsortedGrid');
+        
+        // 清空所有容器
+        specularGrid.innerHTML = '';
+        diffuseGrid.innerHTML = '';
+        unsortedGrid.innerHTML = '';
+        
+        // 生成全新卡片
+        const newCards = generateAllCards();
+        // 随机打乱卡片顺序
+        const shuffledCards = shuffleArray([...newCards]);
+        // 全部添加到待分类区
+        shuffledCards.forEach(card => {
+            unsortedGrid.appendChild(card);
+        });
+        
+        // 清空反馈区为默认消息
+        const resultDiv = document.getElementById('resultMessage');
+        resultDiv.innerHTML = '✨ 已重置并随机打乱所有图片，请将图片拖拽到正确的反射区域 ✨';
+        // 可附加清除额外样式
+    }
+
+    // 提交分类: 评价正确率, 分析各区域缺少/多余图片
+    function evaluateClassification() {
+        // 获取三个容器内所有卡片 (基于实际DOM)
+        const specularContainer = document.getElementById('specularGrid');
+        const diffuseContainer = document.getElementById('diffuseGrid');
+        const unsortedContainer = document.getElementById('unsortedGrid');
+        
+        // 获取各区域图片编号集合 (data-id)
+        const getImageIdsFromContainer = (container) => {
+            const cards = container.querySelectorAll('.drag-card');
+            return Array.from(cards).map(card => parseInt(card.getAttribute('data-id')));
+        };
+        
+        const specularIds = getImageIdsFromContainer(specularContainer);
+        const diffuseIds = getImageIdsFromContainer(diffuseContainer);
+        const unsortedIds = getImageIdsFromContainer(unsortedContainer);
+        
+        // 期望集合: 镜面反射应该包含 {1,2,3,4}, 漫反射 {5,6,7}
+        const expectedSpecular = new Set([1,2,3,4]);
+        const expectedDiffuse = new Set([5,6,7]);
+        
+        // 实际集合(Set便于运算)
+        const actualSpecularSet = new Set(specularIds);
+        const actualDiffuseSet = new Set(diffuseIds);
+        
+        // 1. 计算正确放置的图片: 镜面反射区域中的图片属于{1,2,3,4} + 漫反射区域中的图片属于{5,6,7}
+        let correctCount = 0;
+        specularIds.forEach(id => {
+            if (expectedSpecular.has(id)) correctCount++;
+        });
+        diffuseIds.forEach(id => {
+            if (expectedDiffuse.has(id)) correctCount++;
+        });
+        const totalImages = TOTAL_IMAGES;
+        const accuracy = (correctCount / totalImages) * 100;
+        const accuracyPercent = accuracy.toFixed(1);
+        
+        // 2. 分析镜面反射区域：缺少哪些期望图片，多出哪些图片(即错误放入镜面区的漫反射图)
+        const missingInSpecular = [];
+        expectedSpecular.forEach(id => {
+            if (!actualSpecularSet.has(id)) missingInSpecular.push(id);
+        });
+        const extraInSpecular = [];
+        actualSpecularSet.forEach(id => {
+            if (!expectedSpecular.has(id)) extraInSpecular.push(id);
+        });
+        
+        // 3. 分析漫反射区域：缺少哪些期望漫反射图片，多出哪些图片(错误放入漫反射区的镜面图)
+        const missingInDiffuse = [];
+        expectedDiffuse.forEach(id => {
+            if (!actualDiffuseSet.has(id)) missingInDiffuse.push(id);
+        });
+        const extraInDiffuse = [];
+        actualDiffuseSet.forEach(id => {
+            if (!expectedDiffuse.has(id)) extraInDiffuse.push(id);
+        });
+        
+        // 额外提示“未分类区域”的影响：待分类区的图片会导致缺少（未被归类），但已经在missing体现（因为期望图片不在实际镜面或漫反射中）
+        // 为了让提示更清晰，可以补充一句待分类区图片导致哪些缺失，但上述missing已覆盖。我们可以在描述中增强。
+        
+        // 构建详细提示文本
+        let feedbackHtml = `<div class="accuracy">📊 正确率：${correctCount} / ${totalImages} (${accuracyPercent}%)</div>`;
+        
+        // 显示细节
+        feedbackHtml += `<div class="detail-list">`;
+        // 镜面反射区状况
+        if (missingInSpecular.length === 0 && extraInSpecular.length === 0) {
+            feedbackHtml += `<p>🪞 镜面反射区域：✅ 完全正确！</p>`;
+        } else {
+            feedbackHtml += `<p>🪞 镜面反射区域：</p>`;
+            if (missingInSpecular.length > 0) {
+                feedbackHtml += `<div class="missing">🔻 缺少图片 (本该属于镜面反射但未放入此区)：[${missingInSpecular.join(', ')}] 号图片</div>`;
+            }
+            if (extraInSpecular.length > 0) {
+                feedbackHtml += `<div class="extra">⚠️ 多出图片 (错误放入镜面反射区的漫反射图片)：[${extraInSpecular.join(', ')}] 号图片</div>`;
+            }
+        }
+        feedbackHtml += `<hr style="margin:8px 0">`;
+        // 漫反射区状况
+        if (missingInDiffuse.length === 0 && extraInDiffuse.length === 0) {
+            feedbackHtml += `<p>🌿 漫反射区域：✅ 完全正确！</p>`;
+        } else {
+            feedbackHtml += `<p>🌿 漫反射区域：</p>`;
+            if (missingInDiffuse.length > 0) {
+                feedbackHtml += `<div class="missing">🔻 缺少图片 (本该属于漫反射但未放入此区)：[${missingInDiffuse.join(', ')}] 号图片</div>`;
+            }
+            if (extraInDiffuse.length > 0) {
+                feedbackHtml += `<div class="extra">⚠️ 多出图片 (错误放入漫反射区域的镜面反射图片)：[${extraInDiffuse.join(', ')}] 号图片</div>`;
+            }
+        }
+        
+        // 未分类区域的提示 (辅助用户)
+        if (unsortedIds.length > 0) {
+            feedbackHtml += `<hr style="margin:8px 0"><div>📦 待分类区尚有 ${unsortedIds.length} 张图片未归类：[${unsortedIds.join(', ')}] 号图片，请拖动至正确区域。</div>`;
+            // 指出由于待分类区导致相应区域缺失：
+            const unsortedSet = new Set(unsortedIds);
+            const stillMissingSpecular = missingInSpecular.filter(id => unsortedSet.has(id));
+            const stillMissingDiffuse = missingInDiffuse.filter(id => unsortedSet.has(id));
+            if (stillMissingSpecular.length > 0) {
+                feedbackHtml += `<div class="missing">💡 提示：镜面反射区缺少的图片${stillMissingSpecular.join(',')}号目前在「待分类区」。</div>`;
+            }
+            if (stillMissingDiffuse.length > 0) {
+                feedbackHtml += `<div class="missing">💡 提示：漫反射区缺少的图片${stillMissingDiffuse.join(',')}号目前在「待分类区」。</div>`;
+            }
+        } else {
+            if (missingInSpecular.length === 0 && missingInDiffuse.length === 0 && extraInSpecular.length === 0 && extraInDiffuse.length === 0) {
+                feedbackHtml += `<hr><div style="background:#d4edda; padding:8px; border-radius:20px; text-align:center;">🏆 完美！所有图片都已正确分类！ 🎉</div>`;
+            } else if (missingInSpecular.length === 0 && missingInDiffuse.length === 0 && (extraInSpecular.length>0 || extraInDiffuse.length>0)) {
+                feedbackHtml += `<hr><div>📌 所有图片都已分类到两个区域，但仍有部分放错位置，请根据上面提示调整。</div>`;
+            }
+        }
+        
+        feedbackHtml += `</div>`;
+        
+        // 附加评价结语
+        if (accuracy === 100) {
+            feedbackHtml += `<div style="margin-top:12px; font-weight:bold; color:#2b6e3c;">🌟 评价：完全正确！非常了解镜面反射与漫反射的区别！ 🌟</div>`;
+        } else if (accuracy >= 70) {
+            feedbackHtml += `<div style="margin-top:12px; font-weight:bold; color:#c97e00;">📘 评价：还不错，再调整一下错误放置的图片吧！</div>`;
+        } else {
+            feedbackHtml += `<div style="margin-top:12px; font-weight:bold; color:#b13b3b;">📖 评价：需要复习一下概念，镜面反射（光滑表面，如镜子、水面倒影）vs 漫反射（粗糙表面，如纸张、墙壁）。继续拖动练习！</div>`;
+        }
+        
+        const resultDiv = document.getElementById('resultMessage');
+        resultDiv.innerHTML = feedbackHtml;
+    }
+    
+    // 重新绑定拖拽事件 (因为重置时重建卡片，需要重新绑定dragstart/dragend；但由于createCard时已经绑定，重置重新生成会调用，所以没问题)
+    // 额外确保dropzone的监听只初始化一次，但重置不会移除drop监听，全局已设置
+    // 页面完全初始化
+    function initApp() {
+        setupDropZones();      // 设置全局放置区监听 (只需一次)
+        resetAndShuffle();     // 初始加载: 随机打乱图片到待分类区
+        
+        // 绑定提交与重置按钮
+        const submitBtn = document.getElementById('submitBtn');
+        const resetBtn = document.getElementById('resetBtn');
+        // 移除旧监听避免重复(但无所谓，用新替换)
+        const newSubmit = submitBtn.cloneNode(true);
+        submitBtn.parentNode.replaceChild(newSubmit, submitBtn);
+        const newReset = resetBtn.cloneNode(true);
+        resetBtn.parentNode.replaceChild(newReset, resetBtn);
+        
+        newSubmit.addEventListener('click', evaluateClassification);
+        newReset.addEventListener('click', () => {
+            resetAndShuffle();
+            // 重置后滚动到顶部并清空高亮
+            const feedbackDiv = document.getElementById('resultMessage');
+            feedbackDiv.innerHTML = '🔄 已重置并随机打乱顺序，请重新拖拽分类～';
+        });
+    }
+    
+    // 启动应用
+    initApp();
+</script>
+</body>
+</html>

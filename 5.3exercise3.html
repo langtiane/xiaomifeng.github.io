@@ -1,0 +1,542 @@
+ <!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>光的三原色大战 - 鼠标瞄准版</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: #1a1a1a;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            font-family: Arial, sans-serif;
+            color: white;
+            overflow: hidden;
+        }
+
+        .game-title {
+            margin: 10px 0;
+            font-size: 24px;
+            color: #fff;
+            text-shadow: 0 0 10px #00ffff;
+        }
+
+        .score-panel {
+            font-size: 20px;
+            margin-bottom: 10px;
+            padding: 5px 20px;
+            background: rgba(0,0,0,0.5);
+            border-radius: 10px;
+        }
+
+        #gameCanvas {
+            border: 3px solid #ffffff;
+            border-radius: 5px;
+            background: #000;
+            box-shadow: 0 0 20px rgba(255,255,255,0.3);
+            cursor: none;
+        }
+
+        .color-control {
+            margin-top: 15px;
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+
+        .rgb-btn {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            border: none;
+            cursor: pointer;
+            font-size: 18px;
+            font-weight: bold;
+            transition: transform 0.2s;
+        }
+        .rgb-btn:hover {
+            transform: scale(1.1);
+        }
+        #redBtn { background: #ff0000; color: white; }
+        #greenBtn { background: #00ff00; color: black; }
+        #blueBtn { background: #0000ff; color: white; }
+
+        .bullet-preview {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            border: 3px solid white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            text-shadow: 1px 1px 2px #000;
+        }
+
+        .game-tips {
+            margin-top: 10px;
+            font-size: 14px;
+            color: #ccc;
+            text-align: center;
+            line-height: 1.5;
+        }
+
+        .game-over-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            cursor: default;
+        }
+
+        .game-over-panel {
+            background: linear-gradient(135deg, #2c3e50, #4b6cb7);
+            border-radius: 20px;
+            padding: 40px;
+            text-align: center;
+            box-shadow: 0 0 30px rgba(0, 255, 255, 0.5);
+            color: white;
+            max-width: 500px;
+            width: 90%;
+        }
+
+        .game-over-title {
+            font-size: 36px;
+            margin-bottom: 20px;
+            text-shadow: 0 0 10px #00ffff;
+        }
+
+        .game-over-score {
+            font-size: 24px;
+            margin-bottom: 30px;
+        }
+
+        .restart-btn {
+            background: linear-gradient(135deg, #ff6b6b, #ee5a6f);
+            border: none;
+            border-radius: 50px;
+            padding: 15px 30px;
+            font-size: 18px;
+            font-weight: bold;
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(255, 107, 107, 0.4);
+        }
+
+        .restart-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 20px rgba(255, 107, 107, 0.6);
+        }
+
+        .rules-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1001;
+            cursor: default;
+        }
+
+        .rules-panel {
+            background: linear-gradient(135deg, #1a237e, #3949ab);
+            border-radius: 20px;
+            padding: 40px;
+            text-align: center;
+            box-shadow: 0 0 30px rgba(0, 255, 255, 0.5);
+            color: white;
+            max-width: 600px;
+            width: 90%;
+        }
+
+        .rules-title {
+            font-size: 32px;
+            margin-bottom: 20px;
+            text-shadow: 0 0 10px #00ffff;
+        }
+
+        .rules-content {
+            font-size: 16px;
+            line-height: 1.6;
+            margin-bottom: 30px;
+            text-align: left;
+        }
+
+        .start-btn {
+            background: linear-gradient(135deg, #4caf50, #45a049);
+            border: none;
+            border-radius: 50px;
+            padding: 15px 30px;
+            font-size: 18px;
+            font-weight: bold;
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(76, 175, 80, 0.4);
+        }
+
+        .start-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 20px rgba(76, 175, 80, 0.6);
+        }
+    </style>
+</head>
+<body>
+    <h1 class="game-title">🔴🟢🔵 光的三原色大战</h1>
+    <div class="score-panel">分数: <span id="score">0</span> | 生命值: <span id="lives">3</span></div>
+    
+    <canvas id="gameCanvas" width="800" height="500"></canvas>
+
+    <div class="color-control">
+        <button class="rgb-btn" id="redBtn">红</button>
+        <button class="rgb-btn" id="greenBtn">绿</button>
+        <button class="rgb-btn" id="blueBtn">蓝</button>
+        <div id="bulletPreview" class="bullet-preview">炮弹</div>
+    </div>
+
+    <div class="game-tips">
+        鼠标移动 = 瞄准<br>
+        鼠标点击 = 发射炮弹<br>
+        红+绿=黄 | 红+蓝=品红 | 绿+蓝=青 | 三色全=白
+    </div>
+
+    <!-- 游戏规则弹窗 -->
+    <div id="rulesOverlay" class="rules-overlay">
+        <div class="rules-panel">
+            <h2 class="rules-title">游戏规则</h2>
+            <div class="rules-content">
+                <p>1. 游戏目标：使用光的三原色合成炮弹，消灭对应颜色的敌人</p>
+                <p>2. 操作方法：</p>
+                <p>   - 鼠标移动：瞄准敌人</p>
+                <p>   - 鼠标点击：发射炮弹</p>
+                <p>   - 红、绿、蓝按钮：合成炮弹颜色</p>
+                <p>3. 颜色合成规则：</p>
+                <p>   - 红 + 绿 = 黄</p>
+                <p>   - 红 + 蓝 = 品红</p>
+                <p>   - 绿 + 蓝 = 青</p>
+                <p>   - 红 + 绿 + 蓝 = 白</p>
+                <p>4. 游戏机制：</p>
+                <p>   - 每发射一次炮弹后需要重新合成</p>
+                <p>   - 敌人触底会减少生命值</p>
+                <p>   - 共有3条生命值</p>
+                <p>   - 消灭敌人获得分数</p>
+            </div>
+            <button id="startBtn" class="start-btn">开始游戏</button>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const scoreEl = document.getElementById('score');
+        const livesEl = document.getElementById('lives');
+        const bulletPreview = document.getElementById('bulletPreview');
+
+        const redBtn = document.getElementById('redBtn');
+        const greenBtn = document.getElementById('greenBtn');
+        const blueBtn = document.getElementById('blueBtn');
+
+        // 鼠标瞄准
+        let mouse = { x: canvas.width / 2, y: 200 };
+
+        let bulletColor = { r: 0, g: 0, b: 0 };
+        let currentBulletHex = '#000000';
+        let score = 0;
+        let lives = 3;
+        let enemySpawnInterval = 3000; // 初始敌人生成间隔
+        let spawnIntervalId = null;
+        let bigEnemyProbability = 0.3; // 大敌人初始出现概率（30%）
+        let bigEnemyProbabilityIntervalId = null; // 概率增加定时器ID
+
+        let enemies = [];
+        let bullets = [];
+
+        const player = {
+            x: canvas.width / 2,
+            y: canvas.height - 30,
+            size: 20
+        };
+
+        // 准星
+        function drawCrosshair() {
+            ctx.strokeStyle = '#fff';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(mouse.x - 10, mouse.y);
+            ctx.lineTo(mouse.x + 10, mouse.y);
+            ctx.moveTo(mouse.x, mouse.y - 10);
+            ctx.lineTo(mouse.x, mouse.y + 10);
+            ctx.stroke();
+        }
+
+        // 更新炮弹颜色
+        function updateBulletColor() {
+            const r = bulletColor.r ? 255 : 0;
+            const g = bulletColor.g ? 255 : 0;
+            const b = bulletColor.b ? 255 : 0;
+            currentBulletHex = `rgb(${r},${g},${b})`;
+            bulletPreview.style.background = currentBulletHex;
+
+            let colorName = "无";
+            if(r===255&&g===0&&b===0) colorName="红";
+            else if(r===0&&g===255&&b===0) colorName="绿";
+            else if(r===0&&g===0&&b===255) colorName="蓝";
+            else if(r===255&&g===255&&b===0) colorName="黄";
+            else if(r===255&&g===0&&b===255) colorName="品红";
+            else if(r===0&&g===255&&b===255) colorName="青";
+            else if(r===255&&g===255&&b===255) colorName="白";
+            bulletPreview.innerText = colorName;
+        }
+
+        // 切换颜色
+        redBtn.addEventListener('click', () => { bulletColor.r = !bulletColor.r; updateBulletColor(); });
+        greenBtn.addEventListener('click', () => { bulletColor.g = !bulletColor.g; updateBulletColor(); });
+        blueBtn.addEventListener('click', () => { bulletColor.b = !bulletColor.b; updateBulletColor(); });
+
+        // 鼠标移动
+        canvas.addEventListener('mousemove', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            mouse.x = e.clientX - rect.left;
+            mouse.y = e.clientY - rect.top;
+        });
+
+        // 鼠标点击发射
+        canvas.addEventListener('click', () => {
+            if (currentBulletHex === 'rgb(0,0,0)') return;
+
+            const dx = mouse.x - player.x;
+            const dy = mouse.y - player.y;
+            const dist = Math.hypot(dx, dy);
+            const vx = (dx / dist) * 8;
+            const vy = (dy / dist) * 8;
+
+            bullets.push({
+                x: player.x,
+                y: player.y,
+                vx, vy,
+                size: 8,
+                color: currentBulletHex
+            });
+
+            // 发射后重置炮弹颜色为无色
+            bulletColor = { r: 0, g: 0, b: 0 };
+            updateBulletColor();
+        });
+
+        // 生成敌人
+        function spawnEnemy() {
+            let size = 25;
+            let isBigEnemy = false;
+            
+            // 当分数达到200分时，根据当前概率生成大敌人
+            if (score >= 200 && Math.random() < bigEnemyProbability) {
+                size = 40;
+                isBigEnemy = true;
+            }
+            
+            const x = Math.random() * (canvas.width - size * 2) + size;
+            const enemyColors = [
+                'rgb(255,0,255)',
+                'rgb(0,255,255)',
+                'rgb(255,255,0)',
+                'rgb(255,255,255)'
+            ];
+            const color = enemyColors[Math.floor(Math.random() * enemyColors.length)];
+
+            enemies.push({
+                x, y: 0, size, color, speed: isBigEnemy ? 0.1875 / 2 : 0.1875, isBigEnemy, health: isBigEnemy ? 2 : 1
+            });
+        }
+
+        function draw() {
+            ctx.fillStyle = '#000';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // 炮台
+            ctx.beginPath();
+            ctx.arc(player.x, player.y, player.size, 0, Math.PI * 2);
+            ctx.fillStyle = '#fff';
+            ctx.fill();
+
+            // 子弹
+            bullets.forEach((b, i) => {
+                b.x += b.vx;
+                b.y += b.vy;
+                ctx.beginPath();
+                ctx.arc(b.x, b.y, b.size, 0, Math.PI * 2);
+                ctx.fillStyle = b.color;
+                ctx.fill();
+                if (b.x < 0 || b.x > canvas.width || b.y < 0 || b.y > canvas.height) {
+                    bullets.splice(i, 1);
+                }
+            });
+
+            // 敌人
+            enemies.forEach((e, i) => {
+                e.y += e.speed;
+                ctx.beginPath();
+                ctx.arc(e.x, e.y, e.size, 0, Math.PI * 2);
+                ctx.fillStyle = e.color;
+                ctx.fill();
+                if (e.y > canvas.height) {
+                    enemies.splice(i, 1);
+                    lives--;
+                    livesEl.innerText = lives;
+                    if (lives <= 0) {
+                        showGameOver();
+                    }
+                }
+            });
+
+            // 碰撞
+            bullets.forEach((b, bi) => {
+                enemies.forEach((e, ei) => {
+                    const d = Math.hypot(b.x - e.x, b.y - e.y);
+                    if (d < b.size + e.size && b.color === e.color) {
+                        bullets.splice(bi, 1);
+                        
+                        // 处理大敌人
+                        if (e.isBigEnemy && e.health > 1) {
+                            // 大敌人第一次被命中，变成小敌人
+                            e.isBigEnemy = false;
+                            e.health = 1;
+                            e.size = 25;
+                            e.speed = 0.1875 * 1.5; // 变小后速度稍微增加
+                        } else {
+                            // 小敌人或大敌人第二次被命中，消灭敌人
+                            enemies.splice(ei, 1);
+                            score += e.isBigEnemy ? 20 : 10; // 大敌人得分更高
+                            scoreEl.innerText = score;
+                            
+                            // 当分数到达200分时，调整敌人出现频率并开始出现大敌人
+                            if (score >= 200 && enemySpawnInterval > 2600) {
+                                clearInterval(spawnIntervalId);
+                                enemySpawnInterval = 2600;
+                                spawnIntervalId = setInterval(spawnEnemy, enemySpawnInterval);
+                                showDifficultyWarning();
+                            }
+                        }
+                    }
+                });
+            });
+
+            drawCrosshair();
+            requestAnimationFrame(gameLoop);
+        }
+
+        function gameLoop() { draw(); }
+
+        function showGameOver() {
+            const overlay = document.createElement('div');
+            overlay.className = 'game-over-overlay';
+            
+            const panel = document.createElement('div');
+            panel.className = 'game-over-panel';
+            
+            const title = document.createElement('h2');
+            title.className = 'game-over-title';
+            title.textContent = '游戏结束！';
+            
+            const scoreText = document.createElement('div');
+            scoreText.className = 'game-over-score';
+            scoreText.textContent = `最终得分：${score}`;
+            
+            const restartBtn = document.createElement('button');
+            restartBtn.className = 'restart-btn';
+            restartBtn.textContent = '再来一局';
+            restartBtn.addEventListener('click', () => {
+                window.location.reload();
+            });
+            
+            panel.appendChild(title);
+            panel.appendChild(scoreText);
+            panel.appendChild(restartBtn);
+            overlay.appendChild(panel);
+            document.body.appendChild(overlay);
+        }
+
+        // 显示难度飙升提示
+        function showDifficultyWarning() {
+            const warning = document.createElement('div');
+            warning.style.position = 'fixed';
+            warning.style.top = '50%';
+            warning.style.left = '50%';
+            warning.style.transform = 'translate(-50%, -50%)';
+            warning.style.background = 'rgba(255, 0, 0, 0.8)';
+            warning.style.color = 'white';
+            warning.style.padding = '20px 40px';
+            warning.style.borderRadius = '10px';
+            warning.style.fontSize = '24px';
+            warning.style.fontWeight = 'bold';
+            warning.style.zIndex = '1002';
+            warning.style.textAlign = 'center';
+            warning.style.boxShadow = '0 0 20px rgba(255, 0, 0, 0.5)';
+            warning.textContent = '难度飙升！';
+            
+            document.body.appendChild(warning);
+            
+            // 2秒后开始淡出
+            setTimeout(() => {
+                let opacity = 1;
+                const fadeInterval = setInterval(() => {
+                    opacity -= 0.01;
+                    warning.style.opacity = opacity;
+                    if (opacity <= 0) {
+                        clearInterval(fadeInterval);
+                        document.body.removeChild(warning);
+                    }
+                }, 10);
+            }, 2000);
+            
+            // 开始增加大敌人出现概率的定时器
+            if (!bigEnemyProbabilityIntervalId) {
+                bigEnemyProbabilityIntervalId = setInterval(() => {
+                    if (bigEnemyProbability < 1) {
+                        bigEnemyProbability += 0.01; // 每10秒增加1%
+                        if (bigEnemyProbability > 1) {
+                            bigEnemyProbability = 1; // 上限为100%
+                        }
+                    } else {
+                        // 概率达到100%后停止定时器
+                        clearInterval(bigEnemyProbabilityIntervalId);
+                        bigEnemyProbabilityIntervalId = null;
+                    }
+                }, 10000); // 每10秒执行一次
+            }
+        }
+
+        // 游戏初始化
+        function initGame() {
+            spawnIntervalId = setInterval(spawnEnemy, enemySpawnInterval);
+            updateBulletColor();
+            gameLoop();
+        }
+
+        // 开始按钮点击事件
+        const startBtn = document.getElementById('startBtn');
+        const rulesOverlay = document.getElementById('rulesOverlay');
+        startBtn.addEventListener('click', () => {
+            rulesOverlay.style.display = 'none';
+            initGame();
+        });
+    </script>
+</body>
+</html>
